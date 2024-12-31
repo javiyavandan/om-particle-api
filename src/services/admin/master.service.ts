@@ -52,7 +52,7 @@ export const addMaster = async (req: Request) => {
       );
 
       if (moveFileResult.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-        return moveFileResult;
+        return moveFileResult; 
       }
 
       filePath = moveFileResult.data;
