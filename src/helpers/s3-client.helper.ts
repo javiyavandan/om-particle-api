@@ -21,8 +21,8 @@ import { saveS3LogsToFile } from "./log.hepler";
 const S3 = new S3Client({
   region: S3_REGION,
   credentials: {
-    accessKeyId: S3_ACCESS_KEY_ID,
-    secretAccessKey: S3_SECRET_ACCESS_KEY,
+    accessKeyId: S3_ACCESS_KEY_ID as string,
+    secretAccessKey: S3_SECRET_ACCESS_KEY as string,
   },
 });
 

@@ -20,7 +20,7 @@ const Company = dbContext.define("company_masters", {
   company_email: {
     type: STRING,
   },
-  abn_number: {
+  registration_number: {
     type: STRING,
   },
   address: {

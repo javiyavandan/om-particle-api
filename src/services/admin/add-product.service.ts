@@ -7,13 +7,13 @@ import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumera
 import Location from "../../model/location.model";
 import { Op, Sequelize } from "sequelize";
 
-export const addProduct = async (req: Request) => {
+export const addStock = async (req: Request) => {
     try {
         const {
             stock_id,
-            available,
+            status,
             shape,
-            piece,
+            quantity,
             weight,
             rate,
             color,
@@ -30,9 +30,10 @@ export const addProduct = async (req: Request) => {
             table_value,
             depth_value,
             ratio,
-            flo,
+            fluorescence,
             location_id,
-            comments,
+            userComments,
+            adminComments,
             session_res
         } = req.body
 
@@ -56,6 +57,7 @@ export const addProduct = async (req: Request) => {
         const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
         const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.fancyColorIntensity && item.dataValues.id === color_intensity)
+        const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const locationData = await Location.findOne({
             where: {
                 id: location_id
@@ -77,6 +79,7 @@ export const addProduct = async (req: Request) => {
         if (!symmetryData) missingFields.push("Symmetry Data");
         if (!colorIntensityData) missingFields.push("Color Intensity Data");
         if (!locationData) missingFields.push("Location Data");
+        if (!fluorescenceData) missingFields.push("fluorescenceData Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
@@ -93,11 +96,11 @@ export const addProduct = async (req: Request) => {
 
         await Diamonds.create({
             stock_id: stock_id,
-            available: available,
+            status: status,
             is_active: ActiveStatus.Active,
             is_deleted: DeleteStatus.No,
             shape: shape,
-            piece: piece,
+            quantity: quantity,
             weight: weight,
             rate: rate,
             color: color,
@@ -114,9 +117,10 @@ export const addProduct = async (req: Request) => {
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
-            flo: flo,
+            fluorescenceData: fluorescenceData,
             location_id: location_id,
-            comments: comments,
+            user_comments: userComments,
+            admin_comments: adminComments,
             created_by: session_res.user_id,
             created_at: getLocalDate(),
         })
@@ -135,7 +139,7 @@ export const updateProduct = async (req: Request) => {
             is_active,
             is_deleted,
             shape,
-            piece,
+            quantity,
             weight,
             rate,
             color,
@@ -178,7 +182,7 @@ export const updateProduct = async (req: Request) => {
         const labData = MastersData.filter(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
         const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.fancyColorIntensity && item.dataValues.id === color_intensity)
+        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
         const locationData = await Location.findOne({
             where: {
                 id: location_id
@@ -220,7 +224,7 @@ export const updateProduct = async (req: Request) => {
             is_active: is_active,
             is_deleted: is_deleted,
             shape: shape,
-            piece: piece,
+            quantity: quantity,
             weight: weight,
             rate: rate,
             color: color,
@@ -307,7 +311,7 @@ export const getProduct = async (req: Request) => {
                 [Sequelize.literal(`"polish"."name"`), "polish"],
                 [Sequelize.literal(`"symmetry"."name"`), "symmetry"],
                 [Sequelize.literal(`"location"."name"`), "location"],
-                "piece",
+                "quantity",
                 "weight",
                 "rate",
                 "report",
@@ -421,7 +425,7 @@ export const getAllProducts = async (req: Request) => {
                 [Sequelize.literal(`"polish"."name"`), "polish"],
                 [Sequelize.literal(`"symmetry"."name"`), "symmetry"],
                 [Sequelize.literal(`"location"."name"`), "location"],
-                "piece",
+                "quantity",
                 "weight",
                 "rate",
                 "report",

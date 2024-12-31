@@ -1,6 +1,6 @@
 import express, { RequestHandler, Response } from "express";
 import http from "http";
-import { PORT } from "./env.var";
+import { DB_HOST, DB_NAME, PORT } from "./env.var";
 import routes from "../routes/index.route";
 import { bodyDecipher } from "../middlewares/req-res-encoder";
 import dbConnection from "./dbContext";
@@ -34,7 +34,7 @@ const startServer = (app: express.Application) => {
   server.listen(port);
 
   const addr = server.address();
-  const bind = typeof addr === "string" ? `pipe  ${addr}` : `port-${port}`;
+  const bind = typeof addr === "string" ? `pipe  ${addr}` : `port-${port} db: ${DB_NAME} host: ${DB_HOST}`;
   console.log(`🛡️   Server listening on ${bind} 🛡️ `);
 };
 

@@ -12,7 +12,7 @@ const Diamonds = dbContext.define('diamonds', {
     stock_id: {
         type: STRING,
     },
-    available: {
+    status: {
         type: STRING,
     },
     is_active: {
@@ -24,14 +24,14 @@ const Diamonds = dbContext.define('diamonds', {
     shape: {
         type: BIGINT,
     },
-    piece: {
+    quantity: {
         type: BIGINT,
     },
     weight: {
         type: DOUBLE,
     },
     rate: {
-        type: BIGINT,
+        type: DOUBLE,
     },
     color: {
         type: BIGINT,
@@ -75,13 +75,16 @@ const Diamonds = dbContext.define('diamonds', {
     ratio: {
         type: STRING,
     },
-    flo: {
+    fluorescence: {
         type: STRING,
     },
     location_id: {
         type: BIGINT,
     },
-    comments: {
+    user_comments: {
+        type: STRING,
+    },
+    admin_comments: {
         type: STRING,
     },
     created_by: {
@@ -104,13 +107,14 @@ const Diamonds = dbContext.define('diamonds', {
     },
 })
 
-Diamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity" });
-Diamonds.belongsTo(Master, { foreignKey: "color", as: "color" });
-Diamonds.belongsTo(Master, { foreignKey: "color_intensity", as: "color_intensity" });
-Diamonds.belongsTo(Master, { foreignKey: "lab", as: "lab" });
-Diamonds.belongsTo(Location, { foreignKey: "location_id", as: "location" });
-Diamonds.belongsTo(Master, { foreignKey: "polish", as: "polish" });
-Diamonds.belongsTo(Master, { foreignKey: "shape", as: "shape" });
-Diamonds.belongsTo(Master, { foreignKey: "symmetry", as: "symmetry" });
+Diamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });
+Diamonds.belongsTo(Master, { foreignKey: "color", as: "color_master" });
+Diamonds.belongsTo(Master, { foreignKey: "color_intensity", as: "color_intensity_master" });
+Diamonds.belongsTo(Master, { foreignKey: "lab", as: "lab_master" });
+Diamonds.belongsTo(Location, { foreignKey: "location_id", as: "location_master" });
+Diamonds.belongsTo(Master, { foreignKey: "polish", as: "polish_master" });
+Diamonds.belongsTo(Master, { foreignKey: "shape", as: "shape_master" });
+Diamonds.belongsTo(Master, { foreignKey: "symmetry", as: "symmetry_master" });
+Diamonds.belongsTo(Master, { foreignKey: "fluorescence", as: "fluorescence_master" });
 
 export default Diamonds;

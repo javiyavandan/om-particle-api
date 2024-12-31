@@ -99,7 +99,7 @@ import {
   export const LAST_NAME_REQUIRED = "Last name is required!";
   export const COMPANY_NAME_REQUIRED = "Company name is required!";
   export const COMPANY_WEBSITE_REQUIRED = "Company website is required!";
-  export const ABN_NUMBER_REQUIRED = "ABN number is required!";
+  export const REGISTRATION_NUMBER_REQUIRED = "Registration number is required!";
   export const ADDRESS_REQUIRED = "Address is required!";
   export const CITY_REQUIRED = "City is required!";
   export const STATE_REQUIRED = "State is required!";

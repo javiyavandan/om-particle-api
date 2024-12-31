@@ -78,13 +78,12 @@ export const registerUser = async (req: Request, res: Response) => {
       confirm_password,
       company_name,
       company_website,
-      abn_number,
+      registration_number,
       address,
       city,
       country,
       state,
       postcode,
-      session_res,
     } = req.body;
 
     let OTP = "";
@@ -118,10 +117,9 @@ export const registerUser = async (req: Request, res: Response) => {
           password: pass_hash,
           is_deleted: DeleteStatus.No,
           created_at: getLocalDate(),
-          created_by: session_res.user_id,
-          user_type: UserType.Customer,
+          user_type: UserType.Admin,
           is_active: ActiveStatus.Active,
-          is_verified: UserVerification.NotVerified,
+          is_verified: UserVerification.Admin_Verified,
           one_time_pass: OTP,
         },
         { transaction: trn }
@@ -134,7 +132,7 @@ export const registerUser = async (req: Request, res: Response) => {
             user_id: createUser.dataValues.id,
             company_name: company_name,
             company_website: company_website,
-            abn_number: abn_number,
+            registration_number: registration_number,
             address: address,
             city: city,
             state: state,
@@ -142,7 +140,6 @@ export const registerUser = async (req: Request, res: Response) => {
             postcode: postcode,
             is_deleted: DeleteStatus.No,
             created_at: getLocalDate(),
-            created_by: session_res.user_id,
           },
           { transaction: trn }
         );
@@ -212,6 +209,7 @@ export const registerUser = async (req: Request, res: Response) => {
         message: OTP_SENT + " " + email,
       });
     } catch (error) {
+      console.log(error)
       await trn.rollback();
       return resUnknownError({ data: error });
     }
@@ -360,21 +358,21 @@ export const login = async (req: Request, res: Response) => {
       }
     );
 
-    const wishlistCount = await Wishlist.count({
-      where: { user_id: appUser.dataValues.id },
-    });
-    const cartCount = await CartProducts.count({
-      where: { user_id: appUser.dataValues.id },
-    });
+    // const wishlistCount = await Wishlist.count({
+    //   where: { user_id: appUser.dataValues.id },
+    // });
+    // const cartCount = await CartProducts.count({
+    //   where: { user_id: appUser.dataValues.id },
+    // });
 
     return resSuccess({
       data: {
         token: data,
         userDetails: {...appUser.dataValues, password: ''},
-        count: {
-          wishlistCount,
-          cartCount,
-        },
+        // count: {
+        //   wishlistCount,
+        //   cartCount,
+        // },
       },
     });
   } catch (e) {

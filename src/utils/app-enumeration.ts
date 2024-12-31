@@ -3,6 +3,12 @@ export enum UserType {
   Customer = "customer_user",
 }
 
+export enum StockStatus {
+  YES = 'yes',
+  NO = 'no',
+  MEMO = 'memo',
+}
+
 export enum AffiliateStatus {
   Padding = 0,
   Active = 1,
@@ -103,8 +109,10 @@ export enum Master_type {
   symmetry = "symmetry_master",
   fluorescenceIntensity = "fluorescence_intensity_master",
   fluorescenceColor = "fluorescence_color_master",
+  fluorescence = "fluorescence_master",
   lab = "lab_master",
   fancyColor = "fancy_color_master",
+  colorIntensity = "color_intensity_master",
   fancyColorIntensity = "fancy_color_intensity_master",
   fancyColorOvertone = "fancy_color_overtone_master",
   GirdleThin = "girdle_thin_master",
@@ -164,8 +172,10 @@ export enum IMAGE_TYPE {
   symmetry = "symmetry_master",
   fluorescenceIntensity = "fluorescence_intensity_master",
   fluorescenceColor = "fluorescence_color_master",
+  fluorescence = "fluorescence_master",
   lab = "lab_master",
   fancyColor = "fancy_color_master",
+  colorIntensity = "color_intensity_master",
   fancyColorIntensity = "fancy_color_intensity_master",
   fancyColorOvertone = "fancy_color_overtone_master",
   GirdleThin = "girdle_thin_master",
