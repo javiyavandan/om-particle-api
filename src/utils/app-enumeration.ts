@@ -58,6 +58,11 @@ export enum UserVerification {
   NotVerified = "not_verified",
 }
 
+export enum UserListType {
+  Approved = "approved",
+  Pending = "pending",
+}
+
 
 export enum VehicleCategory {
   CharterBus = 1,
