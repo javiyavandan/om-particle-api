@@ -12,8 +12,8 @@ export const addStockRules = [
     fieldStringChain("certificate", "certificate"),
     fieldStringChain("measurement", "measurement"),
     fieldStringChain("ratio", "ratio"),
-    fieldStringChain("User comments", "user_comments"),
-    fieldStringChain("Admin comments", "admin_comments"),
+    fieldStringChain("User comments", "userComments"),
+    fieldStringChain("Admin comments", "adminComments"),
     fieldIntegerChain("shape", "shape"),
     fieldIntegerChain("quantity", "quantity"),
     fieldIntegerChain("color", "color"),
@@ -23,6 +23,6 @@ export const addStockRules = [
     fieldIntegerChain("report", "report"),
     fieldIntegerChain("polish", "polish"),
     fieldIntegerChain("symmetry", "symmetry"),
-    fieldIntegerChain("location_id", "location_id"),
+    fieldIntegerChain("company", "company_id"),
     fieldIntegerChain("fluorescence", "fluorescence"),
 ]
