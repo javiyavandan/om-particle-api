@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Country from "../../model/country.model";
-import { DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
+import { DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages";
 import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery } from "../../utils/shared-functions";
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import { Op } from "sequelize";
@@ -34,7 +34,7 @@ export const addCountry = async (req: Request) => {
         });
 
 
-        return resSuccess({ data: country });
+        return resSuccess();
 
     } catch (error) {
         throw error;
@@ -46,14 +46,29 @@ export const updateCountry = async (req: Request) => {
         const { name } = req.body
         const { country_id } = req.params;
 
-        const findCountry = await Country.findOne({
+        const country = await Country.findOne({
             where: {
-                id: { [Op.ne]: country_id },
+                id: country_id,
+                is_deleted: DeleteStatus.No
+            }
+        })
+
+        if (!(country && country.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+                    ["field_name", "Country"],
+                ]),
+            })
+        }
+
+        const duplicateCountry = await Country.findOne({
+            where: {
+                id: { [Op.ne]: country.dataValues.id },
                 name: name
             }
         });
 
-        if (findCountry && findCountry.dataValues) {
+        if (duplicateCountry && duplicateCountry.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
                 message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
@@ -69,7 +84,7 @@ export const updateCountry = async (req: Request) => {
             updated_by: req.body.session_res.user_id,
         }, {
             where: {
-                id: country_id
+                id: country.dataValues.id
             }
         });
 
@@ -85,7 +100,8 @@ export const deleteCountry = async (req: Request) => {
         const { country_id } = req.params;
         const country = await Country.findOne({
             where: {
-                id: country_id
+                id: country_id,
+                is_deleted: DeleteStatus.No
             }
         });
 
@@ -101,12 +117,12 @@ export const deleteCountry = async (req: Request) => {
             deleted_by: req.body.session_res.user_id,
         }, {
             where: {
-                id: country_id
+                id: country.dataValues.id
             }
         });
 
 
-        return resSuccess({ message: RECORD_UPDATE });
+        return resSuccess({ message: RECORD_DELETED });
     } catch (error) {
         throw error;
     }
@@ -165,7 +181,10 @@ export const getCountries = async (req: Request) => {
 export const getCountry = async (req: Request) => {
     try {
         const { country_id } = req.params;
-        const country = await Country.findOne({ where: { id: country_id } });
+        const country = await Country.findOne({
+            where: { id: country_id, is_deleted: DeleteStatus.No, },
+            attributes: ["id", "name", "slug", "is_active"],
+        });
         if (!(country && country.dataValues)) {
             return resNotFound({
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Country']])
@@ -181,7 +200,12 @@ export const updateCountryStatus = async (req: Request) => {
     try {
         const { country_id } = req.params;
         const { session_res } = req.body;
-        const country = await Country.findOne({ where: { id: country_id } });
+        const country = await Country.findOne({
+            where: {
+                id: country_id,
+                is_deleted: DeleteStatus.No
+            }
+        });
         if (!(country && country.dataValues)) {
             return resNotFound({
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Country']])
@@ -193,7 +217,7 @@ export const updateCountryStatus = async (req: Request) => {
                 modified_at: getLocalDate(),
                 modified_by: session_res.user_id
             },
-            { where: { id: country_id } }
+            { where: { id: country.dataValues.id } }
         );
         return resSuccess({ message: RECORD_UPDATE });
     } catch (error) {

@@ -4,7 +4,7 @@ import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, 
 import { DATA_ALREADY_EXITS, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumeration";
-import Location from "../../model/location.model";
+import Location from "../../model/companys.model";
 import { Op, Sequelize } from "sequelize";
 
 export const addStock = async (req: Request) => {

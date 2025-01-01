@@ -1,7 +1,7 @@
 import { STRING, DATE, BIGINT, DOUBLE } from "sequelize";
 import dbContext from "../config/dbContext";
 import Master from "./masters.model";
-import Location from "./location.model";
+import Location from "./companys.model";
 
 const Diamonds = dbContext.define('diamonds', {
     id: {

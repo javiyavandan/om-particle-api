@@ -1,6 +1,6 @@
 import { BIGINT, DATE, INTEGER, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
-import Location from "./location.model";
+import Location from "./companys.model";
 
 const Role = dbContext.define("roles", {
   id: {
