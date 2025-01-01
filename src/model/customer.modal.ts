@@ -2,7 +2,7 @@ import { BIGINT, DATE, INTEGER, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import AppUser from "./app_user.model";
 
-const Company = dbContext.define("company_masters", {
+const Customer = dbContext.define("customers", {
   id: {
     type: BIGINT,
     primaryKey: true,
@@ -60,7 +60,7 @@ const Company = dbContext.define("company_masters", {
     type: BIGINT
   },
 });
-AppUser.hasOne(Company, {foreignKey: "user_id", "as": "company"})
-Company.belongsTo(AppUser, {foreignKey: "user_id", as: "user"})
+AppUser.hasOne(Customer, {foreignKey: "user_id", "as": "company"})
+Customer.belongsTo(AppUser, {foreignKey: "user_id", as: "user"})
 
-export default Company
+export default Customer

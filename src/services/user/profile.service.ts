@@ -17,7 +17,7 @@ import {
   ERROR_NOT_FOUND,
   STATUS_UPDATED,
 } from "../../utils/app-messages";
-import Company from "../../model/company.modal";
+import Customer from "../../model/customer.modal";
 import Image from "../../model/image.model";
 import { Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
@@ -42,7 +42,7 @@ export const getUserDetail = async (req: Request) => {
         ]),
       });
     }
-    const companyDetail = await Company.findOne({
+    const companyDetail = await Customer.findOne({
       where: {
         user_id: user.dataValues.id,
         is_deleted: DeleteStatus.No,
@@ -208,7 +208,7 @@ export const updateUserDetail = async (req: Request) => {
         }
       );
 
-      await Company.update(
+      await Customer.update(
         {
           company_name: company_name,
           company_website: company_website,

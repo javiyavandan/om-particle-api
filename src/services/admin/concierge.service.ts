@@ -10,7 +10,7 @@ import Image from "../../model/image.model";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import DiamondConcierge from "../../model/diamondConcierge.model";
 import AppUser from "../../model/app_user.model";
-import Company from "../../model/company.modal";
+import Customer from "../../model/customer.modal";
 import Master from "../../model/masters.model";
 import { IMAGE_URL } from "../../config/env.var";
 
@@ -93,7 +93,7 @@ export const getDiamondConciergeList = async (req: Request) => {
           ],
           include: [
             {
-              model: Company,
+              model: Customer,
               as: "company",
               attributes: [],
             },
@@ -154,7 +154,7 @@ export const getDiamondConciergeDetail = async (req: Request) => {
           ],
           include: [
             {
-              model: Company,
+              model: Customer,
               as: "company",
               attributes: [],
             },

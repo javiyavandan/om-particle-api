@@ -29,6 +29,7 @@ import {
   export const REQUIRED_ERROR_MESSAGE = "<<field_name>> is required!";
   
   export const RECORD_DELETED = "Record deleted successfully";
+  export const RECORD_UPDATE = "Record update successfully";
   export const STATUS_UPDATED = "Status Updated";
   export const INVALID_OTP = "Invalid OTP!";
   export const INVALID_ERROR_MESSAGE = "Invalid <<field_name>> type!";

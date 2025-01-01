@@ -31,6 +31,7 @@ import AppUser from "../model/app_user.model";
 import BusinessUser from "../model/business-user.model";
 import dbContext from "../config/dbContext";
 import RoleApiPermission from "../model/role-api-permission.model";
+import Company from "../model/companys.model";
 
 export const getAllRoles = async (req: Request) => {
   try {
@@ -74,32 +75,40 @@ export const getAllRoles = async (req: Request) => {
           ),
           "user_count",
         ],
+        [Sequelize.literal(`company_master.name`), 'company']
       ],
-      include: {
-        model: AppUser,
-        as: "app_user",
-        attributes: [
-          "id",
-          [
-            Sequelize.literal(`"app_user->business_users->image"."image_path"`),
-            "image_path",
-          ],
-        ],
-        include: [
-          {
-            model: BusinessUser,
-            as: "business_users",
-            attributes: [],
-            include: [
-              {
-                model: Image,
-                as: "image",
-                attributes: [],
-              },
+      include: [
+        {
+          model: AppUser,
+          as: "app_user",
+          attributes: [
+            "id",
+            [
+              Sequelize.literal(`"app_user->business_users->image"."image_path"`),
+              "image_path",
             ],
-          },
-        ],
-      },
+          ],
+          include: [
+            {
+              model: BusinessUser,
+              as: "business_users",
+              attributes: [],
+              include: [
+                {
+                  model: Image,
+                  as: "image",
+                  attributes: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: Company,
+          as: "company_master",
+          attributes: [],
+        }
+      ],
     });
     return resSuccess({ data: noPagination ? result : { pagination, result } });
   } catch (e) {
@@ -138,6 +147,7 @@ export const addRole = async (req: Request) => {
 
     await Role.create({
       role_name: req.body.role_name,
+      company_id: req.body.company_id,
       is_active: req.body.is_active,
       created_by: req.body.session_res.id,
       created_date: getLocalDate(),
@@ -184,6 +194,7 @@ export const updateRole = async (req: Request) => {
     await Role.update(
       {
         role_name: req.body.role_name,
+        company_id: req.body.company_id,
         is_active: req.body.is_active,
         modified_by: req.body.session_res.id,
         modified_date: getLocalDate(),
@@ -215,7 +226,15 @@ export const deleteRole = async (req: Request) => {
           ),
           "user_count",
         ],
+        [Sequelize.literal(`company_master.name`), 'company']
       ],
+      include: [
+        {
+          model: Company,
+          as: "company_master",
+          attributes: [],
+        }
+      ]
     });
 
     if (!(roleToDelete && roleToDelete.dataValues)) {
@@ -407,6 +426,7 @@ const validateMenuItemAndAction = async (
 
 export const addRoleConfiguration = async (req: Request) => {
   try {
+    const { company_id } = req.body;
     const nameValidaton = await roleWithSameNameValidation(req.body.role_name);
     if (nameValidaton.code !== DEFAULT_STATUS_CODE_SUCCESS) {
       return nameValidaton;
@@ -431,6 +451,7 @@ export const addRoleConfiguration = async (req: Request) => {
       const roleResult = await Role.create(
         {
           role_name: req.body.role_name,
+          company_id: company_id,
           is_active: "1",
           created_by: req.body.session_res.id,
           created_date: getLocalDate(),
@@ -509,6 +530,7 @@ export const updateRoleConfiguration = async (req: Request) => {
 
     await Role.update(
       {
+        company_id: req.body.company_id,
         role_name: req.body.role_name,
         is_active: "1",
         modified_by: req.body.session_res.id,
@@ -758,21 +780,21 @@ export const getUserAccessMenuItems = async (req: Request) => {
       where: { is_deleted: "0", is_active: "1" },
       include:
         req.body.session_res.user_type === UserType.Admin &&
-        req.body.session_res.id_role !== "0"
+          req.body.session_res.id_role !== "0"
           ? {
-              model: RolePermission,
-              as: "RP",
-              where: { id_role: idRole, is_active: "1" },
-              required: true,
-              include: [
-                {
-                  required: true,
-                  model: RolePermissionAccess,
-                  as: "RPA",
-                  where: { id_action: idAction, access: "1" },
-                },
-              ],
-            }
+            model: RolePermission,
+            as: "RP",
+            where: { id_role: idRole, is_active: "1" },
+            required: true,
+            include: [
+              {
+                required: true,
+                model: RolePermissionAccess,
+                as: "RPA",
+                where: { id_action: idAction, access: "1" },
+              },
+            ],
+          }
           : [],
     });
 

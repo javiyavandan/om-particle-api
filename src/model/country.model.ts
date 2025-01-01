@@ -1,7 +1,7 @@
-import { STRING, DATE, BIGINT } from "sequelize";
+import { BIGINT, DATE, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 
-const Location = dbContext.define("locations", {
+const Country = dbContext.define("countrys", {
     id: {
         type: BIGINT,
         primaryKey: true,
@@ -9,6 +9,13 @@ const Location = dbContext.define("locations", {
     },
     name: {
         type: STRING,
+        allowNull: false,
+        unique: true,
+    },
+    slug: {
+        type: STRING,
+        allowNull: false,
+        unique: true,
     },
     is_active: {
         type: STRING,
@@ -28,13 +35,12 @@ const Location = dbContext.define("locations", {
     modified_at: {
         type: DATE,
     },
-    deleted_by: {
-        type: BIGINT,
-    },
     deleted_at: {
         type: DATE,
     },
-});
+    deleted_by: {
+        type: BIGINT
+    },
+})
 
-
-export default Location;
+export default Country;

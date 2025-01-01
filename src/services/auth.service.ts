@@ -36,7 +36,7 @@ import {
   UserType,
   UserVerification,
 } from "../utils/app-enumeration";
-import Company from "../model/company.modal";
+import Customer from "../model/customer.modal";
 import {
   ACCOUNT_NOT_VERIFIED,
   FORGOT_PASSWORD,
@@ -84,6 +84,7 @@ export const registerUser = async (req: Request, res: Response) => {
       country,
       state,
       postcode,
+      verification
     } = req.body;
 
     let OTP = "";
@@ -117,9 +118,9 @@ export const registerUser = async (req: Request, res: Response) => {
           password: pass_hash,
           is_deleted: DeleteStatus.No,
           created_at: getLocalDate(),
-          user_type: UserType.Admin,
+          user_type: UserType.Customer,
           is_active: ActiveStatus.Active,
-          is_verified: UserVerification.Admin_Verified,
+          is_verified: verification ?? UserVerification.NotVerified,
           one_time_pass: OTP,
         },
         { transaction: trn }
@@ -127,7 +128,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
       // add if condition
       if (createUser.dataValues.id) {
-        await Company.create(
+        await Customer.create(
           {
             user_id: createUser.dataValues.id,
             company_name: company_name,
@@ -147,48 +148,48 @@ export const registerUser = async (req: Request, res: Response) => {
 
       /****************************START HUBSPOT****************************/
       // create a new company for new user
-      const companyReq = {
-        properties: {
-          userid: createUser.dataValues.id,
-          phone: phone_number,
-          name: company_name,
-          city: city,
-          country: country,
-          state: state,
-          website: company_website,
-        },
-      };
-      const company: any = await getAddHubspotRequest(
-        HUB_SPOT_API_URL.createCompany,
-        companyReq
-      );
+      // const companyReq = {
+      //   properties: {
+      //     userid: createUser.dataValues.id,
+      //     phone: phone_number,
+      //     name: company_name,
+      //     city: city,
+      //     country: country,
+      //     state: state,
+      //     website: company_website,
+      //   },
+      // };
+      // const company: any = await getAddHubspotRequest(
+      //   HUB_SPOT_API_URL.createCompany,
+      //   companyReq
+      // );
 
-      // create a new contact for created company
-      const contactReq = {
-        properties: {
-          firstname: first_name,
-          lastname: last_name,
-          email: email,
-          phone: phone_number,
-          city: city,
-          country: country,
-          state: state,
-          website: company_website,
-        },
-        associations: [
-          {
-            to: company.id, // added a association with company
-            types: [
-              {
-                associationCategory: "HUBSPOT_DEFINED",
-                associationTypeId: HUBSPOT_ASSOCIATION.ContactToCompany,
-              },
-            ],
-          },
-        ],
-      };
+      // // create a new contact for created company
+      // const contactReq = {
+      //   properties: {
+      //     firstname: first_name,
+      //     lastname: last_name,
+      //     email: email,
+      //     phone: phone_number,
+      //     city: city,
+      //     country: country,
+      //     state: state,
+      //     website: company_website,
+      //   },
+      //   associations: [
+      //     {
+      //       to: company.id, // added a association with company
+      //       types: [
+      //         {
+      //           associationCategory: "HUBSPOT_DEFINED",
+      //           associationTypeId: HUBSPOT_ASSOCIATION.ContactToCompany,
+      //         },
+      //       ],
+      //     },
+      //   ],
+      // };
 
-      await getAddHubspotRequest(HUB_SPOT_API_URL.createContact, contactReq);
+      // await getAddHubspotRequest(HUB_SPOT_API_URL.createContact, contactReq);
 
       /****************************END HUBSPOT****************************/
       const mailPayload = {
