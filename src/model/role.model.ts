@@ -1,6 +1,6 @@
 import { BIGINT, DATE, INTEGER, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
-import Location from "./companys.model";
+import Company from "./companys.model";
 
 const Role = dbContext.define("roles", {
   id: {
@@ -11,7 +11,7 @@ const Role = dbContext.define("roles", {
   role_name: {
     type: STRING,
   },
-  location_id: {
+  company_id: {
     type: BIGINT,
   },
   is_active: {
@@ -34,6 +34,6 @@ const Role = dbContext.define("roles", {
   },
 });
 
-Role.belongsTo(Location, { foreignKey: "location_id", as: "location" });
+Role.belongsTo(Company, { foreignKey: "company_id", as: "company_master" });
 
 export default Role;
