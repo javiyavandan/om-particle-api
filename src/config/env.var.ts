@@ -1,4 +1,4 @@
-require('dotenv').config({ path: 'environment/.env.' + process.env.NODE_ENV });
+require('dotenv').config({ path: '.env' });
 
 export const PORT = process.env.PORT || 2526;
 export const SECURE_COMMUNICATION = process.env.SECURE_COMMUNICATION
