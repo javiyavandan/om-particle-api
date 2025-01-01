@@ -1,10 +1,10 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { DATA_ALREADY_EXITS, ERROR_NOT_FOUND } from "../../utils/app-messages";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumeration";
-import Location from "../../model/location.model";
+import Company from "../../model/companys.model";
 import { Op, Sequelize } from "sequelize";
 
 export const addStock = async (req: Request) => {
@@ -58,7 +58,7 @@ export const addStock = async (req: Request) => {
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
         const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.fancyColorIntensity && item.dataValues.id === color_intensity)
         const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
-        const locationData = await Location.findOne({
+        const locationData = await Company.findOne({
             where: {
                 id: location_id
             }
@@ -157,17 +157,41 @@ export const updateProduct = async (req: Request) => {
             depth_value,
             ratio,
             flo,
-            location_id,
+            company_id,
             comments,
             session_res
         } = req.body
         const { diamond_id } = req.params
 
-        const findDiamond = await Diamonds.findOne({
+        const diamond = await Diamonds.findOne({
             where: {
+                is_deleted: DeleteStatus.No,
+                id: diamond_id
+            }
+        })
+
+        if (!(diamond && diamond.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]]),
+            })
+        }
+
+        const duplicateDiamond = await Diamonds.findOne({
+            where: {
+                is_deleted: DeleteStatus.No,
+                id: { [Op.ne]: diamond.dataValues.id },
                 stock_id: stock_id
             }
         })
+
+        if (duplicateDiamond && duplicateDiamond.dataValues) {
+            return resBadRequest({
+                code: DUPLICATE_ERROR_CODE,
+                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                    ["field_name", "Diamond"],
+                ]),
+            });
+        }
 
         const MastersData = await Master.findAll({
             where: {
@@ -183,9 +207,9 @@ export const updateProduct = async (req: Request) => {
         const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
         const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
-        const locationData = await Location.findOne({
+        const companyData = await Company.findOne({
             where: {
-                id: location_id
+                id: company_id
             }
         })
 
@@ -203,7 +227,7 @@ export const updateProduct = async (req: Request) => {
         if (!polishData) missingFields.push("Polish Data");
         if (!symmetryData) missingFields.push("Symmetry Data");
         if (!colorIntensityData) missingFields.push("Color Intensity Data");
-        if (!locationData) missingFields.push("Location Data");
+        if (!companyData) missingFields.push("Location Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
@@ -212,7 +236,7 @@ export const updateProduct = async (req: Request) => {
             });
         }
 
-        if (findDiamond && findDiamond.dataValues) {
+        if (diamond && diamond.dataValues) {
             return resNotFound({
                 message: prepareMessageFromParams(DATA_ALREADY_EXITS, [["field_name", "Diamond"]]),
             })
@@ -242,13 +266,13 @@ export const updateProduct = async (req: Request) => {
             depth_value: depth_value,
             ratio: ratio,
             flo: flo,
-            location_id: location_id,
+            location_id: company_id,
             comments: comments,
             modified_by: session_res.user_id,
             modified_at: getLocalDate(),
         }, {
             where: {
-                id: diamond_id
+                id: diamond.dataValues.id
             }
         })
 
@@ -264,7 +288,8 @@ export const deleteProduct = async (req: Request) => {
 
         const findDiamond = await Diamonds.findOne({
             where: {
-                id: diamond_id
+                id: diamond_id,
+                is_deleted: DeleteStatus.No,
             }
         })
         if (!(findDiamond && findDiamond.dataValues)) {
@@ -279,7 +304,7 @@ export const deleteProduct = async (req: Request) => {
             deleted_by: req.body.session_res.user_id,
         }, {
             where: {
-                id: diamond_id
+                id: findDiamond.dataValues.id
             }
         })
         return resSuccess()
@@ -300,17 +325,16 @@ export const getProduct = async (req: Request) => {
             attributes: [
                 "id",
                 "stock_id",
-                "available",
-                "is_active",
-                "is_deleted",
-                [Sequelize.literal(`"shape"."name"`), "shape"],
-                [Sequelize.literal(`"clarity"."name"`), "clarity"],
-                [Sequelize.literal(`"color"."name"`), "color"],
-                [Sequelize.literal(`"color_intensity"."name"`), "color_intensity"],
-                [Sequelize.literal(`"lab"."name"`), "lab"],
-                [Sequelize.literal(`"polish"."name"`), "polish"],
-                [Sequelize.literal(`"symmetry"."name"`), "symmetry"],
-                [Sequelize.literal(`"location"."name"`), "location"],
+                "status",
+                [Sequelize.literal(`"shape_master"."name"`), "shape"],
+                [Sequelize.literal(`"clarity_master"."name"`), "clarity"],
+                [Sequelize.literal(`"color_master"."name"`), "color"],
+                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensity"],
+                [Sequelize.literal(`"lab_master"."name"`), "lab"],
+                [Sequelize.literal(`"polish_master"."name"`), "polish"],
+                [Sequelize.literal(`"symmetry_master"."name"`), "symmetry"],
+                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescence"],
+                [Sequelize.literal(`"company_master"."name"`), "company"],
                 "quantity",
                 "weight",
                 "rate",
@@ -322,49 +346,54 @@ export const getProduct = async (req: Request) => {
                 "table_value",
                 "depth_value",
                 "ratio",
-                "flo",
-                "comments",
+                "user_comments",
+                "admin_comments",
                 "is_active"
             ],
             include: [
                 {
                     model: Master,
-                    as: "shape",
+                    as: "shape_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "color",
+                    as: "color_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "color_intensity",
+                    as: "color_intensity_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "clarity",
+                    as: "clarity_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "lab",
+                    as: "lab_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "polish",
+                    as: "polish_master",
                     attributes: [],
                 },
                 {
                     model: Master,
-                    as: "symmetry",
+                    as: "symmetry_master",
                     attributes: [],
                 },
                 {
-                    model: Location,
-                    as: "location",
+                    model: Master,
+                    as: "fluorescence_master",
+                    attributes: [],
+                },
+                {
+                    model: Company,
+                    as: "company_master",
                     attributes: [],
                 },
             ]
@@ -391,10 +420,133 @@ export const getAllProducts = async (req: Request) => {
             search_text: query.search_text,
         };
 
-        const totalItems = await Master.count({
-            where: {
-                is_deleted: DeleteStatus.No,
+        const where = [
+            { is_deleted: DeleteStatus.No },
+            pagination.is_active ? { is_active: pagination.is_active } : {},
+            pagination.search_text
+                ? {
+                    [Op.or]: [
+                        { stock_id: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { status: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('quantity'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('weight'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('rate'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('report'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('table_value'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        {
+                            [Op.and]: [
+                                Sequelize.where(
+                                    Sequelize.cast(Sequelize.col('depth_value'), 'TEXT'),
+                                    { [Op.iLike]: `%${pagination.search_text}%` }
+                                )
+                            ]
+                        },
+                        { measurement: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { ratio: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { user_comments: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { admin_comments: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { email: { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$shape_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$color_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$color_intensity_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$clarity_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$lab_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$polish_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$symmetry_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$company_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                        { '$fluorescence_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+                    ],
+                }
+                : {},
+        ];
+
+        const includes = [
+            {
+                model: Master,
+                as: "shape_master",
+                attributes: [],
             },
+            {
+                model: Master,
+                as: "color_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "color_intensity_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "clarity_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "lab_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "polish_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "symmetry_master",
+                attributes: [],
+            },
+            {
+                model: Master,
+                as: "fluorescence_master",
+                attributes: [],
+            },
+            {
+                model: Company,
+                as: "company_master",
+                attributes: [],
+            },
+        ]
+
+
+        const totalItems = await Master.count({
+            where,
+            include: includes,
         });
 
         if (totalItems === 0) {
@@ -405,26 +557,23 @@ export const getAllProducts = async (req: Request) => {
         pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
         const DiamondsData = await Diamonds.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-            },
+            where,
             limit: pagination.per_page_rows,
             offset: (pagination.current_page - 1) * pagination.per_page_rows,
             order: [[pagination.sort_by, pagination.order_by]],
             attributes: [
                 "id",
                 "stock_id",
-                "available",
-                "is_active",
-                "is_deleted",
-                [Sequelize.literal(`"shape"."name"`), "shape"],
-                [Sequelize.literal(`"clarity"."name"`), "clarity"],
-                [Sequelize.literal(`"color"."name"`), "color"],
-                [Sequelize.literal(`"color_intensity"."name"`), "color_intensity"],
-                [Sequelize.literal(`"lab"."name"`), "lab"],
-                [Sequelize.literal(`"polish"."name"`), "polish"],
-                [Sequelize.literal(`"symmetry"."name"`), "symmetry"],
-                [Sequelize.literal(`"location"."name"`), "location"],
+                "status",
+                [Sequelize.literal(`"shape_master"."name"`), "shape"],
+                [Sequelize.literal(`"clarity_master"."name"`), "clarity"],
+                [Sequelize.literal(`"color_master"."name"`), "color"],
+                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensity"],
+                [Sequelize.literal(`"lab_master"."name"`), "lab"],
+                [Sequelize.literal(`"polish_master"."name"`), "polish"],
+                [Sequelize.literal(`"symmetry_master"."name"`), "symmetry"],
+                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescence"],
+                [Sequelize.literal(`"company_master"."name"`), "company"],
                 "quantity",
                 "weight",
                 "rate",
@@ -436,52 +585,11 @@ export const getAllProducts = async (req: Request) => {
                 "table_value",
                 "depth_value",
                 "ratio",
-                "flo",
-                "comments",
+                "user_comments",
+                "admin_comments",
                 "is_active"
             ],
-            include: [
-                {
-                    model: Master,
-                    as: "shape",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "color",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "color_intensity",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "clarity",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "lab",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "polish",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "symmetry",
-                    attributes: [],
-                },
-                {
-                    model: Location,
-                    as: "location",
-                    attributes: [],
-                },
-            ]
+            include: includes,
         });
         return resSuccess({
             data: { pagination, result: DiamondsData }

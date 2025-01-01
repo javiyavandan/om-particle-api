@@ -1,7 +1,7 @@
 import { STRING, DATE, BIGINT, DOUBLE } from "sequelize";
 import dbContext from "../config/dbContext";
 import Master from "./masters.model";
-import Location from "./location.model";
+import Company from "./companys.model";
 
 const Diamonds = dbContext.define('diamonds', {
     id: {
@@ -76,9 +76,9 @@ const Diamonds = dbContext.define('diamonds', {
         type: STRING,
     },
     fluorescence: {
-        type: STRING,
+        type: BIGINT,
     },
-    location_id: {
+    company_id: {
         type: BIGINT,
     },
     user_comments: {
@@ -111,7 +111,7 @@ Diamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });
 Diamonds.belongsTo(Master, { foreignKey: "color", as: "color_master" });
 Diamonds.belongsTo(Master, { foreignKey: "color_intensity", as: "color_intensity_master" });
 Diamonds.belongsTo(Master, { foreignKey: "lab", as: "lab_master" });
-Diamonds.belongsTo(Location, { foreignKey: "location_id", as: "location_master" });
+Diamonds.belongsTo(Company, { foreignKey: "company_id", as: "company_master" });
 Diamonds.belongsTo(Master, { foreignKey: "polish", as: "polish_master" });
 Diamonds.belongsTo(Master, { foreignKey: "shape", as: "shape_master" });
 Diamonds.belongsTo(Master, { foreignKey: "symmetry", as: "symmetry_master" });
