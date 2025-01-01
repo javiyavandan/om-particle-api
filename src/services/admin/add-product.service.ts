@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND } from "../../utils/app-messages";
+import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
@@ -31,7 +31,7 @@ export const addStock = async (req: Request) => {
             depth_value,
             ratio,
             fluorescence,
-            location_id,
+            company_id,
             userComments,
             adminComments,
             session_res
@@ -58,9 +58,9 @@ export const addStock = async (req: Request) => {
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
         const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.fancyColorIntensity && item.dataValues.id === color_intensity)
         const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
-        const locationData = await Company.findOne({
+        const companyData = await Company.findOne({
             where: {
-                id: location_id
+                id: company_id
             }
         })
 
@@ -78,8 +78,8 @@ export const addStock = async (req: Request) => {
         if (!polishData) missingFields.push("Polish Data");
         if (!symmetryData) missingFields.push("Symmetry Data");
         if (!colorIntensityData) missingFields.push("Color Intensity Data");
-        if (!locationData) missingFields.push("Location Data");
-        if (!fluorescenceData) missingFields.push("fluorescenceData Data");
+        if (!companyData) missingFields.push("Company Data");
+        if (!fluorescenceData) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
@@ -118,10 +118,10 @@ export const addStock = async (req: Request) => {
             depth_value: depth_value,
             ratio: ratio,
             fluorescenceData: fluorescenceData,
-            location_id: location_id,
+            location_id: company_id,
             user_comments: userComments,
             admin_comments: adminComments,
-            created_by: session_res.user_id,
+            created_by: session_res.id,
             created_at: getLocalDate(),
         })
 
@@ -131,7 +131,7 @@ export const addStock = async (req: Request) => {
     }
 }
 
-export const updateProduct = async (req: Request) => {
+export const updateStock = async (req: Request) => {
     try {
         const {
             stock_id,
@@ -236,12 +236,6 @@ export const updateProduct = async (req: Request) => {
             });
         }
 
-        if (diamond && diamond.dataValues) {
-            return resNotFound({
-                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [["field_name", "Diamond"]]),
-            })
-        }
-
         await Diamonds.update({
             stock_id: stock_id,
             available: available,
@@ -268,7 +262,7 @@ export const updateProduct = async (req: Request) => {
             flo: flo,
             location_id: company_id,
             comments: comments,
-            modified_by: session_res.user_id,
+            modified_by: session_res.id,
             modified_at: getLocalDate(),
         }, {
             where: {
@@ -282,7 +276,7 @@ export const updateProduct = async (req: Request) => {
     }
 }
 
-export const deleteProduct = async (req: Request) => {
+export const deleteStock = async (req: Request) => {
     try {
         const { diamond_id } = req.params
 
@@ -301,7 +295,7 @@ export const deleteProduct = async (req: Request) => {
         await Diamonds.update({
             is_deleted: DeleteStatus.Yes,
             deleted_at: getLocalDate(),
-            deleted_by: req.body.session_res.user_id,
+            deleted_by: req.body.session_res.id,
         }, {
             where: {
                 id: findDiamond.dataValues.id
@@ -313,7 +307,7 @@ export const deleteProduct = async (req: Request) => {
     }
 }
 
-export const getProduct = async (req: Request) => {
+export const getStock = async (req: Request) => {
     try {
         const { diamond_id } = req.params
 
@@ -412,7 +406,7 @@ export const getProduct = async (req: Request) => {
     }
 }
 
-export const getAllProducts = async (req: Request) => {
+export const getAllStock = async (req: Request) => {
     try {
         const { query } = req;
         let pagination = {
@@ -544,7 +538,7 @@ export const getAllProducts = async (req: Request) => {
         ]
 
 
-        const totalItems = await Master.count({
+        const totalItems = await Diamonds.count({
             where,
             include: includes,
         });
@@ -595,6 +589,39 @@ export const getAllProducts = async (req: Request) => {
             data: { pagination, result: DiamondsData }
         })
     } catch (error) {
+        console.log(error)
         throw error;
+    }
+}
+
+export const updateStockStatus = async (req: Request) => {
+    try {
+        const { diamond_id } = req.params
+
+        const findDiamond = await Diamonds.findOne({
+            where: {
+                id: diamond_id,
+                is_deleted: DeleteStatus.No,
+            },
+        })
+
+        if (!(findDiamond && findDiamond.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]])
+            })
+        }
+
+        await Diamonds.update({
+            is_active: findDiamond.dataValues.is_active === ActiveStatus.InActive ? ActiveStatus.Active : ActiveStatus.InActive
+        }, {
+            where: {
+                id: findDiamond.dataValues.id,
+            },
+        })
+
+        return resSuccess({ message: RECORD_UPDATE })
+
+    } catch (error) {
+        throw error
     }
 }
