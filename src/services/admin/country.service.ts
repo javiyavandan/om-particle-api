@@ -11,7 +11,8 @@ export const addCountry = async (req: Request) => {
 
         const findCountry = await Country.findOne({
             where: {
-                name: name
+                name: name,
+                is_deleted: DeleteStatus.No
             }
         });
 

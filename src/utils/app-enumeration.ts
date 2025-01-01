@@ -217,3 +217,16 @@ export enum HTTP_METHODS {
   Delete = 4,
   Patch = 5,
 }
+
+export enum FILE_STATUS {
+  Uploaded = 1,
+  ProcessedSuccess = 2,
+  ProcessedError = 3,
+}
+
+export enum FILE_BULK_UPLOAD_TYPE {
+  ProductUpload = 1,
+  ProductZipUpload = 3,
+  StockUpload = 2,
+  ConfigProductUpload = 4,
+}

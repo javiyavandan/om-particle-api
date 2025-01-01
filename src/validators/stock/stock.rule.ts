@@ -1,4 +1,4 @@
-import { fieldFloatChain, fieldIntegerChain, fieldStringChain } from "../common-validation-rules";
+import { fieldFloatChain, fieldIntegerChain, fieldStringChain, fieldStringNotReqChain } from "../common-validation-rules";
 
 export const addStockRules = [
     fieldStringChain("Stock Id", "stock_id"),
@@ -7,10 +7,13 @@ export const addStockRules = [
     fieldFloatChain("rate", "rate"),
     fieldFloatChain("Table value", "table_value"),
     fieldFloatChain("Depth value", "depth_value"),
+    fieldFloatChain("measurement height", "measurement_height"),
+    fieldFloatChain("measurement width", "measurement_width"),
+    fieldFloatChain("measurement depth", "measurement_depth"),
+    fieldStringNotReqChain("Local Location", "local_location"),
     fieldStringChain("video", "video"),
     fieldStringChain("image", "image"),
     fieldStringChain("certificate", "certificate"),
-    fieldStringChain("measurement", "measurement"),
     fieldStringChain("ratio", "ratio"),
     fieldStringChain("User comments", "userComments"),
     fieldStringChain("Admin comments", "adminComments"),

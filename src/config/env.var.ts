@@ -38,6 +38,8 @@ process.env.STORE_TEMP_IMAGE_PATH || "public/temp/images";
 export const STORE_TEMP_FILE_PATH =
 process.env.STORE_TEMP_FILE_PATH || "public/temp/files";
 export const APP_NAME = process.env.APP_NAME || "OML";
+export const PRODUCT_CSV_FOLDER_PATH =
+  process.env.PRODUCT_CSV_FOLDER_PATH || "public/csv";
 
 // AWS S3
 export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "purelab";

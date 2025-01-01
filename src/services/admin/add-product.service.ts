@@ -26,7 +26,9 @@ export const addStock = async (req: Request) => {
             video,
             image,
             certificate,
-            measurement,
+            measurement_height,
+            measurement_depth,
+            measurement_width,
             table_value,
             depth_value,
             ratio,
@@ -34,12 +36,14 @@ export const addStock = async (req: Request) => {
             company_id,
             userComments,
             adminComments,
+            local_location,
             session_res
         } = req.body
 
         const findDiamond = await Diamonds.findOne({
             where: {
-                stock_id: stock_id
+                stock_id: stock_id,
+                is_deleted: DeleteStatus.No
             }
         })
 
@@ -113,7 +117,10 @@ export const addStock = async (req: Request) => {
             video: video,
             image: image,
             certificate: certificate,
-            measurement: measurement,
+            measurement_height,
+            measurement_width,
+            measurement_depth,
+            local_location,
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
@@ -152,13 +159,16 @@ export const updateStock = async (req: Request) => {
             video,
             image,
             certificate,
-            measurement,
+            measurement_height,
+            measurement_width,
+            measurement_depth,
             table_value,
             depth_value,
             ratio,
             flo,
             company_id,
             comments,
+            local_location,
             session_res
         } = req.body
         const { diamond_id } = req.params
@@ -255,7 +265,10 @@ export const updateStock = async (req: Request) => {
             video: video,
             image: image,
             certificate: certificate,
-            measurement: measurement,
+            measurement_height,
+            measurement_width,
+            measurement_depth,
+            local_location,
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
@@ -336,12 +349,15 @@ export const getStock = async (req: Request) => {
                 "video",
                 "image",
                 "certificate",
-                "measurement",
+                "measurement_height",
+                "measurement_width",
+                "measurement_depth",
                 "table_value",
                 "depth_value",
                 "ratio",
                 "user_comments",
                 "admin_comments",
+                "local_location",
                 "is_active"
             ],
             include: [
@@ -575,12 +591,15 @@ export const getAllStock = async (req: Request) => {
                 "video",
                 "image",
                 "certificate",
-                "measurement",
+                "measurement_height",
+                "measurement_width",
+                "measurement_depth",
                 "table_value",
                 "depth_value",
                 "ratio",
                 "user_comments",
                 "admin_comments",
+                "local_location",
                 "is_active"
             ],
             include: includes,
