@@ -1,11 +1,15 @@
 import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
 import { addStock, deleteStock, getAllStock, getStock, updateStock, updateStockStatus } from "../../services/admin/add-product.service";
+import { addStockCSVFile } from "../../services/admin/stock-bulk-upload.service";
+
+export const addEditBulkStock :RequestHandler = (req, res) => {
+    callServiceMethod(req, res, addStockCSVFile(req), "addEditBulkStockFn");
+}
 
 export const addStockFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, addStock(req), "addStockFn");
 }
-
 
 export const updateStockFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, updateStock(req), "addStockFn");

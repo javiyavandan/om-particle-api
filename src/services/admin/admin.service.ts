@@ -133,7 +133,7 @@ export const userDetail = async (req: Request) => {
         "company_name",
         "company_website",
         "company_email",
-        "abn_number",
+        "registration_number",
         "address",
         "city",
         "state",
