@@ -28,7 +28,8 @@ export const addCompany = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                name: name
+                name: name,
+                is_deleted: DeleteStatus.No,
             }
         });
 
@@ -108,7 +109,8 @@ export const updateCompany = async (req: Request) => {
         const duplicateCompany = await Company.findOne({
             where: {
                 id: { [Op.ne]: company.dataValues.id },
-                name: name
+                name: name,
+                is_deleted: DeleteStatus.No,
             }
         });
 

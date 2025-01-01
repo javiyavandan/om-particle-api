@@ -14,3 +14,11 @@ export interface IQueryPagination {
     total_items: number;
     search_text?: string;
   }
+
+  export interface TResponseReturn {
+    code: number;
+    status: string;
+    message: string;
+    data: any;
+  }
+  

@@ -63,8 +63,17 @@ const Diamonds = dbContext.define('diamonds', {
     certificate: {
         type: STRING,
     },
-    measurement: {
+    local_location: {
         type: STRING,
+    },
+    measurement_height: {
+        type: DOUBLE,
+    },
+    measurement_width: {
+        type: DOUBLE,
+    },
+    measurement_depth: {
+        type: DOUBLE,
     },
     table_value: {
         type: DOUBLE,
