@@ -1,0 +1,47 @@
+name: OMP-API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Node app
+      run: npm run build
+
+    - name: Deploy to EC2 using rsync
+      run: |
+        echo "${{ github.ref == 'refs/heads/main' && secrets.DEV_EC2_SSH_KEY || secrets.DEV_EC2_SSH_KEY }}" > deploy_key
+        chmod 600 ./deploy_key
+        rsync -chrlvzi --delete \
+          -e 'ssh -i ./deploy_key -p 22 -o StrictHostKeyChecking=no' \
+          --exclude '/deploy_key' \
+          --exclude '.git' \
+          --exclude '.env' \
+          ./ root@${{ github.ref == 'refs/heads/main' && secrets.DEV_EC2_HOST || secrets.DEV_EC2_HOST }}:/var/www/om-particle-api/
+
+    - name: PM2 restart
+      run: |
+          echo "${{ github.ref == 'refs/heads/main' && secrets.DEV_EC2_SSH_KEY || secrets.DEV_EC2_SSH_KEY }}" > deploy_key
+          chmod 600 ./deploy_key
+          ssh -i ./deploy_key root@${{ github.ref == 'refs/heads/main' && secrets.DEV_EC2_HOST || secrets.DEV_EC2_HOST }} -p 22 '
+            export PATH=$PATH:/usr/bin/node;
+            pm2 restart "OMP"
+          '
