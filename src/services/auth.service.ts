@@ -84,6 +84,7 @@ export const registerUser = async (req: Request, res: Response) => {
       country,
       state,
       postcode,
+      verification
     } = req.body;
 
     let OTP = "";
@@ -119,7 +120,7 @@ export const registerUser = async (req: Request, res: Response) => {
           created_at: getLocalDate(),
           user_type: UserType.Customer,
           is_active: ActiveStatus.Active,
-          is_verified: UserVerification.Admin_Verified,
+          is_verified: verification ?? UserVerification.NotVerified,
           one_time_pass: OTP,
         },
         { transaction: trn }
