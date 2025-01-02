@@ -76,7 +76,7 @@ export const getAllRoles = async (req: Request) => {
           ),
           "user_count",
         ],
-        [Sequelize.literal(`company_master.name`), 'company'],
+        [Sequelize.literal(`company_master.name`), 'companyName'],
         [Sequelize.literal(`company_master.id`), 'companyId']
       ],
       include: [
