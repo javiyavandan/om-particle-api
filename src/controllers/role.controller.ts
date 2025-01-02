@@ -12,6 +12,7 @@ import {
   updateRoleConfiguration,
   addMenuItems,
   addPermission,
+  addAction,
 } from "../services/role.service";
 import { callServiceMethod } from "./base.controller";
 
@@ -47,6 +48,10 @@ export const fetchRoleConfigurationFn: RequestHandler = (req, res) => {
     "fetchRoleConfigurationFn"
   );
 };
+
+export const addActionFn: RequestHandler = (req, res) => {
+  callServiceMethod(req, res, addAction(req), "addActionFn");
+}
 
 export const addRoleConfigurationFn: RequestHandler = (req, res) => {
   callServiceMethod(

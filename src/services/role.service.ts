@@ -318,6 +318,23 @@ export const getAllActions = async (req: Request) => {
   }
 };
 
+export const addAction = async (req: Request) => {
+  try {
+    const { name} = req.body
+
+    await Action.create({
+      action_name: name,
+      is_active: ActiveStatus.Active,
+      is_deleted: DeleteStatus.No,
+      created_by: req.body.session_res.id,
+      created_date: getLocalDate(),
+    })
+    return resSuccess()
+  } catch (error) {
+    throw error
+  }
+}
+
 export const getAllMenuItems = async (req: Request) => {
   try {
     let paginationProps = {};
