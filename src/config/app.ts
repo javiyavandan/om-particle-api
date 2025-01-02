@@ -18,7 +18,7 @@ export default ({ app }: { app: express.Application }) => {
   );
   app.use(express.static("public"));
 
-  app.use("/api/v1", [bodyDecipher], routes());
+  app.use("/api/v1", [bodyDecipher,tokenVerification], routes());
   app.use("/api/v1/admin", [bodyDecipher, tokenVerification], adminRouter());
   app.use("/api/v1/user", [bodyDecipher, tokenVerification], userRouter());
 
