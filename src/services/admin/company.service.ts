@@ -287,7 +287,7 @@ export const getCompanyList = async (req: Request) => {
             ]
         });
 
-        return resSuccess({ data: { pagination, result } });
+        return resSuccess({ data: noPagination ? result : { pagination, result } });
 
     } catch (error) {
         throw error;

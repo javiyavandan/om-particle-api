@@ -179,7 +179,7 @@ export const getCountries = async (req: Request) => {
             attributes: ["id", "name", "slug", "is_active"],
         });
 
-        return resSuccess({ data: { pagination, result } });
+        return resSuccess({ data: noPagination ? result : { pagination, result } });
 
     } catch (error) {
         throw error;
