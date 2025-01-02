@@ -31,10 +31,12 @@ import Customer from "../../model/customer.modal";
 export const userList = async (req: Request) => {
   try {
     const { query } = req;
+    let paginationProps = {};
     let pagination = {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
+    let noPagination = req.query.no_pagination === "1";
 
     const status =
       query.status === UserListType.Approved
@@ -48,11 +50,11 @@ export const userList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              first_name: { [Op.iLike]: `%${pagination.search_text}%` },
-              last_name: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            first_name: { [Op.iLike]: `%${pagination.search_text}%` },
+            last_name: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -60,16 +62,22 @@ export const userList = async (req: Request) => {
       where,
     });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+    if (!noPagination) {
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
     const user = await AppUser.findAll({
       where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      ...paginationProps,
       order: [[pagination.sort_by, pagination.order_by]],
       attributes: [
         "id",
@@ -277,12 +285,12 @@ export const contactUsList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              email: { [Op.iLike]: `%${pagination.search_text}%` },
-              phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            email: { [Op.iLike]: `%${pagination.search_text}%` },
+            phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 

@@ -4,8 +4,8 @@ export enum UserType {
 }
 
 export enum StockStatus {
-  YES = 'yes',
-  NO = 'no',
+  AVAILABLE = 'available',
+  SOLD = 'sold',
   MEMO = 'memo',
 }
 
@@ -229,4 +229,9 @@ export enum FILE_BULK_UPLOAD_TYPE {
   ProductZipUpload = 3,
   StockUpload = 2,
   ConfigProductUpload = 4,
+}
+
+export enum MEMO_STATUS {
+  Active = 'active',
+  Close = 'close',
 }
