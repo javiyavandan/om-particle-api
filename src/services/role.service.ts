@@ -158,7 +158,7 @@ export const addRole = async (req: Request) => {
     await Role.create({
       role_name: req.body.role_name,
       company_id: req.body.company_id,
-      is_active: req.body.is_active,
+      is_active: ActiveStatus.Active,
       created_by: req.body.session_res.id,
       created_date: getLocalDate(),
     });
@@ -183,7 +183,7 @@ export const updateRole = async (req: Request) => {
     if (req.body.only_active_inactive === "1") {
       await Role.update(
         {
-          is_active: req.body.is_active,
+          is_active: ActiveStatus.Active,
           modified_by: req.body.session_res.id,
           modified_date: getLocalDate(),
         },
@@ -213,7 +213,7 @@ export const updateRole = async (req: Request) => {
       {
         role_name: req.body.role_name,
         company_id: req.body.company_id,
-        is_active: req.body.is_active,
+        is_active: ActiveStatus.Active,
         modified_by: req.body.session_res.id,
         modified_date: getLocalDate(),
       },
