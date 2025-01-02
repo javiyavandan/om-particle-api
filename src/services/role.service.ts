@@ -482,12 +482,20 @@ export const addRoleConfiguration = async (req: Request) => {
       }
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     const trn = await dbContext.transaction();
     try {
       const roleResult = await Role.create(
         {
           role_name: req.body.role_name,
-          company_id: company_id,
+          company_id: findCompany.dataValues.id,
           is_active: "1",
           created_by: req.body.session_res.id,
           created_date: getLocalDate(),
