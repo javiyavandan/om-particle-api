@@ -10,6 +10,7 @@ import Role from "../model/role.model";
 import {
   ACCESS_NOT_FOUND,
   DEFAULT_STATUS_CODE_SUCCESS,
+  ERROR_NOT_FOUND,
   MENU_ITEM_NOT_FOUND,
   ROLE_NOT_FOUND,
   ROLE_WITH_SAME_NAME_AVAILABLE,
@@ -146,6 +147,14 @@ export const addRole = async (req: Request) => {
       return nameValidaton;
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     await Role.create({
       role_name: req.body.role_name,
       company_id: req.body.company_id,
@@ -190,6 +199,14 @@ export const updateRole = async (req: Request) => {
     );
     if (nameValidaton.code !== DEFAULT_STATUS_CODE_SUCCESS) {
       return nameValidaton;
+    }
+
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
     }
 
     await Role.update(
@@ -528,6 +545,14 @@ export const updateRoleConfiguration = async (req: Request) => {
     if (validateMenuAction.code !== DEFAULT_STATUS_CODE_SUCCESS) {
       await trn.rollback();
       return validateMenuAction;
+    }
+
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
     }
 
     await Role.update(
