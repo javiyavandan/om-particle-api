@@ -614,7 +614,7 @@ export const getAllStock = async (req: Request) => {
             include: includes,
         });
         return resSuccess({
-            data: { pagination, result: DiamondsData }
+            data: noPagination ? { result: DiamondsData } : { pagination, result: DiamondsData }
         })
     } catch (error) {
         console.log(error)
