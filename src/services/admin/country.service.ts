@@ -133,11 +133,13 @@ export const deleteCountry = async (req: Request) => {
 export const getCountries = async (req: Request) => {
     try {
         const { query } = req;
+        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
             search_text: query.search_text,
             is_deleted: DeleteStatus.No,
         };
+        let noPagination = req.query.no_pagination === "1";
 
         let where = [
             { is_deleted: DeleteStatus.No },
@@ -152,21 +154,27 @@ export const getCountries = async (req: Request) => {
                 : {},
         ];
 
-        const totalItems = await Country.count({
-            where,
-        });
+        if (!noPagination) {
 
-        if (totalItems === 0) {
-            return resSuccess({ data: { pagination, result: [] } });
+            const totalItems = await Country.count({
+                where,
+            });
+
+            if (totalItems === 0) {
+                return resSuccess({ data: { pagination, result: [] } });
+            }
+            pagination.total_items = totalItems;
+            pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+            paginationProps = {
+                limit: pagination.per_page_rows,
+                offset: (pagination.current_page - 1) * pagination.per_page_rows,
+            };
         }
 
-        pagination.total_items = totalItems;
-        pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
-
         const result = await Country.findAll({
+            ...paginationProps,
             order: [[pagination.sort_by, pagination.order_by]],
-            limit: pagination.per_page_rows,
-            offset: (pagination.current_page - 1) * pagination.per_page_rows,
             where,
             attributes: ["id", "name", "slug", "is_active"],
         });
@@ -223,21 +231,5 @@ export const updateCountryStatus = async (req: Request) => {
         return resSuccess({ message: RECORD_UPDATE });
     } catch (error) {
         throw error;
-    }
-}
-
-export const getCountryDropdown = async () => {
-    try {
-        const countries = await Country.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-                is_active: ActiveStatus.Active
-            },
-        })
-
-        return resSuccess({ data: countries });
-
-    } catch (error) {
-        throw error
     }
 }

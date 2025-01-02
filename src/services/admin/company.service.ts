@@ -191,11 +191,13 @@ export const deleteCompany = async (req: Request) => {
 export const getCompanyList = async (req: Request) => {
     try {
         const { query } = req;
+        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
             search_text: query.search_text,
             is_deleted: DeleteStatus.No,
         };
+        let noPagination = req.query.no_pagination === "1";
 
         let where = [
             { is_deleted: DeleteStatus.No },
@@ -229,28 +231,34 @@ export const getCompanyList = async (req: Request) => {
                 : {},
         ];
 
-        const totalItems = await Company.count({
-            where,
-            include: [
-                {
-                    model: Country,
-                    as: 'country',
-                    attributes: [],
-                }
-            ]
-        });
+        if (!noPagination) {
+            const totalItems = await Company.count({
+                where,
+                include: [
+                    {
+                        model: Country,
+                        as: 'country',
+                        attributes: [],
+                    }
+                ]
+            });
 
-        if (totalItems === 0) {
-            return resSuccess({ data: { pagination, result: [] } });
+            if (totalItems === 0) {
+                return resSuccess({ data: { pagination, result: [] } });
+            }
+
+            pagination.total_items = totalItems;
+            pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+            paginationProps = {
+                limit: pagination.per_page_rows,
+                offset: (pagination.current_page - 1) * pagination.per_page_rows,
+            };
         }
-
-        pagination.total_items = totalItems;
-        pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
         const result = await Company.findAll({
             order: [[pagination.sort_by, pagination.order_by]],
-            limit: pagination.per_page_rows,
-            offset: (pagination.current_page - 1) * pagination.per_page_rows,
+            ...paginationProps,
             where,
             attributes: ["id", "name", "is_active",
                 "registration_number",
@@ -268,6 +276,7 @@ export const getCompanyList = async (req: Request) => {
                 "map_link",
                 "is_active",
                 [Sequelize.literal(`"country"."name"`), 'countryName'],
+                [Sequelize.literal(`country.id`), 'countryId']
             ],
             include: [
                 {
@@ -308,7 +317,8 @@ export const getCompany = async (req: Request) => {
                 "phone_number",
                 "email",
                 "map_link",
-                [Sequelize.literal(`country.name`), 'countryName']
+                [Sequelize.literal(`country.name`), 'countryName'],
+                [Sequelize.literal(`country.id`), 'countryId']
             ],
             include: [
                 {

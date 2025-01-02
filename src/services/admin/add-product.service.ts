@@ -425,10 +425,12 @@ export const getStock = async (req: Request) => {
 export const getAllStock = async (req: Request) => {
     try {
         const { query } = req;
+        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
             search_text: query.search_text,
         };
+        let noPagination = req.query.no_pagination === "1";
 
         const where = [
             { is_deleted: DeleteStatus.No },
@@ -554,22 +556,29 @@ export const getAllStock = async (req: Request) => {
         ]
 
 
-        const totalItems = await Diamonds.count({
-            where,
-            include: includes,
-        });
+        if (!noPagination) {
+            const totalItems = await Diamonds.count({
+                where,
+                include: includes,
+            });
 
-        if (totalItems === 0) {
-            return resSuccess({ data: { pagination, result: [] } });
+            if (totalItems === 0) {
+                return resSuccess({ data: { pagination, result: [] } });
+            }
+
+            pagination.total_items = totalItems;
+            pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+            paginationProps = {
+                limit: pagination.per_page_rows,
+                offset: (pagination.current_page - 1) * pagination.per_page_rows,
+            };
         }
 
-        pagination.total_items = totalItems;
-        pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
         const DiamondsData = await Diamonds.findAll({
             where,
-            limit: pagination.per_page_rows,
-            offset: (pagination.current_page - 1) * pagination.per_page_rows,
+            ...paginationProps,
             order: [[pagination.sort_by, pagination.order_by]],
             attributes: [
                 "id",
