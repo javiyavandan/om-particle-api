@@ -32,6 +32,7 @@ import {
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
     Master_type,
+    StockStatus,
 } from "../../utils/app-enumeration";
 import { TResponseReturn } from "../../data/interfaces/common/common.interface";
 import Master from "../../model/masters.model";
@@ -218,7 +219,7 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
                             clarity: row[8],
                             video: row[9],
                             image: row[10],
-                            igi: row[11],
+                            certificate: row[11],
                             lab: row[12],
                             report: row[13],
                             polish: row[14],
@@ -290,7 +291,7 @@ const validateHeaders = async (headers: string[]) => {
         "clarity",
         "video",
         "image",
-        "igi",
+        "certificate",
         "lab",
         "report",
         "polish",
@@ -483,7 +484,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
-                if (row.igi == null) {
+                if (row.certificate == null) {
                     errors.push({
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
@@ -581,6 +582,12 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
 
                 let available: any = row.available;
+                if (available && !Object.values(StockStatus).includes(available)) {
+                    errors.push({
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: "Invalid available value",
+                    });
+                }
 
                 let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
                 if (shape && shape.error != undefined) {
@@ -643,7 +650,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let video: any = row.video;
                 let image: any = row.image;
-                let igi: any = row.igi;
+                let certificate: any = row.certificate;
 
                 let lab: any = getIdFromName(row.lab, labList, "name", "lab");
                 if (lab && lab.error != undefined) {
@@ -767,7 +774,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         clarity,
                         video,
                         image,
-                        certificate: igi,
+                        certificate,
                         lab,
                         report,
                         polish,
@@ -801,7 +808,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         clarity,
                         video,
                         image,
-                        certificate: igi,
+                        certificate,
                         lab,
                         report,
                         polish,
