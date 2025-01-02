@@ -60,7 +60,7 @@ export const addStock = async (req: Request) => {
         const labData = MastersData.filter(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
         const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.fancyColorIntensity && item.dataValues.id === color_intensity)
+        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
         const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const companyData = await Company.findOne({
             where: {
@@ -165,7 +165,7 @@ export const updateStock = async (req: Request) => {
             table_value,
             depth_value,
             ratio,
-            flo,
+            fluorescence,
             company_id,
             comments,
             local_location,
@@ -217,6 +217,7 @@ export const updateStock = async (req: Request) => {
         const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
         const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
         const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
+        const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const companyData = await Company.findOne({
             where: {
                 id: company_id
@@ -238,6 +239,7 @@ export const updateStock = async (req: Request) => {
         if (!symmetryData) missingFields.push("Symmetry Data");
         if (!colorIntensityData) missingFields.push("Color Intensity Data");
         if (!companyData) missingFields.push("Location Data");
+        if (!fluorescenceData) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
@@ -272,7 +274,7 @@ export const updateStock = async (req: Request) => {
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
-            flo: flo,
+            fluorescence: fluorescence,
             location_id: company_id,
             comments: comments,
             modified_by: session_res.id,
