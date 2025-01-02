@@ -2,6 +2,8 @@ import { Request } from "express";
 import {
     getLocalDate,
     prepareMessageFromParams,
+    resBadRequest,
+    resNotFound,
     resSuccess,
     resUnknownError,
     resUnprocessableEntity,
@@ -17,6 +19,8 @@ import {
     INVALID_HEADER,
     PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE,
     PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE,
+    RECORD_DELETED,
+    RECORD_UPDATE,
     REQUIRED_ERROR_MESSAGE,
 } from "../../utils/app-messages";
 import { moveFileToLocation } from "../../helpers/file-helper";
@@ -744,7 +748,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let local_location: any = row["local location"];
                 let user_comments: any = row["user comments"];
                 let admin_comments: any = row["admin comments"];
-                
+
                 const findStock = await stockList.find(
                     (t: any) => t.dataValues.stock_id == row["stock #"]
                 );
@@ -887,3 +891,123 @@ const addGroupToDB = async (list: any) => {
         throw e;
     }
 };
+
+export const updateBulkStockStatus = async (req: Request) => {
+    const { stock_id, status } = req.body
+    try {
+        const error = [];
+
+        const stock = await Diamonds.findAll({
+            where: {
+                is_deleted: DeleteStatus.No
+            }
+        });
+
+        if (stock_id.length > 0) {
+            for (let index = 0; index < stock_id.length; index++) {
+                const number = stock_id[index];
+                const findStock = stock.find((data) => {
+                    return data.dataValues.stock_id === number
+                })
+
+                if (!(findStock && findStock.dataValues)) {
+                    error.push(`${number} stock not found`)
+                }
+            }
+        }
+
+        if (error.length > 0) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
+                data: error.map(err => err)
+            })
+        }
+
+        const updatedStockList = [];
+        for (let index = 0; index < stock_id.length; index++) {
+            const number = stock_id[index];
+            const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
+            if (findStock && findStock.dataValues) {
+                updatedStockList.push({
+                    ...findStock.dataValues,
+                    is_active: status,
+                    modified_at: getLocalDate(),
+                    modified_by: req.body.session_res.id,
+                });
+            }
+        }
+
+        if (updatedStockList.length > 0) {
+            await Diamonds.bulkCreate(updatedStockList, {
+                updateOnDuplicate: ["is_active", "modified_by", "modified_at"],
+            })
+        }
+
+        return resSuccess({ message: RECORD_UPDATE })
+
+
+    } catch (error) {
+        throw error;
+    }
+
+}
+
+export const deleteBulkStock = async (req: Request) => {
+    const { stock_id } = req.body
+    try {
+        const error = [];
+
+        const stock = await Diamonds.findAll({
+            where: {
+                is_deleted: DeleteStatus.No
+            }
+        });
+
+        if (stock_id.length > 0) {
+            for (let index = 0; index < stock_id.length; index++) {
+                const number = stock_id[index];
+                const findStock = stock.find((data) => {
+                    return data.dataValues.stock_id === number
+                })
+
+                if (!(findStock && findStock.dataValues)) {
+                    error.push(`${number} stock not found`)
+                }
+            }
+        }
+
+        if (error.length > 0) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
+                data: error.map(err => err)
+            })
+        }
+
+        const updatedStockList = [];
+        for (let index = 0; index < stock_id.length; index++) {
+            const number = stock_id[index];
+            const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
+            if (findStock && findStock.dataValues) {
+                updatedStockList.push({
+                    ...findStock.dataValues,
+                    is_deleted: DeleteStatus.Yes,
+                    deleted_at: getLocalDate(),
+                    deleted_by: req.body.session_res.id,
+                });
+            }
+        }
+
+        if (updatedStockList.length > 0) {
+            await Diamonds.bulkCreate(updatedStockList, {
+                updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
+            })
+        }
+
+        return resSuccess({ message: RECORD_DELETED })
+
+
+    } catch (error) {
+        throw error;
+    }
+
+}

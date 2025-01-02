@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
 import { addStock, deleteStock, getAllStock, getStock, updateStock, updateStockStatus } from "../../services/admin/add-product.service";
-import { addStockCSVFile } from "../../services/admin/stock-bulk-upload.service";
+import { addStockCSVFile, deleteBulkStock, updateBulkStockStatus } from "../../services/admin/stock-bulk-upload.service";
 
 export const addEditBulkStock :RequestHandler = (req, res) => {
     callServiceMethod(req, res, addStockCSVFile(req), "addEditBulkStockFn");
@@ -27,6 +27,14 @@ export const updateStockStatusFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, updateStockStatus(req), "updateStockStatusFn");
 }
 
+export const updateBulkStockStatusFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, updateBulkStockStatus(req), "updateBulkStockStatusFn");
+}
+
 export const deleteStockFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, deleteStock(req), "deleteStockFn");
+}
+
+export const deleteBulkStockFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, deleteBulkStock(req), "deleteBulkStockFn");
 }
