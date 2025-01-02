@@ -225,3 +225,19 @@ export const updateCountryStatus = async (req: Request) => {
         throw error;
     }
 }
+
+export const getCountryDropdown = async () => {
+    try {
+        const countries = await Country.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+        })
+
+        return resSuccess({ data: countries });
+
+    } catch (error) {
+        throw error
+    }
+}
