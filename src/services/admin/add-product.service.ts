@@ -64,7 +64,8 @@ export const addStock = async (req: Request) => {
         const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const companyData = await Company.findOne({
             where: {
-                id: company_id
+                id: company_id,
+                is_deleted: DeleteStatus.No
             }
         })
 
@@ -124,8 +125,8 @@ export const addStock = async (req: Request) => {
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
-            fluorescenceData: fluorescenceData,
-            location_id: company_id,
+            fluorescence: fluorescence,
+            company_id: company_id,
             user_comments: userComments,
             admin_comments: adminComments,
             created_by: session_res.id,
@@ -275,7 +276,7 @@ export const updateStock = async (req: Request) => {
             depth_value: depth_value,
             ratio: ratio,
             fluorescence: fluorescence,
-            location_id: company_id,
+            company_id: company_id,
             comments: comments,
             modified_by: session_res.id,
             modified_at: getLocalDate(),
