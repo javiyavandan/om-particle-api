@@ -198,7 +198,6 @@ export const getMemo = async (req: Request) => {
                         [Sequelize.literal(`"memo_details->stocks"."status"`), "status"],
                         [Sequelize.literal(`"memo_details->stocks"."quantity"`), "quantity"],
                         [Sequelize.literal(`"memo_details->stocks"."weight"`), "weight"],
-                        [Sequelize.literal(`"memo_details->stocks"."rate"`), "rate"],
                         [Sequelize.literal(`"memo_details->stocks"."report"`), "report"],
                         [Sequelize.literal(`"memo_details->stocks"."video"`), "video"],
                         [Sequelize.literal(`"memo_details->stocks"."image"`), "image"],
@@ -464,7 +463,6 @@ export const getAllMemo = async (req: Request) => {
                     [Sequelize.literal(`"memo_details->stocks"."status"`), "status"],
                     [Sequelize.literal(`"memo_details->stocks"."quantity"`), "quantity"],
                     [Sequelize.literal(`"memo_details->stocks"."weight"`), "weight"],
-                    [Sequelize.literal(`"memo_details->stocks"."rate"`), "rate"],
                     [Sequelize.literal(`"memo_details->stocks"."report"`), "report"],
                     [Sequelize.literal(`"memo_details->stocks"."video"`), "video"],
                     [Sequelize.literal(`"memo_details->stocks"."image"`), "image"],
@@ -548,6 +546,7 @@ export const getAllMemo = async (req: Request) => {
             const totalItems = await Memo.count({
                 where,
                 include: includes,
+                distinct: true,
             });
 
             if (totalItems === 0) {
@@ -583,9 +582,28 @@ export const getAllMemo = async (req: Request) => {
 
 export const returnMemoStock = async (req: Request) => {
     try {
-        const { stock_list, company_id } = req.body;
+        const { memo_id, stock_list, company_id } = req.body;
         const stockError = [];
         const stockList = [];
+
+        const memo = await Memo.findOne({
+            where: {
+                id: memo_id,
+                is_deleted: DeleteStatus.No
+            },
+            include: [
+                {
+                    model: MemoDetail,
+                    as: 'memo_details',
+                }
+            ]
+        })
+
+        if (!(memo && memo.dataValues)) {
+            return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Memo"]]) })
+        }
+
+        const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.map((memoData: any) => memoData.dataValues.stock_id)
 
         const allStock = await Diamonds.findAll({
             where: {
@@ -595,18 +613,17 @@ export const returnMemoStock = async (req: Request) => {
             }
         })
 
-        for (let index = 0; index < stock_list.length; index++) {
-            const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id === stockId)
+        for (let index = 0; index < stockData.length; index++) {
+            const stockId = stockData[index];
+            const findStock = allStock.find(stock => stock.dataValues.id == stockId)
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
                 stockList.push({
-                    id: findStock.dataValues.id,
+                    ...findStock.dataValues,
                     modified_at: getLocalDate(),
                     modified_by: req.body.session_res.id,
                     status: StockStatus.AVAILABLE,
-                    is_deleted: DeleteStatus.No,
                 })
             }
         }
@@ -619,6 +636,31 @@ export const returnMemoStock = async (req: Request) => {
         }
 
 
+        const trn = await dbContext.transaction();
+        try {
+            await Diamonds.bulkCreate(stockList, {
+                updateOnDuplicate: ["modified_at", "modified_by", "status"],
+                transaction: trn
+            });
+
+            if (memo.dataValues.memo_details.length === stockList.length) {
+                await Memo.update({
+                    status: MEMO_STATUS.Close,
+                }, {
+                    where: {
+                        id: memo.dataValues.id
+                    },
+                    transaction: trn
+                })
+            }
+
+            trn.commit();
+
+            return resSuccess()
+        } catch (error) {
+            trn.rollback();
+            throw error
+        }
 
     } catch (error) {
         throw error
