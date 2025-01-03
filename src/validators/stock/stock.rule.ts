@@ -1,4 +1,4 @@
-import { fieldFloatChain, fieldIntegerChain, fieldStringChain, fieldStringNotReqChain } from "../common-validation-rules";
+import { fieldFloatChain, fieldIntegerChain, fieldIntegerNotReqChain, fieldStringChain, fieldStringNotReqChain } from "../common-validation-rules";
 
 export const addStockRules = [
     fieldStringChain("Stock Id", "stock_id"),
@@ -27,5 +27,5 @@ export const addStockRules = [
     fieldIntegerChain("polish", "polish"),
     fieldIntegerChain("symmetry", "symmetry"),
     fieldIntegerChain("company", "company_id"),
-    fieldIntegerChain("fluorescence", "fluorescence"),
+    fieldIntegerNotReqChain("fluorescence", "fluorescence"),
 ]

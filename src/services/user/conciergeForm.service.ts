@@ -18,7 +18,7 @@ import {
   ERROR_NOT_FOUND,
 } from "../../utils/app-messages";
 import { ADMIN_MAIL, FRONT_END_BASE_URL } from "../../config/env.var";
-import { mailAdminDiamondConcierge, mailAdminJewelryConcierge, mailDiamondConcierge, mailJewelryConcierge } from "../mail.service";
+import { mailAdminDiamondConcierge, mailDiamondConcierge } from "../mail.service";
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import DiamondConcierge from "../../model/diamondConcierge.model";

@@ -54,42 +54,38 @@ export const addStock = async (req: Request) => {
             }
         })
 
-        const shapeData = MastersData.filter(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
-        const colorData = MastersData.filter(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
-        const clarityData = MastersData.filter(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
-        const labData = MastersData.filter(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
-        const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
-        const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
-        const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
-        const companyData = await Company.findOne({
+        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
+        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
+        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
+        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
+        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
+        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
+        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
+        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
+        const companyData: any = await Company.findOne({
             where: {
                 id: company_id,
+                is_active: ActiveStatus.Active,
                 is_deleted: DeleteStatus.No
             }
         })
-
-        function generateMissingFieldsMessage(missingFields: string[]) {
-            const fieldsList = missingFields.join(", ");
-            return prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", fieldsList]]);
-        }
-
+        
         // Check for missing fields
         const missingFields = [];
-        if (!shapeData) missingFields.push("Shape Data");
-        if (!colorData) missingFields.push("Color Data");
-        if (!clarityData) missingFields.push("Clarity Data");
-        if (!labData) missingFields.push("Lab Data");
-        if (!polishData) missingFields.push("Polish Data");
-        if (!symmetryData) missingFields.push("Symmetry Data");
-        if (!colorIntensityData) missingFields.push("Color Intensity Data");
-        if (!companyData) missingFields.push("Company Data");
-        if (!fluorescenceData) missingFields.push("fluorescence Data");
+        if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
+        if (!(colorData && colorData.dataValues)) missingFields.push("Color Data");
+        if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
+        if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
+        if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
+        if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
+        if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
+        if (!(companyData && companyData.dataValues)) missingFields.push("Location Data");
+        if (fluorescence) if (!(fluorescenceData && fluorescenceData.dataValues)) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
             return resNotFound({
-                message: generateMissingFieldsMessage(missingFields),
+                data: missingFields.map((field) => prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", field]]))
             });
         }
 
@@ -99,39 +95,39 @@ export const addStock = async (req: Request) => {
             })
         }
 
-        await Diamonds.create({
-            stock_id: stock_id,
-            status: status,
-            is_active: ActiveStatus.Active,
-            is_deleted: DeleteStatus.No,
-            shape: shape,
-            quantity: quantity,
-            weight: weight,
-            rate: rate,
-            color: color,
-            color_intensity: color_intensity,
-            clarity: clarity,
-            lab: lab,
-            report: report,
-            polish: polish,
-            symmetry: symmetry,
-            video: video,
-            image: image,
-            certificate: certificate,
-            measurement_height,
-            measurement_width,
-            measurement_depth,
-            local_location,
-            table_value: table_value,
-            depth_value: depth_value,
-            ratio: ratio,
-            fluorescence: fluorescence,
-            company_id: company_id,
-            user_comments: userComments,
-            admin_comments: adminComments,
-            created_by: session_res.id,
-            created_at: getLocalDate(),
-        })
+        // await Diamonds.create({
+        //     stock_id: stock_id,
+        //     status: status,
+        //     is_active: ActiveStatus.Active,
+        //     is_deleted: DeleteStatus.No,
+        //     shape: shape,
+        //     quantity: quantity,
+        //     weight: weight,
+        //     rate: rate,
+        //     color: color,
+        //     color_intensity: color_intensity,
+        //     clarity: clarity,
+        //     lab: lab,
+        //     report: report,
+        //     polish: polish,
+        //     symmetry: symmetry,
+        //     video: video,
+        //     image: image,
+        //     certificate: certificate,
+        //     measurement_height,
+        //     measurement_width,
+        //     measurement_depth,
+        //     local_location,
+        //     table_value: table_value,
+        //     depth_value: depth_value,
+        //     ratio: ratio,
+        //     fluorescence: fluorescence,
+        //     company_id: company_id,
+        //     user_comments: userComments,
+        //     admin_comments: adminComments,
+        //     created_by: session_res.id,
+        //     created_at: getLocalDate(),
+        // })
 
         return resSuccess()
     } catch (error) {
@@ -211,41 +207,38 @@ export const updateStock = async (req: Request) => {
             }
         })
 
-        const shapeData = MastersData.filter(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
-        const colorData = MastersData.filter(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
-        const clarityData = MastersData.filter(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
-        const labData = MastersData.filter(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
-        const polishData = MastersData.filter(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
-        const symmetryData = MastersData.filter(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData = MastersData.filter(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
-        const fluorescenceData = MastersData.filter(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
-        const companyData = await Company.findOne({
+        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
+        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
+        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
+        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
+        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
+        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
+        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
+        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
+        const companyData: any = await Company.findOne({
             where: {
-                id: company_id
+                id: company_id,
+                is_active: ActiveStatus.Active,
+                is_deleted: DeleteStatus.No
             }
         })
-
-        function generateMissingFieldsMessage(missingFields: string[]) {
-            const fieldsList = missingFields.join(", ");
-            return prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", fieldsList]]);
-        }
-
+        
         // Check for missing fields
         const missingFields = [];
-        if (!shapeData) missingFields.push("Shape Data");
-        if (!colorData) missingFields.push("Color Data");
-        if (!clarityData) missingFields.push("Clarity Data");
-        if (!labData) missingFields.push("Lab Data");
-        if (!polishData) missingFields.push("Polish Data");
-        if (!symmetryData) missingFields.push("Symmetry Data");
-        if (!colorIntensityData) missingFields.push("Color Intensity Data");
-        if (!companyData) missingFields.push("Location Data");
-        if (!fluorescenceData) missingFields.push("fluorescence Data");
+        if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
+        if (!(colorData && colorData.dataValues)) missingFields.push("Color Data");
+        if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
+        if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
+        if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
+        if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
+        if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
+        if (!(companyData && companyData.dataValues)) missingFields.push("Location Data");
+        if (fluorescence) if (!(fluorescenceData && fluorescenceData.dataValues)) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response
         if (missingFields.length > 0) {
             return resNotFound({
-                message: generateMissingFieldsMessage(missingFields),
+                data: missingFields.map((field) => prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", field]]))
             });
         }
 
@@ -336,15 +329,24 @@ export const getStock = async (req: Request) => {
                 "id",
                 "stock_id",
                 "status",
-                [Sequelize.literal(`"shape_master"."name"`), "shape"],
-                [Sequelize.literal(`"clarity_master"."name"`), "clarity"],
-                [Sequelize.literal(`"color_master"."name"`), "color"],
-                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensity"],
-                [Sequelize.literal(`"lab_master"."name"`), "lab"],
-                [Sequelize.literal(`"polish_master"."name"`), "polish"],
-                [Sequelize.literal(`"symmetry_master"."name"`), "symmetry"],
-                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescence"],
-                [Sequelize.literal(`"company_master"."name"`), "company"],
+                [Sequelize.literal(`"shape_master"."name"`), "shapeName"],
+                [Sequelize.literal(`"shape_master"."id"`), "shapeId"],
+                [Sequelize.literal(`"clarity_master"."name"`), "clarityName"],
+                [Sequelize.literal(`"clarity_master"."id"`), "clarityId"],
+                [Sequelize.literal(`"color_master"."name"`), "colorName"],
+                [Sequelize.literal(`"color_master"."id"`), "colorId"],
+                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensityName"],
+                [Sequelize.literal(`"color_intensity_master"."id"`), "color_intensityId"],
+                [Sequelize.literal(`"lab_master"."name"`), "labName"],
+                [Sequelize.literal(`"lab_master"."id"`), "labId"],
+                [Sequelize.literal(`"polish_master"."name"`), "polishName"],
+                [Sequelize.literal(`"polish_master"."id"`), "polishId"],
+                [Sequelize.literal(`"symmetry_master"."name"`), "symmetryName"],
+                [Sequelize.literal(`"symmetry_master"."id"`), "symmetryId"],
+                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescenceName"],
+                [Sequelize.literal(`"fluorescence_master"."id"`), "fluorescenceId"],
+                [Sequelize.literal(`"company_master"."name"`), "companyName"],
+                [Sequelize.literal(`"company_master"."id"`), "companyId"],
                 "quantity",
                 "weight",
                 "rate",
@@ -588,15 +590,24 @@ export const getAllStock = async (req: Request) => {
                 "id",
                 "stock_id",
                 "status",
-                [Sequelize.literal(`"shape_master"."name"`), "shape"],
-                [Sequelize.literal(`"clarity_master"."name"`), "clarity"],
-                [Sequelize.literal(`"color_master"."name"`), "color"],
-                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensity"],
-                [Sequelize.literal(`"lab_master"."name"`), "lab"],
-                [Sequelize.literal(`"polish_master"."name"`), "polish"],
-                [Sequelize.literal(`"symmetry_master"."name"`), "symmetry"],
-                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescence"],
-                [Sequelize.literal(`"company_master"."name"`), "company"],
+                [Sequelize.literal(`"shape_master"."name"`), "shapeName"],
+                [Sequelize.literal(`"shape_master"."id"`), "shapeId"],
+                [Sequelize.literal(`"clarity_master"."name"`), "clarityName"],
+                [Sequelize.literal(`"clarity_master"."id"`), "clarityId"],
+                [Sequelize.literal(`"color_master"."name"`), "colorName"],
+                [Sequelize.literal(`"color_master"."id"`), "colorId"],
+                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensityName"],
+                [Sequelize.literal(`"color_intensity_master"."id"`), "color_intensityId"],
+                [Sequelize.literal(`"lab_master"."name"`), "labName"],
+                [Sequelize.literal(`"lab_master"."id"`), "labId"],
+                [Sequelize.literal(`"polish_master"."name"`), "polishName"],
+                [Sequelize.literal(`"polish_master"."id"`), "polishId"],
+                [Sequelize.literal(`"symmetry_master"."name"`), "symmetryName"],
+                [Sequelize.literal(`"symmetry_master"."id"`), "symmetryId"],
+                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescenceName"],
+                [Sequelize.literal(`"fluorescence_master"."id"`), "fluorescenceId"],
+                [Sequelize.literal(`"company_master"."name"`), "companyName"],
+                [Sequelize.literal(`"company_master"."id"`), "companyId"],
                 "quantity",
                 "weight",
                 "rate",
