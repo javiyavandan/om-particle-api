@@ -53,6 +53,7 @@ import {
     "<<field_name>> field should be a type of url";
   
   export const USER_NOT_FOUND = "User not found!";
+  export const CUSTOMER_NOT_VERIFIED = "Customer not verified!";
   export const USER_NOT_VERIFIED = "User is not verified please contact admin!";
   export const VERIFIED = "<<field_name>> is verified!";
   export const UPDATE = "<<field_name>> is updated!";
