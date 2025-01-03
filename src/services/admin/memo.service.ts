@@ -18,9 +18,8 @@ export const createMemo = async (req: Request) => {
         const stockError = [];
         const stockList: any = [];
 
-        if (stock_list.length === 0) {
+        if (stock_list.length == 0) {
             return resBadRequest({
-                code: 1,
                 message: "Please select stock"
             })
         }
@@ -593,6 +592,14 @@ export const returnMemoStock = async (req: Request) => {
         const { memo_id, stock_list, company_id } = req.body;
         const stockError = [];
         const stockList = [];
+
+        if (stock_list) {
+            if (stock_list.length == 0) {
+                return resBadRequest({
+                    message: "Please select stock"
+                })
+            }
+        }
 
         const memo = await Memo.findOne({
             where: {

@@ -8,7 +8,7 @@ import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
 import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess } from "../../utils/shared-functions";
+import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 
 export const createInvoice = async (req: Request) => {
@@ -16,6 +16,12 @@ export const createInvoice = async (req: Request) => {
         const { company_id, customer_id, stock_list } = req.body
         const stockError = [];
         const stockList: any = [];
+
+        if (stock_list.length == 0) {
+            return resBadRequest({
+                message: "Please select stock"
+            })
+        }
 
         const findCompany = await Company.findOne({
             where: {
