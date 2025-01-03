@@ -129,24 +129,6 @@ export const addMaster = async (req: Request) => {
           ])
         })
       }
-
-      const checkTax = await Master.findOne({
-        where: {
-          country_id,
-          master_type: Master_type.Tax,
-          is_deleted: DeleteStatus.No,
-        },
-      })
-
-      if (checkTax && checkTax.dataValues) {
-        return resBadRequest({
-          code: DUPLICATE_ERROR_CODE,
-          message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
-            ["field_name", "Tax with this country"],
-          ])
-        })
-      }
-
     }
 
     const trn = await dbContext.transaction();
@@ -306,24 +288,6 @@ export const updateMaster = async (req: Request) => {
         return resNotFound({
           message: prepareMessageFromParams(ERROR_NOT_FOUND, [
             ["field_name", "country"],
-          ])
-        })
-      }
-
-      const checkTax = await Master.findOne({
-        where: {
-          id: { [Op.ne]: id },
-          country_id,
-          master_type: Master_type.Tax,
-          is_deleted: DeleteStatus.No,
-        },
-      })
-
-      if (checkTax && checkTax.dataValues) {
-        return resBadRequest({
-          code: DUPLICATE_ERROR_CODE,
-          message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
-            ["field_name", "Tax with this country"],
           ])
         })
       }
