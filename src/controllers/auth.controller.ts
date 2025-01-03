@@ -8,6 +8,7 @@ import {
   registerUser,
   test,
   verifyOtp,
+  customerList,
 } from "../services/auth.service";
 import { callServiceMethod } from "./base.controller";
 
@@ -41,4 +42,8 @@ export const forgotPasswordFn: RequestHandler = (req, res) => {
 
 export const resetPasswordFn: RequestHandler = (req, res) => {
   callServiceMethod(req, res, resetPassword(req), "resetPasswordFn");
+};
+
+export const customerListFn: RequestHandler = (req, res) => {
+  callServiceMethod(req, res, customerList(), "customerListFn");
 };

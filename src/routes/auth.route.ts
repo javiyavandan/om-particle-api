@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   changePasswordFn,
+  customerListFn,
   forgotPasswordFn,
   loginFn,
   otpVerification,
@@ -17,6 +18,7 @@ import {
   resetPasswordValidator,
   verifyOtpValidator,
 } from "../validators/auth/auth.validator";
+import { adminAuthorization } from "../middlewares/authenticate";
 
 export default (app: Router) => {
   app.use("/test", testFn);
@@ -31,4 +33,5 @@ export default (app: Router) => {
   );
   app.post("/forgotPassword", [forgotPasswordValidator], forgotPasswordFn);
   app.post("/resetPassword", [resetPasswordValidator], resetPasswordFn);
+  app.get("/admin/customer", [adminAuthorization], customerListFn);
 };

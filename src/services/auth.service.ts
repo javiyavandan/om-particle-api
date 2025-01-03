@@ -550,3 +550,25 @@ export const resetPassword = async (req: Request) => {
     throw e;
   }
 };
+
+
+export const customerList = async () => {
+  try {
+    const customer = await Customer.findAll({
+      attributes: ["id", "company_name", "company_website", "company_email", "registration_number", "address", "city", "state", "country", "postcode"],
+      include: [{
+        model: AppUser,
+        as: "user",
+        attributes: [],
+        where: {
+          is_verified: UserVerification.Admin_Verified,
+          user_type: UserType.Customer
+        }
+      }]
+    })
+
+    return resSuccess({ data: customer })
+  } catch (error) {
+    throw error
+  }
+}

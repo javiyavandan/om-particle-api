@@ -29,7 +29,7 @@ import { IMAGE_URL } from "../../config/env.var";
 import Master from "../../model/masters.model";
 import Image from "../../model/image.model";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
-import Company from "../../model/companys.model";
+import Country from "../../model/country.model";
 
 export const addMaster = async (req: Request) => {
   try {
@@ -44,7 +44,7 @@ export const addMaster = async (req: Request) => {
       link,
       import_name,
       order,
-      company_id,
+      country_id,
     } = req.body;
     const { file } = req;
     let filePath = null;
@@ -117,9 +117,9 @@ export const addMaster = async (req: Request) => {
       }
     }
 
-    if (company_id) {
-      const company = await Company.findOne({
-        where: { id: company_id, is_deleted: DeleteStatus.No },
+    if (country_id) {
+      const company = await Country.findOne({
+        where: { id: country_id, is_deleted: DeleteStatus.No },
       })
 
       if (!(company && company.dataValues)) {
@@ -132,7 +132,7 @@ export const addMaster = async (req: Request) => {
 
       const checkTax = await Master.findOne({
         where: {
-          company_id,
+          country_id,
           master_type: Master_type.Tax,
           is_deleted: DeleteStatus.No,
         },
@@ -186,7 +186,7 @@ export const addMaster = async (req: Request) => {
           is_active: ActiveStatus.Active,
           created_at: getLocalDate(),
           created_by: session_res.user_id,
-          company_id: company_id ?? null,
+          country_id: country_id ?? null,
         },
         { transaction: trn }
       );
@@ -215,7 +215,7 @@ export const updateMaster = async (req: Request) => {
       link,
       import_name,
       order,
-      company_id,
+      country_id,
     } = req.body;
     const slug = name.toLowerCase().replaceAll(" ", "-");
     let filePath = null;
@@ -297,9 +297,9 @@ export const updateMaster = async (req: Request) => {
       }
     }
 
-    if (company_id) {
-      const company = await Company.findOne({
-        where: { id: company_id, is_deleted: DeleteStatus.No },
+    if (country_id) {
+      const company = await Country.findOne({
+        where: { id: country_id, is_deleted: DeleteStatus.No },
       })
 
       if (!(company && company.dataValues)) {
@@ -313,7 +313,7 @@ export const updateMaster = async (req: Request) => {
       const checkTax = await Master.findOne({
         where: {
           id: { [Op.ne]: id },
-          company_id,
+          country_id,
           master_type: Master_type.Tax,
           is_deleted: DeleteStatus.No,
         },
@@ -371,7 +371,7 @@ export const updateMaster = async (req: Request) => {
           is_deleted: DeleteStatus.No,
           modified_at: getLocalDate(),
           modified_by: session_res.user_id,
-          company_id: company_id ?? null,
+          country_id: country_id ?? null,
         },
         {
           where: {
@@ -446,7 +446,7 @@ export const masterList = async (req: Request) => {
         "id_parent",
         "link",
         "import_name",
-        "company_id",
+        "country_id",
         "order_by",
         [
           Sequelize.fn(
@@ -493,7 +493,7 @@ export const masterDetail = async (req: Request) => {
         "id_image",
         "id_parent",
         "link",
-        "company_id",
+        "country_id",
         "import_name",
         "order_by",
         [

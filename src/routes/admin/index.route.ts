@@ -6,6 +6,7 @@ import companyRoute from "./company.route";
 import stockRoute from "./stock.route";
 import staticPageRoute from "./static-page.route";
 import memoRoute from "./memo.route";
+import invoiceRoute from "./invoice.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -16,5 +17,6 @@ export default function adminRouter() {
   stockRoute(app);
   staticPageRoute(app);
   memoRoute(app);
+  invoiceRoute(app);
   return app;
 }
