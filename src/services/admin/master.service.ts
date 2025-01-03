@@ -118,14 +118,14 @@ export const addMaster = async (req: Request) => {
     }
 
     if (country_id) {
-      const company = await Country.findOne({
+      const country = await Country.findOne({
         where: { id: country_id, is_deleted: DeleteStatus.No },
       })
 
-      if (!(company && company.dataValues)) {
+      if (!(country && country.dataValues)) {
         return resNotFound({
           message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-            ["field_name", "company"],
+            ["field_name", "country"],
           ])
         })
       }
@@ -142,7 +142,7 @@ export const addMaster = async (req: Request) => {
         return resBadRequest({
           code: DUPLICATE_ERROR_CODE,
           message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
-            ["field_name", "Tax with this company"],
+            ["field_name", "Tax with this country"],
           ])
         })
       }
@@ -298,14 +298,14 @@ export const updateMaster = async (req: Request) => {
     }
 
     if (country_id) {
-      const company = await Country.findOne({
+      const country = await Country.findOne({
         where: { id: country_id, is_deleted: DeleteStatus.No },
       })
 
-      if (!(company && company.dataValues)) {
+      if (!(country && country.dataValues)) {
         return resNotFound({
           message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-            ["field_name", "company"],
+            ["field_name", "country"],
           ])
         })
       }
@@ -323,7 +323,7 @@ export const updateMaster = async (req: Request) => {
         return resBadRequest({
           code: DUPLICATE_ERROR_CODE,
           message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
-            ["field_name", "Tax with this company"],
+            ["field_name", "Tax with this country"],
           ])
         })
       }
