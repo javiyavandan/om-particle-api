@@ -19,9 +19,6 @@ const Invoice = dbContext.define('invoices', {
     customer_id: {
         type: BIGINT,
     },
-    tax_id: {
-        type: BIGINT,
-    },
     created_at: {
         type: DATE,
     },
@@ -32,6 +29,5 @@ const Invoice = dbContext.define('invoices', {
 
 Invoice.belongsTo(Company, { foreignKey: 'company_id', as: 'company' });
 Invoice.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
-Invoice.belongsTo(Master, { foreignKey: 'tax_id', as: 'tax_master' });
 
 export default Invoice;
