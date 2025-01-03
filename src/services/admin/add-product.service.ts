@@ -436,6 +436,7 @@ export const getAllStock = async (req: Request) => {
 
         const where = [
             { is_deleted: DeleteStatus.No },
+            req.body.id_role == 0 ? {} : { company_id: req.body.company_id },
             pagination.is_active ? { is_active: pagination.is_active } : {},
             pagination.search_text
                 ? {

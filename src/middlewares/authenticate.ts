@@ -220,6 +220,7 @@ export const tokenVerification: RequestHandler = async (req, res, next) => {
         req.body["session_res"] = {
           ...result.data,
           id_role: result.data.id_role,
+          company_id: result.data.company_id,
         };
         req.body;
       } else {

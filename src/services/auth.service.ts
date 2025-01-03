@@ -62,6 +62,8 @@ import Wishlist from "../model/wishlist.model";
 import CartProducts from "../model/cart-product.model";
 import Image from "../model/image.model";
 import { Sequelize } from "sequelize";
+import Role from "../model/role.model";
+import Company from "../model/companys.model";
 
 export const test = (req: Request) => {
   return resSuccess({ data: "Done encryption decryption" });
@@ -329,6 +331,17 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    let company;
+
+    if (appUser.dataValues.id_role != 0) {
+      const roleData = await Role.findOne({
+        where: { id: appUser.dataValues.id_role },
+      })
+      if (roleData && roleData.dataValues) {
+        company = roleData.dataValues.company_id
+      }
+    }
+
     const jwtPayload = {
       id:
         appUser && appUser.dataValues
@@ -336,6 +349,7 @@ export const login = async (req: Request, res: Response) => {
           : appUser.dataValues.id,
       user_type: appUser.dataValues.user_type,
       id_role: appUser.dataValues.id_role,
+      company_id: company,
       is_verified: appUser.dataValues.is_verified,
     };
 
@@ -369,7 +383,7 @@ export const login = async (req: Request, res: Response) => {
     return resSuccess({
       data: {
         token: data,
-        userDetails: {...appUser.dataValues, password: ''},
+        userDetails: { ...appUser.dataValues, password: '' },
         // count: {
         //   wishlistCount,
         //   cartCount,
@@ -489,7 +503,7 @@ export const forgotPassword = async (req: Request) => {
       const mailPayload = {
         toEmailAddress: appUser.dataValues.email,
         contentTobeReplaced: {
-          name: appUser.dataValues.first_name + " " + (appUser.dataValues.last_name ? appUser.dataValues.last_name : "" ),
+          name: appUser.dataValues.first_name + " " + (appUser.dataValues.last_name ? appUser.dataValues.last_name : ""),
           frontend_url: FRONT_END_BASE_URL,
           logo_image: IMAGE_PATH,
           app_name: "PureLab",
