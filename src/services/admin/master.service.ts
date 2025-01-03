@@ -5,6 +5,7 @@ import {
   getLocalDate,
   prepareMessageFromParams,
   resBadRequest,
+  resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
 import {
@@ -27,6 +28,7 @@ import { IMAGE_URL } from "../../config/env.var";
 import Master from "../../model/masters.model";
 import Image from "../../model/image.model";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
+import Company from "../../model/companys.model";
 
 export const addMaster = async (req: Request) => {
   try {
@@ -41,6 +43,7 @@ export const addMaster = async (req: Request) => {
       link,
       import_name,
       order,
+      company_id,
     } = req.body;
     const { file } = req;
     let filePath = null;
@@ -52,7 +55,7 @@ export const addMaster = async (req: Request) => {
       );
 
       if (moveFileResult.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-        return moveFileResult; 
+        return moveFileResult;
       }
 
       filePath = moveFileResult.data;
@@ -72,8 +75,8 @@ export const addMaster = async (req: Request) => {
       where: [
         sort_code && sort_code != undefined
           ? {
-              sort_code: columnValueLowerCase("sort_code", sort_code),
-            }
+            sort_code: columnValueLowerCase("sort_code", sort_code),
+          }
           : {},
         id_parent && { id_parent: id_parent },
         { master_type: master_type },
@@ -110,6 +113,20 @@ export const addMaster = async (req: Request) => {
             ["field_name", "parent data"],
           ]),
         });
+      }
+    }
+
+    if (company_id) {
+      const company = await Company.findOne({
+        where: { id: company_id, is_deleted: DeleteStatus.No },
+      })
+
+      if (!(company && company.dataValues)) {
+        return resNotFound({
+          message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+            ["field_name", "company"],
+          ])
+        })
       }
     }
 
@@ -150,6 +167,7 @@ export const addMaster = async (req: Request) => {
           is_active: ActiveStatus.Active,
           created_at: getLocalDate(),
           created_by: session_res.user_id,
+          company_id: company_id ?? null,
         },
         { transaction: trn }
       );
@@ -178,6 +196,7 @@ export const updateMaster = async (req: Request) => {
       link,
       import_name,
       order,
+      company_id,
     } = req.body;
     const slug = name.toLowerCase().replaceAll(" ", "-");
     let filePath = null;
@@ -210,8 +229,8 @@ export const updateMaster = async (req: Request) => {
         { id: { [Op.ne]: id } },
         sort_code && sort_code != undefined
           ? {
-              sort_code: columnValueLowerCase("sort_code", sort_code),
-            }
+            sort_code: columnValueLowerCase("sort_code", sort_code),
+          }
           : {},
         id_parent && { id_parent: id_parent },
         { master_type: master_type },
@@ -259,6 +278,20 @@ export const updateMaster = async (req: Request) => {
       }
     }
 
+    if (company_id) {
+      const company = await Company.findOne({
+        where: { id: company_id, is_deleted: DeleteStatus.No },
+      })
+
+      if (!(company && company.dataValues)) {
+        return resNotFound({
+          message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+            ["field_name", "company"],
+          ])
+        })
+      }
+    }
+
     const trn = await dbContext.transaction();
 
     if (MasterData) {
@@ -301,6 +334,7 @@ export const updateMaster = async (req: Request) => {
           is_deleted: DeleteStatus.No,
           modified_at: getLocalDate(),
           modified_by: session_res.user_id,
+          company_id: company_id ?? null,
         },
         {
           where: {
@@ -339,11 +373,11 @@ export const masterList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              slug: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            slug: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -375,6 +409,7 @@ export const masterList = async (req: Request) => {
         "id_parent",
         "link",
         "import_name",
+        "company_id",
         "order_by",
         [
           Sequelize.fn(
@@ -421,6 +456,7 @@ export const masterDetail = async (req: Request) => {
         "id_image",
         "id_parent",
         "link",
+        "company_id",
         "import_name",
         "order_by",
         [

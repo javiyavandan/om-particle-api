@@ -123,30 +123,6 @@ export const mailContactUs = async (payload: any) => {
   );
 };
 
-export const mailJewelryConcierge = async (payload: any) => {
-  const emailTemplate =
-    "../../../templates/mail-template/jewelryConcierge.html";
-  const subject = "Jewelry Concierge";
-  await prepareAndSendEmail(
-    emailTemplate,
-    subject,
-    MESSAGE_TYPE.JewelryConcierge,
-    payload
-  );
-};
-
-export const mailAdminJewelryConcierge = async (payload: any) => {
-  const emailTemplate =
-    "../../../templates/mail-template/jewelryConcierge.html";
-  const subject = "Jewelry Concierge";
-  await prepareAndSendEmail(
-    emailTemplate,
-    subject,
-    MESSAGE_TYPE.JewelryConcierge,
-    payload
-  );
-};
-
 export const mailDiamondConcierge = async (payload: any) => {
   const emailTemplate =
     "../../../templates/mail-template/diamondConcierge.html";
