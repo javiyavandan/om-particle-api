@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addEditBulkStock, addStockFn, deleteBulkStockFn, deleteStockFn, getAllStockFn, getStockFn, updateBulkStockStatusFn, updateStockFn, updateStockStatusFn } from "../../controllers/admin/stock.controller";
+import { addEditBulkStock, addStockFn, deleteBulkStockFn, deleteStockCsv, deleteStockFn, getAllStockFn, getStockFn, updateBulkStockStatusFn, updateStockFn, updateStockStatusFn } from "../../controllers/admin/stock.controller";
 import { adminAuthorization } from "../../middlewares/authenticate";
 import { addStockValidator } from "../../validators/stock/stock.validator";
 import { reqProductBulkUploadFileParser } from "../../middlewares/multipart-file-parser";
@@ -13,4 +13,5 @@ export default (app: Router) => {
     app.post("/stock/import", [adminAuthorization, reqProductBulkUploadFileParser("stock_file")], addEditBulkStock);
     app.patch("/stock-update-status", [adminAuthorization], updateBulkStockStatusFn);
     app.delete("/stock-bulk-delete", [adminAuthorization], deleteBulkStockFn);
+    app.delete("/stock-bulk-delete-csv", [adminAuthorization, reqProductBulkUploadFileParser("stock_file")], deleteStockCsv);
 }
