@@ -11,7 +11,6 @@ import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op } from "sequelize";
-import Country from "../../model/country.model";
 
 export const createInvoice = async (req: Request) => {
     try {
@@ -314,6 +313,26 @@ export const getInvoice = async (req: Request) => {
 
         invoice.dataValues.taxData = taxData
 
+        let totalItemsPrice = 0;
+
+        for (let index = 0; index < invoice.dataValues.invoice_details.length; index++) {
+            const element = invoice.dataValues.invoice_details[index].dataValues;
+
+            totalItemsPrice += ((element.stock_price * element.weight) * element.quantity)
+        }
+
+        let totalTaxPrice = 0;
+
+        for (let index = 0; index < invoice.dataValues.taxData.length; index++) {
+            const element = invoice.dataValues.taxData[index].dataValues;
+            invoice.dataValues.taxData[index].dataValues.tax = ((totalItemsPrice * Number(element.value)) / 100).toFixed(2)
+            totalTaxPrice += (totalItemsPrice * Number(element.value)) / 100
+        }
+
+        invoice.dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
+        invoice.dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
+        invoice.dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
+
         return resSuccess({
             data: invoice,
         })
@@ -605,12 +624,12 @@ export const getAllInvoice = async (req: Request) => {
 
         for (let index = 0; index < result.length; index++) {
 
-            if ( result[index].dataValues) {
+            if (result[index].dataValues) {
                 const taxData = await Master.findAll({
                     where: {
                         master_type: Master_type.Tax,
                         is_deleted: DeleteStatus.No,
-                        country_id:  result[index].dataValues.company.country_id,
+                        country_id: result[index].dataValues.company.country_id,
                         is_active: ActiveStatus.Active,
                     },
                     attributes: [
@@ -620,7 +639,27 @@ export const getAllInvoice = async (req: Request) => {
                     ]
                 })
 
-                 result[index].dataValues.taxData = taxData;
+                result[index].dataValues.taxData = taxData;
+
+                let totalItemsPrice = 0;
+
+                for (let i = 0; i < result[index].dataValues.invoice_details.length; i++) {
+                    const element = result[index].dataValues.invoice_details[i].dataValues;
+
+                    totalItemsPrice += ((element.stock_price * element.weight) * element.quantity)
+                }
+
+                let totalTaxPrice = 0;
+
+                for (let i = 0; i < result[index].dataValues.taxData.length; i++) {
+                    const element = result[index].dataValues.taxData[i].dataValues;
+                    result[index].dataValues.taxData[i].dataValues.tax = ((totalItemsPrice * Number(element.value)) / 100).toFixed(2)
+                    totalTaxPrice += (totalItemsPrice * Number(element.value)) / 100
+                }
+
+                result[index].dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
+                result[index].dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
+                result[index].dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
             }
 
         }
