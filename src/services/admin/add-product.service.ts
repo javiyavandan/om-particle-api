@@ -34,8 +34,8 @@ export const addStock = async (req: Request) => {
             ratio,
             fluorescence,
             company_id,
-            userComments,
-            adminComments,
+            user_comments,
+            admin_comments,
             local_location,
             session_res
         } = req.body
@@ -123,8 +123,8 @@ export const addStock = async (req: Request) => {
             ratio: ratio,
             fluorescence: fluorescence,
             company_id: company_id,
-            user_comments: userComments,
-            admin_comments: adminComments,
+            user_comments,
+            admin_comments,
             created_by: session_res.id,
             created_at: getLocalDate(),
         })
