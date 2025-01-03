@@ -101,7 +101,6 @@ export const createInvoice = async (req: Request) => {
 
         const invoiceList = await Invoice.findAll({
             where: {
-                is_deleted: DeleteStatus.No,
                 company_id: company_id,
             }
         })

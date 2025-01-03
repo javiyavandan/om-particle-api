@@ -14,13 +14,13 @@ const Invoice = dbContext.define('invoices', {
         type: BIGINT,
     },
     company_id: {
-        type: DATE,
+        type: BIGINT,
     },
     customer_id: {
-        type: DATE,
+        type: BIGINT,
     },
     tax_id: {
-        type: DATE,
+        type: BIGINT,
     },
     created_at: {
         type: DATE,
