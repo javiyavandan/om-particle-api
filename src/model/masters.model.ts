@@ -66,12 +66,12 @@ const Master = dbContext.define("masters", {
   deleted_by: {
     type: BIGINT,
   },
-  company_id: {
+  country_id: {
     type: BIGINT,
   }
 });
 
 Master.belongsTo(Image, { foreignKey: "id_image", as: "image" });
-Master.belongsTo(Company, { foreignKey: "company_id", as: "company" });
+Master.belongsTo(Company, { foreignKey: "country_id", as: "country" });
 
 export default Master;

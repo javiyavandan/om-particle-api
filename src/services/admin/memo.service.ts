@@ -18,6 +18,13 @@ export const createMemo = async (req: Request) => {
         const stockError = [];
         const stockList: any = [];
 
+        if (stock_list.length === 0) {
+            return resBadRequest({
+                code: 1,
+                message: "Please select stock"
+            })
+        }
+
         const findCompany = await Company.findOne({
             where: {
                 id: company_id,
