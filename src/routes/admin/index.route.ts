@@ -7,6 +7,7 @@ import stockRoute from "./stock.route";
 import staticPageRoute from "./static-page.route";
 import memoRoute from "./memo.route";
 import invoiceRoute from "./invoice.route";
+import conciergeRoute from "./concierge.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -18,5 +19,6 @@ export default function adminRouter() {
   staticPageRoute(app);
   memoRoute(app);
   invoiceRoute(app);
+  conciergeRoute(app);
   return app;
 }
