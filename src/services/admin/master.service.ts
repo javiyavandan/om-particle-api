@@ -579,7 +579,7 @@ export const masterDelete = async (req: Request) => {
         {
           id_deleted: DeleteStatus.Yes,
           deleted_at: getLocalDate(),
-          deleted_by: session_res.user_id,
+          deleted_by: session_res.id,
         },
         {
           where: { id: ParentData.map((t) => t.dataValues.id) },
@@ -591,7 +591,7 @@ export const masterDelete = async (req: Request) => {
       {
         is_deleted: DeleteStatus.Yes,
         deleted_at: getLocalDate(),
-        deleted_by: session_res.user_id,
+        deleted_by: session_res.id,
       },
       {
         where: { id: MasterData.dataValues.id },

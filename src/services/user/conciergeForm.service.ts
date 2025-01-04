@@ -1,5 +1,4 @@
 import { Request } from "express";
-import Image from "../../model/image.model";
 import {
   getLocalDate,
   prepareMessageFromParams,
@@ -9,8 +8,6 @@ import {
 import {
   ActiveStatus,
   DeleteStatus,
-  IMAGE_TYPE,
-  Image_type,
   Master_type,
 } from "../../utils/app-enumeration";
 import {
@@ -44,7 +41,7 @@ export const diamondConciergeForm = async (req: Request) => {
     let productData;
     if (product_id) {
       productData = await Diamonds.findOne({
-        where: { id: product_id },
+        where: { id: product_id, is_deleted: DeleteStatus.No, is_active: ActiveStatus.Active },
       });
 
       if (!(productData && productData.dataValues)) {
@@ -56,30 +53,17 @@ export const diamondConciergeForm = async (req: Request) => {
         });
       }
     }
-    const colorData = await Master.findOne({
+
+    const masterData = await Master.findAll({
       where: {
-        id: color,
-        master_type: Master_type.Diamond_color,
         is_active: ActiveStatus.Active,
         is_deleted: DeleteStatus.No,
       },
-    });
-    const clarityData = await Master.findOne({
-      where: {
-        id: clarity,
-        master_type: Master_type.Diamond_clarity,
-        is_active: ActiveStatus.Active,
-        is_deleted: DeleteStatus.No,
-      },
-    });
-    const shapeData = await Master.findOne({
-      where: {
-        id: shape,
-        master_type: Master_type.Stone_shape,
-        is_active: ActiveStatus.Active,
-        is_deleted: DeleteStatus.No,
-      },
-    });
+    })
+
+    const colorData = masterData.find((data) => data.dataValues.id == color && data.dataValues.master_type === Master_type.Diamond_color)
+    const clarityData = masterData.find((data) => data.dataValues.id == clarity && data.dataValues.master_type === Master_type.Diamond_clarity)
+    const shapeData = masterData.find((data) => data.dataValues.id == shape && data.dataValues.master_type === Master_type.Stone_shape);
 
     if (!(shapeData && shapeData.dataValues)) {
       return resNotFound({
