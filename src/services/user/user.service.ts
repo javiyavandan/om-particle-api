@@ -8,10 +8,6 @@ import {
   DeleteStatus,
   Master_type,
 } from "../../utils/app-enumeration";
-import { Sequelize } from "sequelize";
-import Image from "../../model/image.model";
-import { IMAGE_URL } from "../../config/env.var";
-import { FilterOrder } from "../../utils/app-constants";
 
 export const contactUs = async (req: Request) => {
   try {
@@ -44,48 +40,6 @@ export const contactUs = async (req: Request) => {
     throw error;
   }
 };
-
-export const getParentPreferences = async (req: Request) => {
-  try {
-    const preferences = await Master.findAll({
-      where: {
-        master_type: Master_type.Preference,
-        is_active: ActiveStatus.Active,
-        is_deleted: DeleteStatus.No,
-      },
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: [
-        "id",
-        "name",
-        "slug",
-        "id_image",
-        "id_parent",
-        "link",
-        [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
-          "image_path",
-        ],
-      ],
-      include: [
-        {
-          required: false,
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
-    });
-
-    return resSuccess({ data: preferences });
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const getTax = async (req: Request) => {
   try {
     const taxList = await Master.findAll({

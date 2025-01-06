@@ -3,6 +3,7 @@ import filterDropdownRoute from "./filter-dropdown.route";
 import conciergeRoute from "./concierge.route";
 import wishlistRoute from "./wishlist.route";
 import cartProductRoute from "./cart-product.route";
+import inquiryRoute from "./inquiry.route";
 
 export default () => {
   const app = Router();
@@ -10,5 +11,6 @@ export default () => {
   conciergeRoute(app);
   wishlistRoute(app);
   cartProductRoute(app);
+  inquiryRoute(app);
   return app;
 };
