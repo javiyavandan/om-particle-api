@@ -9,6 +9,7 @@ import memoRoute from "./memo.route";
 import invoiceRoute from "./invoice.route";
 import conciergeRoute from "./concierge.route";
 import wishlistRoute from "./wishlist-admin.route";
+import cartAdminRoute from "./cart-admin.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -22,5 +23,6 @@ export default function adminRouter() {
   invoiceRoute(app);
   conciergeRoute(app);
   wishlistRoute(app);
+  cartAdminRoute(app);
   return app;
 }

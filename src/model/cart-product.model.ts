@@ -1,6 +1,7 @@
 import { BIGINT, DATE, INTEGER, JSON, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import AppUser from "./app_user.model";
+import Diamonds from "./diamond.model";
 
 const CartProducts = dbContext.define("cart_products", {
   id: {
@@ -14,14 +15,8 @@ const CartProducts = dbContext.define("cart_products", {
   product_id: {
     type: BIGINT,
   },
-  product_type: {
-    type: STRING,
-  },
   quantity: {
     type: INTEGER,
-  },
-  product_detail_json: {
-    type: JSON,
   },
   created_at: {
     type: DATE,
@@ -32,5 +27,6 @@ const CartProducts = dbContext.define("cart_products", {
 });
 
 CartProducts.belongsTo(AppUser, { foreignKey: "user_id", as: "user" });
+CartProducts.belongsTo(Diamonds, {foreignKey: "product_id", as: "product"});
 
 export default CartProducts;
