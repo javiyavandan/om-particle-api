@@ -16,6 +16,7 @@ import Customer from "../../model/customer.modal";
 import Master from "../../model/masters.model";
 import Company from "../../model/companys.model";
 import Diamonds from "../../model/diamond.model";
+import { DeleteStatus } from "../../utils/app-enumeration";
 
 export const getWishlist = async (req: Request) => {
   try {
@@ -29,27 +30,27 @@ export const getWishlist = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? Sequelize.or(
-            Sequelize.where(
-              Sequelize.literal(`"user->customer"."company_name"`),
-              "iLike",
-              `%${pagination.search_text}%`
-            ),
-            Sequelize.where(
-              Sequelize.literal(`"user"."first_name"`),
-              "iLike",
-              `%${pagination.search_text}%`
-            ),
-            Sequelize.where(
-              Sequelize.literal(`"user"."last_name"`),
-              "iLike",
-              `%${pagination.search_text}%`
-            ),
-            Sequelize.where(
-              Sequelize.literal(`"wishlist_folder"."name"`),
-              "iLike",
-              `%${pagination.search_text}%`
-            )
+          Sequelize.where(
+            Sequelize.literal(`"user->customer"."company_name"`),
+            "iLike",
+            `%${pagination.search_text}%`
+          ),
+          Sequelize.where(
+            Sequelize.literal(`"user"."first_name"`),
+            "iLike",
+            `%${pagination.search_text}%`
+          ),
+          Sequelize.where(
+            Sequelize.literal(`"user"."last_name"`),
+            "iLike",
+            `%${pagination.search_text}%`
+          ),
+          Sequelize.where(
+            Sequelize.literal(`"wishlist_folder"."name"`),
+            "iLike",
+            `%${pagination.search_text}%`
           )
+        )
         : {},
     ];
 
@@ -75,6 +76,9 @@ export const getWishlist = async (req: Request) => {
       {
         model: Diamonds,
         as: "product",
+        where: {
+          is_deleted: DeleteStatus.No,
+        },
         attributes: [
           "id",
           "stock_id",
@@ -297,6 +301,9 @@ export const getWishlistDetails = async (req: Request) => {
         {
           model: Diamonds,
           as: "product",
+          where: {
+            is_deleted: DeleteStatus.No,
+          },
           attributes: [
             "id",
             "stock_id",

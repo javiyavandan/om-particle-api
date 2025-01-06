@@ -1,6 +1,6 @@
-import { BIGINT, DATE, STRING, TEXT } from "sequelize";
+import { BIGINT, DATE, DOUBLE, JSON, STRING, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
-import Diamonds from "./diamond.model";
+import AppUser from "./app_user.model";
 
 const Inquiry = dbContext.define('inquiries', {
     id: {
@@ -8,38 +8,35 @@ const Inquiry = dbContext.define('inquiries', {
         primaryKey: true,
         autoIncrement: true
     },
-    name: {
-        type: STRING
+    inquiry_number: {
+        type: STRING,
+    },
+    user_id: {
+        type: BIGINT,
+    },
+    total: {
+        type: DOUBLE
+    },
+    product_details: {
+        type: JSON,
+    },
+    inquiry_note: {
+        type: TEXT,
     },
     email: {
-        type: STRING
+        type: STRING,
     },
-    phone_number: {
-        type: STRING
-    },
-    message: {
-        type: TEXT
-    },
-    admin_comments: {
-        type: TEXT
-    },
-    product_id: {
-        type: BIGINT
-    },
-    created_by: {
-        type: BIGINT
+    inquiry_address: {
+        type: JSON,
     },
     created_at: {
         type: DATE
     },
-    modified_by: {
+    created_by: {
         type: BIGINT
-    },
-    modified_at: {
-        type: DATE
     }
 })
 
-Inquiry.belongsTo(Diamonds, {foreignKey: 'product_id', as: "product"})
+Inquiry.belongsTo(AppUser, { foreignKey: 'user_id', as: 'user' })
 
-export default Inquiry;
+export default Inquiry

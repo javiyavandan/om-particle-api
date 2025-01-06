@@ -290,6 +290,9 @@ export const wishlist = async (req: Request) => {
         {
           model: Diamonds,
           as: "product",
+          where: {
+            is_deleted: DeleteStatus.No,
+          },
           attributes: [
             "id",
             "stock_id",

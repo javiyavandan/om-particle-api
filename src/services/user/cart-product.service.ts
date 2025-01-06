@@ -3,13 +3,14 @@ import CartProducts from "../../model/cart-product.model";
 import {
   getLocalDate,
   prepareMessageFromParams,
+  resBadRequest,
   resErrorDataExit,
   resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { Sequelize } from "sequelize";
-import { DeleteStatus } from "../../utils/app-enumeration";
+import { DeleteStatus, StockStatus } from "../../utils/app-enumeration";
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import Company from "../../model/companys.model";
@@ -44,6 +45,12 @@ export const addCartProduct = async (req: Request) => {
         ]),
       });
     }
+    if (productDetail.dataValues.status !== StockStatus.AVAILABLE) {
+      return resBadRequest({
+        message: "Product is not available",
+      })
+    }
+
     // create cart product
     const createProduct = await CartProducts.create({
       product_id: product_id,
@@ -78,6 +85,10 @@ export const cartProductList = async (req: Request) => {
         {
           model: Diamonds,
           as: "product",
+          where: {
+            is_deleted: DeleteStatus.No,
+            status: StockStatus.AVAILABLE,
+          },
           attributes: [
             "id",
             "stock_id",
@@ -168,7 +179,15 @@ export const cartProductList = async (req: Request) => {
         }
       ],
     });
-    return resSuccess({ data: products });
+
+    let totalCartPrice = 0;
+    for (let index = 0; index < products.length; index++) {
+      const item = products[index].dataValues;
+      products[index].dataValues.totalRate = Number(products[index].dataValues.quantity) * Number(products[index].dataValues.product.rate)
+      totalCartPrice += item.quantity * item.product.rate;
+    }
+
+    return resSuccess({ data: { totalCartPrice: totalCartPrice.toFixed(2), cart_list: products } });
   } catch (error) {
     throw error;
   }

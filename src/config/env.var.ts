@@ -61,3 +61,5 @@ export const MAIL_SECURE = process.env.MAIL_SECURE || false;
 export const MAIL_FROM = process.env.MAIL_FROM || "noreply@vihaainfotech.com";
 
 export const ADMIN_MAIL = "info@oml.com";
+
+export const ORDER_NUMBER_IDENTITY = process.env.ORDER_NUMBER_IDENTITY || "OMPL";
