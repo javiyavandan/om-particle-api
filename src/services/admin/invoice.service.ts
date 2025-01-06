@@ -14,7 +14,7 @@ import { Sequelize, Op } from "sequelize";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list } = req.body
+        const { company_id, customer_id, stock_list, remarks } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -120,6 +120,7 @@ export const createInvoice = async (req: Request) => {
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
+                remarks,
             };
 
             const invoiceData = await Invoice.create(invoicePayload, {
@@ -172,6 +173,9 @@ export const getInvoice = async (req: Request) => {
             attributes: [
                 "id",
                 "invoice_number",
+                "created_at",
+                "created_by",
+                "remarks"
             ],
             include: [
                 {
@@ -199,6 +203,18 @@ export const getInvoice = async (req: Request) => {
                         "name",
                         "registration_number",
                         "country_id",
+                        "ac_holder",
+                        "bank_name",
+                        "ac_number",
+                        "bank_branch",
+                        "bank_branch_code",
+                        "company_address",
+                        "city",
+                        "state",
+                        "pincode",
+                        "phone_number",
+                        "email",
+                        "map_link"
                     ]
                 },
                 {
@@ -332,6 +348,17 @@ export const getInvoice = async (req: Request) => {
         invoice.dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
         invoice.dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
         invoice.dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
+
+        invoice.dataValues.totalDiamond = invoice.dataValues.invoice_details.length
+
+        let totalWeight = 0;
+
+        for (const invoiceDetails in invoice.dataValues.invoice_details) {
+            const element = invoice.dataValues.invoice_details[invoiceDetails].dataValues;
+            totalWeight += element.weight
+        }
+
+        invoice.dataValues.totalWeight = totalWeight.toFixed(2)
 
         return resSuccess({
             data: invoice,
@@ -501,6 +528,18 @@ export const getAllInvoice = async (req: Request) => {
                     "name",
                     "registration_number",
                     "country_id",
+                    "ac_holder",
+                    "bank_name",
+                    "ac_number",
+                    "bank_branch",
+                    "bank_branch_code",
+                    "company_address",
+                    "city",
+                    "state",
+                    "pincode",
+                    "phone_number",
+                    "email",
+                    "map_link"
                 ]
             },
             {
@@ -618,6 +657,9 @@ export const getAllInvoice = async (req: Request) => {
             attributes: [
                 "id",
                 "invoice_number",
+                "created_at",
+                "created_by",
+                "remarks"
             ],
             include: includes,
         });
@@ -660,6 +702,17 @@ export const getAllInvoice = async (req: Request) => {
                 result[index].dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
                 result[index].dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
                 result[index].dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
+
+                result[index].dataValues.totalDiamond = result[index].dataValues.invoice_details.length
+        
+                let totalWeight = 0;
+        
+                for (const invoiceDetails in result[index].dataValues.invoice_details) {
+                    const element = result[index].dataValues.invoice_details[invoiceDetails].dataValues;
+                    totalWeight += element.weight
+                }
+        
+                result[index].dataValues.totalWeight = totalWeight.toFixed(2)
             }
 
         }

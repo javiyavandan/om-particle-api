@@ -1,4 +1,4 @@
-import { BIGINT, DATE, STRING } from "sequelize";
+import { BIGINT, DATE, STRING, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Company from "./companys.model";
 import Customer from "./customer.modal";
@@ -47,6 +47,9 @@ const Memo = dbContext.define('memos', {
     },
     status: {
         type: STRING,
+    },
+    remarks: {
+        type: TEXT,
     }
 })
 

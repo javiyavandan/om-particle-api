@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { ActiveStatus, DeleteStatus, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
@@ -14,7 +14,7 @@ import Master from "../../model/masters.model";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list } = req.body
+        const { company_id, customer_id, stock_list, remarks } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -112,6 +112,7 @@ export const createMemo = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
+                remarks,
             };
 
             const memoData = await Memo.create(memoPayload, {
@@ -166,6 +167,9 @@ export const getMemo = async (req: Request) => {
                 "id",
                 "memo_number",
                 "status",
+                "created_at",
+                "created_by",
+                "remarks"
             ],
             include: [
                 {
@@ -192,6 +196,19 @@ export const getMemo = async (req: Request) => {
                         "id",
                         "name",
                         "registration_number",
+                        "country_id",
+                        "ac_holder",
+                        "bank_name",
+                        "ac_number",
+                        "bank_branch",
+                        "bank_branch_code",
+                        "company_address",
+                        "city",
+                        "state",
+                        "pincode",
+                        "phone_number",
+                        "email",
+                        "map_link"
                     ]
                 },
                 {
@@ -289,6 +306,53 @@ export const getMemo = async (req: Request) => {
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Memo"]])
             })
         }
+
+        const taxData = await Master.findAll({
+            where: {
+                master_type: Master_type.Tax,
+                is_deleted: DeleteStatus.No,
+                country_id: memo.dataValues.company.country_id,
+                is_active: ActiveStatus.Active,
+            },
+            attributes: [
+                "id",
+                "name",
+                "value",
+            ]
+        })
+
+        memo.dataValues.taxData = taxData
+
+        let totalItemsPrice = 0;
+
+        for (let index = 0; index < memo.dataValues.memo_details.length; index++) {
+            const element = memo.dataValues.memo_details[index].dataValues;
+
+            totalItemsPrice += ((element.stock_price * element.weight) * element.quantity)
+        }
+
+        let totalTaxPrice = 0;
+
+        for (let index = 0; index < memo.dataValues.taxData.length; index++) {
+            const element = memo.dataValues.taxData[index].dataValues;
+            memo.dataValues.taxData[index].dataValues.tax = ((totalItemsPrice * Number(element.value)) / 100).toFixed(2)
+            totalTaxPrice += (totalItemsPrice * Number(element.value)) / 100
+        }
+
+        memo.dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
+        memo.dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
+        memo.dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
+
+        memo.dataValues.totalDiamond = memo.dataValues.memo_details.length
+
+        let totalWeight = 0;
+
+        for (const memoDetails in memo.dataValues.memo_details) {
+            const element = memo.dataValues.memo_details[memoDetails].dataValues;
+            totalWeight += element.weight
+        }
+
+        memo.dataValues.totalWeight = totalWeight.toFixed(2)
 
         return resSuccess({
             data: memo,
@@ -458,6 +522,19 @@ export const getAllMemo = async (req: Request) => {
                     "id",
                     "name",
                     "registration_number",
+                    "country_id",
+                    "ac_holder",
+                    "bank_name",
+                    "ac_number",
+                    "bank_branch",
+                    "bank_branch_code",
+                    "company_address",
+                    "city",
+                    "state",
+                    "pincode",
+                    "phone_number",
+                    "email",
+                    "map_link"
                 ]
             },
             {
@@ -576,9 +653,65 @@ export const getAllMemo = async (req: Request) => {
                 "id",
                 "memo_number",
                 "status",
+                "created_at",
+                "created_by",
+                "remarks"
             ],
             include: includes,
         });
+
+        for (let index = 0; index < result.length; index++) {
+
+            if (result[index].dataValues) {
+                const taxData = await Master.findAll({
+                    where: {
+                        master_type: Master_type.Tax,
+                        is_deleted: DeleteStatus.No,
+                        country_id: result[index].dataValues.company.country_id,
+                        is_active: ActiveStatus.Active,
+                    },
+                    attributes: [
+                        "id",
+                        "name",
+                        "value",
+                    ]
+                })
+
+                result[index].dataValues.taxData = taxData;
+
+                let totalItemsPrice = 0;
+
+                for (let i = 0; i < result[index].dataValues.memo_details.length; i++) {
+                    const element = result[index].dataValues.memo_details[i].dataValues;
+
+                    totalItemsPrice += ((element.stock_price * element.weight) * element.quantity)
+                }
+
+                let totalTaxPrice = 0;
+
+                for (let i = 0; i < result[index].dataValues.taxData.length; i++) {
+                    const element = result[index].dataValues.taxData[i].dataValues;
+                    result[index].dataValues.taxData[i].dataValues.tax = ((totalItemsPrice * Number(element.value)) / 100).toFixed(2)
+                    totalTaxPrice += (totalItemsPrice * Number(element.value)) / 100
+                }
+
+                result[index].dataValues.totalTaxPrice = totalTaxPrice.toFixed(2)
+                result[index].dataValues.totalItemPrice = totalItemsPrice.toFixed(2)
+                result[index].dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
+
+                result[index].dataValues.totalDiamond = result[index].dataValues.memo_details.length
+        
+                let totalWeight = 0;
+        
+                for (const memoDetails in result[index].dataValues.memo_details) {
+                    const element = result[index].dataValues.memo_details[memoDetails].dataValues;
+                    totalWeight += element.weight
+                }
+        
+                result[index].dataValues.totalWeight = totalWeight.toFixed(2)
+            }
+
+        }
 
         return resSuccess({ data: noPagination ? result : { pagination, result } });
 
