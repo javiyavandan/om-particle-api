@@ -22,3 +22,11 @@ export interface IQueryPagination {
     data: any;
   }
   
+
+export interface create_wishlist_product {
+  product_id: number;
+  user_id: number;
+  folder_id: number;
+  created_at: any;
+  created_by: number;
+}
