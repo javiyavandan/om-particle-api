@@ -60,7 +60,7 @@ const Customer = dbContext.define("customers", {
     type: BIGINT
   },
 });
-AppUser.hasOne(Customer, {foreignKey: "user_id", "as": "company"})
+AppUser.hasOne(Customer, {foreignKey: "user_id", "as": "customer"})
 Customer.belongsTo(AppUser, {foreignKey: "user_id", as: "user"})
 
 export default Customer
