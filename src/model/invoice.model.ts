@@ -1,4 +1,4 @@
-import { BIGINT, DATE } from "sequelize";
+import { BIGINT, DATE, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Company from "./companys.model";
 import Customer from "./customer.modal";
@@ -12,6 +12,9 @@ const Invoice = dbContext.define('invoices', {
     },
     invoice_number: {
         type: BIGINT,
+    },
+    remarks: {
+        type: TEXT
     },
     company_id: {
         type: BIGINT,
