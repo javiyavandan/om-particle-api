@@ -26,7 +26,7 @@ export const createInvoice = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                id: company_id,
+                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
             }
@@ -77,11 +77,11 @@ export const createInvoice = async (req: Request) => {
         }
 
         const allStock = await Diamonds.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-                company_id: company_id,
-                status: StockStatus.AVAILABLE
-            }
+            where: [
+                { is_deleted: DeleteStatus.No },
+                req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
+                { status: StockStatus.AVAILABLE }
+            ]
         })
 
         for (let index = 0; index < stock_list.length; index++) {
@@ -108,7 +108,7 @@ export const createInvoice = async (req: Request) => {
 
         const invoiceList = await Invoice.findAll({
             where: {
-                company_id: company_id,
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             }
         })
 
@@ -254,6 +254,9 @@ export const getInvoice = async (req: Request) => {
                             model: Diamonds,
                             as: "stocks",
                             attributes: [],
+                            where: {
+                                is_deleted: DeleteStatus.No,
+                            },
                             include: [
                                 {
                                     model: Master,
@@ -579,6 +582,9 @@ export const getAllInvoice = async (req: Request) => {
                         model: Diamonds,
                         as: "stocks",
                         attributes: [],
+                        where: {
+                            is_deleted: DeleteStatus.No,
+                        },
                         include: [
                             {
                                 model: Master,
@@ -704,14 +710,14 @@ export const getAllInvoice = async (req: Request) => {
                 result[index].dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
 
                 result[index].dataValues.totalDiamond = result[index].dataValues.invoice_details.length
-        
+
                 let totalWeight = 0;
-        
+
                 for (const invoiceDetails in result[index].dataValues.invoice_details) {
                     const element = result[index].dataValues.invoice_details[invoiceDetails].dataValues;
                     totalWeight += element.weight
                 }
-        
+
                 result[index].dataValues.totalWeight = totalWeight.toFixed(2)
             }
 

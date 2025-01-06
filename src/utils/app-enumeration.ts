@@ -26,6 +26,11 @@ export enum MESSAGE_TYPE {
   UserVerify = 9,
 }
 
+export enum DefaultStatus {
+  True = "1",
+  False = "0",
+}
+
 export enum DeleteStatus {
   Yes = '1',
   No = '0',

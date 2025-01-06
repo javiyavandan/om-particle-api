@@ -26,7 +26,7 @@ export const createMemo = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                id: company_id,
+                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
             }
@@ -62,11 +62,11 @@ export const createMemo = async (req: Request) => {
         }
 
         const allStock = await Diamonds.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-                company_id: company_id,
-                status: StockStatus.AVAILABLE
-            }
+            where: [
+                { is_deleted: DeleteStatus.No },
+                req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
+                { status: StockStatus.AVAILABLE }
+            ]
         })
 
         for (let index = 0; index < stock_list.length; index++) {
@@ -98,7 +98,7 @@ export const createMemo = async (req: Request) => {
         const memoList = await Memo.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
-                company_id: company_id,
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             }
         })
 
@@ -248,6 +248,9 @@ export const getMemo = async (req: Request) => {
                             model: Diamonds,
                             as: "stocks",
                             attributes: [],
+                            where: {
+                                is_deleted: DeleteStatus.No,
+                            },
                             include: [
                                 {
                                     model: Master,
@@ -540,6 +543,9 @@ export const getAllMemo = async (req: Request) => {
             {
                 model: MemoDetail,
                 as: "memo_details",
+                where: {
+                    is_deleted: DeleteStatus.No,
+                },
                 attributes: [
                     "stock_price",
                     [Sequelize.literal(`"memo_details->stocks"."id"`), "stock"],
@@ -700,14 +706,14 @@ export const getAllMemo = async (req: Request) => {
                 result[index].dataValues.totalPrice = (totalItemsPrice + totalTaxPrice).toFixed(2)
 
                 result[index].dataValues.totalDiamond = result[index].dataValues.memo_details.length
-        
+
                 let totalWeight = 0;
-        
+
                 for (const memoDetails in result[index].dataValues.memo_details) {
                     const element = result[index].dataValues.memo_details[memoDetails].dataValues;
                     totalWeight += element.weight
                 }
-        
+
                 result[index].dataValues.totalWeight = totalWeight.toFixed(2)
             }
 
@@ -756,7 +762,7 @@ export const returnMemoStock = async (req: Request) => {
         const allStock = await Diamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
-                company_id: company_id,
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
                 status: StockStatus.MEMO
             }
         })

@@ -684,11 +684,12 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
 
                 let symmetry: any = getIdFromName(
-                    row["Symmetry"],
+                    row["symmetry"],
                     SymmetryList,
                     "name",
                     "Symmetry"
                 );
+
                 if (symmetry && symmetry.error != undefined) {
                     errors.push({
                         row_id: currentGroupIndex + 1 + 1,

@@ -15,6 +15,7 @@ import Customer from "../../model/customer.modal";
 import Master from "../../model/masters.model";
 import Company from "../../model/companys.model";
 import Diamonds from "../../model/diamond.model";
+import { DeleteStatus, StockStatus } from "../../utils/app-enumeration";
 
 export const getAllCartList = async (req: Request) => {
   try {
@@ -57,6 +58,10 @@ export const getAllCartList = async (req: Request) => {
       {
         model: Diamonds,
         as: "product",
+        where: {
+          is_deleted: DeleteStatus.No,
+          status: StockStatus.AVAILABLE,
+        },
         attributes: [
           "id",
           "stock_id",
@@ -284,6 +289,10 @@ export const getCartDetail = async (req: Request) => {
         {
           model: Diamonds,
           as: "product",
+          where: {
+            is_deleted: DeleteStatus.No,
+            status: StockStatus.AVAILABLE,
+          },
           attributes: [
             "id",
             "stock_id",
