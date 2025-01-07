@@ -11,6 +11,7 @@ import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from
 import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus } from "../../utils/app-enumeration";
 import { FILE_NOT_FOUND, PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE, PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE, DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, INVALID_HEADER, REQUIRED_ERROR_MESSAGE } from "../../utils/app-messages";
 import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams } from "../../utils/shared-functions";
+import { Op } from "sequelize";
 const readXlsxFile = require("read-excel-file/node");
 
 export const deleteStockCSVFile = async (req: Request) => {
@@ -237,6 +238,9 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         const stockList = await Diamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
+                status: {
+                    [Op.ne]: StockStatus.MEMO
+                }
             },
         });
 
