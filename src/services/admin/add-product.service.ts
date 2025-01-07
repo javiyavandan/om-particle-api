@@ -1,11 +1,12 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
+import dbContext from "../../config/dbContext";
 
 export const addStock = async (req: Request) => {
     try {
@@ -69,7 +70,7 @@ export const addStock = async (req: Request) => {
                 is_deleted: DeleteStatus.No
             }
         })
-        
+
         // Check for missing fields
         const missingFields = [];
         if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
@@ -128,6 +129,8 @@ export const addStock = async (req: Request) => {
             created_by: session_res.id,
             created_at: getLocalDate(),
         })
+
+        await refreshMaterializedDiamondListView()
 
         return resSuccess()
     } catch (error) {
@@ -223,7 +226,7 @@ export const updateStock = async (req: Request) => {
                 is_deleted: DeleteStatus.No
             }
         })
-        
+
         // Check for missing fields
         const missingFields = [];
         if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
@@ -280,6 +283,7 @@ export const updateStock = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
+        await refreshMaterializedDiamondListView()
 
         return resSuccess()
     } catch (error) {
@@ -312,6 +316,7 @@ export const deleteStock = async (req: Request) => {
                 id: findDiamond.dataValues.id
             }
         })
+        await refreshMaterializedDiamondListView()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -322,107 +327,12 @@ export const getStock = async (req: Request) => {
     try {
         const { diamond_id } = req.params
 
-        const findDiamond = await Diamonds.findOne({
-            where: {
-                id: diamond_id,
-                is_deleted: DeleteStatus.No,
-            },
-            attributes: [
-                "id",
-                "stock_id",
-                "status",
-                [Sequelize.literal(`"shape_master"."name"`), "shapeName"],
-                [Sequelize.literal(`"shape_master"."id"`), "shapeId"],
-                [Sequelize.literal(`"clarity_master"."name"`), "clarityName"],
-                [Sequelize.literal(`"clarity_master"."id"`), "clarityId"],
-                [Sequelize.literal(`"color_master"."name"`), "colorName"],
-                [Sequelize.literal(`"color_master"."id"`), "colorId"],
-                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensityName"],
-                [Sequelize.literal(`"color_intensity_master"."id"`), "color_intensityId"],
-                [Sequelize.literal(`"lab_master"."name"`), "labName"],
-                [Sequelize.literal(`"lab_master"."id"`), "labId"],
-                [Sequelize.literal(`"polish_master"."name"`), "polishName"],
-                [Sequelize.literal(`"polish_master"."id"`), "polishId"],
-                [Sequelize.literal(`"symmetry_master"."name"`), "symmetryName"],
-                [Sequelize.literal(`"symmetry_master"."id"`), "symmetryId"],
-                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescenceName"],
-                [Sequelize.literal(`"fluorescence_master"."id"`), "fluorescenceId"],
-                [Sequelize.literal(`"company_master"."name"`), "companyName"],
-                [Sequelize.literal(`"company_master"."id"`), "companyId"],
-                "quantity",
-                "weight",
-                "rate",
-                "report",
-                "video",
-                "image",
-                "certificate",
-                "measurement_height",
-                "measurement_width",
-                "measurement_depth",
-                "table_value",
-                "depth_value",
-                "ratio",
-                "user_comments",
-                "admin_comments",
-                "local_location",
-                "is_active"
-            ],
-            include: [
-                {
-                    model: Master,
-                    as: "shape_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "color_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "color_intensity_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "clarity_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "lab_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "polish_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "symmetry_master",
-                    attributes: [],
-                },
-                {
-                    model: Master,
-                    as: "fluorescence_master",
-                    attributes: [],
-                },
-                {
-                    model: Company,
-                    as: "company_master",
-                    attributes: [],
-                },
-            ]
-        })
-        if (!(findDiamond && findDiamond.dataValues)) {
-            return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]]),
-            })
-        }
+        const diamond = await dbContext.query(
+            `SELECT * FROM diamond_list WHERE id = ${diamond_id}`
+        )
 
         return resSuccess({
-            data: findDiamond.dataValues
+            data: diamond
         })
     } catch (error) {
         throw error;
@@ -432,206 +342,156 @@ export const getStock = async (req: Request) => {
 export const getAllStock = async (req: Request) => {
     try {
         const { query } = req;
-        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
-            search_text: query.search_text,
+            search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
 
-        const where = [
-            { is_deleted: DeleteStatus.No },
-            req.body.session_res.id_role == 0 ? {} : { company_id: req.body.session_res.company_id },
-            pagination.is_active ? { is_active: pagination.is_active } : {},
-            pagination.search_text
-                ? {
-                    [Op.or]: [
-                        { stock_id: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { status: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('quantity'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('weight'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('rate'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('report'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('table_value'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        {
-                            [Op.and]: [
-                                Sequelize.where(
-                                    Sequelize.cast(Sequelize.col('depth_value'), 'TEXT'),
-                                    { [Op.iLike]: `%${pagination.search_text}%` }
-                                )
-                            ]
-                        },
-                        { measurement: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { ratio: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { user_comments: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { admin_comments: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { email: { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$shape_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$color_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$color_intensity_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$clarity_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$lab_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$polish_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$symmetry_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$company_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                        { '$fluorescence_master.name$': { [Op.iLike]: `%${pagination.search_text}%` } },
-                    ],
-                }
-                : {},
-        ];
-
-        const includes = [
-            {
-                model: Master,
-                as: "shape_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "color_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "color_intensity_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "clarity_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "lab_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "polish_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "symmetry_master",
-                attributes: [],
-            },
-            {
-                model: Master,
-                as: "fluorescence_master",
-                attributes: [],
-            },
-            {
-                model: Company,
-                as: "company_master",
-                attributes: [],
-            },
-        ]
-
+        const totalItems = await dbContext.query(
+            `
+                SELECT
+                    *
+                FROM
+                    diamond_list
+                WHERE
+                CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
+                            shape_name ILIKE '%${pagination.search_text}%'
+                            OR clarity_name ILIKE '%${pagination.search_text}%'
+                            OR color_name ILIKE '%${pagination.search_text}%'
+                            OR color_intensity_name ILIKE '%${pagination.search_text}%'
+                            OR stock_id ILIKE '%${pagination.search_text}%'
+                            OR local_location ILIKE '%${pagination.search_text}%'
+                            OR user_comments ILIKE '%${pagination.search_text}%'
+                            OR admin_comments ILIKE '%${pagination.search_text}%'
+                            OR ratio ILIKE '%${pagination.search_text}%'
+                            OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(report AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(table_value AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(depth_value AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_height AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
+                        END
+                            ${query.shape ? `AND shape = ${query.shape}` : ""}
+                            ${query.color ? `AND color = ${query.color}` : ""}
+                            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
+                            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
+                            ${query.polish ? `AND polish = ${query.polish}` : ""}
+                            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
+                            ${query.lab ? `AND lab = ${query.lab}` : ""}
+                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
+                            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
+                            ${query.status ? `AND status = ${query.status}` : ""}
+                            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
+                            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
+                            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
+                            ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
+                            ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
+                            ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
+                            ${query.min_depth_value && query.max_depth_value ? `AND depth_value BETWEEN ${query.min_depth_value} AND ${query.max_depth_value}` : ""}
+                            ${query.min_depth_value && !query.max_depth_value ? `AND depth_value >= ${query.min_depth_value}` : ""}
+                            ${!query.min_depth_value && query.max_depth_value ? `AND depth_value <= ${query.max_depth_value}` : ""}
+                            ${query.min_table_value && query.max_table_value ? `AND table_value BETWEEN ${query.min_table_value} AND ${query.max_table_value}` : ""}
+                            ${query.min_table_value && !query.max_table_value ? `AND table_value >= ${query.min_table_value}` : ""}
+                            ${!query.min_table_value && query.max_table_value ? `AND table_value <= ${query.max_table_value}` : ""}
+                            ${query.min_measurement_height && query.max_measurement_height ? `AND measurement_height BETWEEN ${query.min_measurement_height} AND ${query.max_measurement_height}` : ""}
+                            ${query.min_measurement_height && !query.max_measurement_height ? `AND measurement_height >= ${query.min_measurement_height}` : ""}
+                            ${!query.min_measurement_height && query.max_measurement_height ? `AND measurement_height <= ${query.max_measurement_height}` : ""}
+                            ${query.min_measurement_width && query.max_measurement_width ? `AND measurement_width BETWEEN ${query.min_measurement_width} AND ${query.max_measurement_width}` : ""}
+                            ${query.min_measurement_width && !query.max_measurement_width ? `AND measurement_width >= ${query.min_measurement_width}` : ""}
+                            ${!query.min_measurement_width && query.max_measurement_width ? `AND measurement_width <= ${query.max_measurement_width}` : ""}
+                            ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
+                            ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
+                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
+                            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
+                            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
+                            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
+                `,
+            { type: QueryTypes.SELECT }
+        )
 
         if (!noPagination) {
-            const totalItems = await Diamonds.count({
-                where,
-                include: includes,
-            });
-
-            if (totalItems === 0) {
+            if (totalItems.length === 0) {
                 return resSuccess({ data: { pagination, result: [] } });
             }
 
-            pagination.total_items = totalItems;
-            pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
-
-            paginationProps = {
-                limit: pagination.per_page_rows,
-                offset: (pagination.current_page - 1) * pagination.per_page_rows,
-            };
+            pagination.total_items = totalItems.length;
+            pagination.total_pages = Math.ceil(totalItems.length / pagination.per_page_rows);
         }
 
+        const diamondList = await dbContext.query(
+            `
+                SELECT
+                    *
+                FROM
+                    diamond_list
+                WHERE
+                CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
+                            shape_name ILIKE '%${pagination.search_text}%'
+                            OR clarity_name ILIKE '%${pagination.search_text}%'
+                            OR color_name ILIKE '%${pagination.search_text}%'
+                            OR color_intensity_name ILIKE '%${pagination.search_text}%'
+                            OR stock_id ILIKE '%${pagination.search_text}%'
+                            OR local_location ILIKE '%${pagination.search_text}%'
+                            OR user_comments ILIKE '%${pagination.search_text}%'
+                            OR admin_comments ILIKE '%${pagination.search_text}%'
+                            OR ratio ILIKE '%${pagination.search_text}%'
+                            OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(report AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(table_value AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(depth_value AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_height AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%' END
+            ${query.shape ? `AND shape = ${query.shape}` : ""}
+            ${query.color ? `AND color = ${query.color}` : ""}
+            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
+            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
+            ${query.polish ? `AND polish = ${query.polish}` : ""}
+            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
+            ${query.lab ? `AND lab = ${query.lab}` : ""}
+            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
+            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
+            ${query.status ? `AND status = ${query.status}` : ""}
+            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
+            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
+            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
+            ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
+            ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
+            ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
+            ${query.min_depth_value && query.max_depth_value ? `AND depth_value BETWEEN ${query.min_depth_value} AND ${query.max_depth_value}` : ""}
+            ${query.min_depth_value && !query.max_depth_value ? `AND depth_value >= ${query.min_depth_value}` : ""}
+            ${!query.min_depth_value && query.max_depth_value ? `AND depth_value <= ${query.max_depth_value}` : ""}
+            ${query.min_table_value && query.max_table_value ? `AND table_value BETWEEN ${query.min_table_value} AND ${query.max_table_value}` : ""}
+            ${query.min_table_value && !query.max_table_value ? `AND table_value >= ${query.min_table_value}` : ""}
+            ${!query.min_table_value && query.max_table_value ? `AND table_value <= ${query.max_table_value}` : ""}
+            ${query.min_measurement_height && query.max_measurement_height ? `AND measurement_height BETWEEN ${query.min_measurement_height} AND ${query.max_measurement_height}` : ""}
+            ${query.min_measurement_height && !query.max_measurement_height ? `AND measurement_height >= ${query.min_measurement_height}` : ""}
+            ${!query.min_measurement_height && query.max_measurement_height ? `AND measurement_height <= ${query.max_measurement_height}` : ""}
+            ${query.min_measurement_width && query.max_measurement_width ? `AND measurement_width BETWEEN ${query.min_measurement_width} AND ${query.max_measurement_width}` : ""}
+            ${query.min_measurement_width && !query.max_measurement_width ? `AND measurement_width >= ${query.min_measurement_width}` : ""}
+            ${!query.min_measurement_width && query.max_measurement_width ? `AND measurement_width <= ${query.max_measurement_width}` : ""}
+            ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
+            ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
+            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
+            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
+            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
+            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
+                    ORDER BY ${pagination.sort_by} ${pagination.order_by}
+                    OFFSET
+                      ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
+                      FETCH NEXT ${pagination.per_page_rows} ROWS ONLY
+            `,
+            { type: QueryTypes.SELECT }
+        )
 
-        const DiamondsData = await Diamonds.findAll({
-            where,
-            ...paginationProps,
-            order: [[pagination.sort_by, pagination.order_by]],
-            attributes: [
-                "id",
-                "stock_id",
-                "status",
-                [Sequelize.literal(`"shape_master"."name"`), "shapeName"],
-                [Sequelize.literal(`"shape_master"."id"`), "shapeId"],
-                [Sequelize.literal(`"clarity_master"."name"`), "clarityName"],
-                [Sequelize.literal(`"clarity_master"."id"`), "clarityId"],
-                [Sequelize.literal(`"color_master"."name"`), "colorName"],
-                [Sequelize.literal(`"color_master"."id"`), "colorId"],
-                [Sequelize.literal(`"color_intensity_master"."name"`), "color_intensityName"],
-                [Sequelize.literal(`"color_intensity_master"."id"`), "color_intensityId"],
-                [Sequelize.literal(`"lab_master"."name"`), "labName"],
-                [Sequelize.literal(`"lab_master"."id"`), "labId"],
-                [Sequelize.literal(`"polish_master"."name"`), "polishName"],
-                [Sequelize.literal(`"polish_master"."id"`), "polishId"],
-                [Sequelize.literal(`"symmetry_master"."name"`), "symmetryName"],
-                [Sequelize.literal(`"symmetry_master"."id"`), "symmetryId"],
-                [Sequelize.literal(`"fluorescence_master"."name"`), "fluorescenceName"],
-                [Sequelize.literal(`"fluorescence_master"."id"`), "fluorescenceId"],
-                [Sequelize.literal(`"company_master"."name"`), "companyName"],
-                [Sequelize.literal(`"company_master"."id"`), "companyId"],
-                "quantity",
-                "weight",
-                "rate",
-                "report",
-                "video",
-                "image",
-                "certificate",
-                "measurement_height",
-                "measurement_width",
-                "measurement_depth",
-                "table_value",
-                "depth_value",
-                "ratio",
-                "user_comments",
-                "admin_comments",
-                "local_location",
-                "is_active"
-            ],
-            include: includes,
-        });
         return resSuccess({
-            data: noPagination ? { result: DiamondsData } : { pagination, result: DiamondsData }
+            data: noPagination ? { result: totalItems } : { pagination, result: diamondList }
         })
     } catch (error) {
         console.log(error)
@@ -664,6 +524,7 @@ export const updateStockStatus = async (req: Request) => {
             },
         })
 
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: RECORD_UPDATE })
 
     } catch (error) {

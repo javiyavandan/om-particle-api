@@ -4,6 +4,7 @@ import {
   columnValueLowerCase,
   getLocalDate,
   prepareMessageFromParams,
+  refreshMaterializedDiamondListView,
   resBadRequest,
   resNotFound,
   resSuccess,
@@ -157,10 +158,19 @@ export const wishlistProduct = async (req: Request) => {
       });
       const count = await Wishlist.count({
         where: { user_id: session_res.user_id },
+        include: [{
+          model: Diamonds,
+          as: "product",
+          attributes: [],
+          where: {
+            is_deleted: DeleteStatus.No,
+          }
+        }],
         transaction: trn,
       });
 
       trn.commit();
+      await refreshMaterializedDiamondListView()
       return resSuccess({ data: { count } });
     } catch (error) {
       trn.rollback();
@@ -194,6 +204,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         trn.commit();
+        await refreshMaterializedDiamondListView()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         trn.rollback();
@@ -234,6 +245,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         trn.commit();
+        await refreshMaterializedDiamondListView()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         trn.rollback();
@@ -258,6 +270,7 @@ export const deleteWishlist = async (req: Request) => {
     });
     const count = await Wishlist.count({ where: { user_id: user_id } });
 
+    await refreshMaterializedDiamondListView()
     return resSuccess({ data: { count }, message: RECORD_DELETED });
   } catch (error) {
     throw error;
@@ -267,7 +280,6 @@ export const deleteWishlist = async (req: Request) => {
 export const wishlist = async (req: Request) => {
   try {
     const { session_res } = req.body;
-    const { search_text } = req.query;
 
     const wishlistData = await Wishlist.findAll({
       order: [["id", "DESC"]],

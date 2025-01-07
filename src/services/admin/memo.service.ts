@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { ActiveStatus, DeleteStatus, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
 import Company from "../../model/companys.model";
@@ -143,6 +143,8 @@ export const createMemo = async (req: Request) => {
             })
 
             trn.commit();
+            await refreshMaterializedDiamondListView()
+
             return resSuccess()
         } catch (error) {
             trn.rollback();
@@ -831,6 +833,7 @@ export const returnMemoStock = async (req: Request) => {
             }
 
             trn.commit();
+            await refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {
