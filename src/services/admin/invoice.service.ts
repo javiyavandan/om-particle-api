@@ -186,12 +186,23 @@ export const getInvoice = async (req: Request) => {
                         "id",
                         "company_name",
                         "company_website",
-                        "company_email",
                         "registration_number",
                         "address",
                         "city",
                         "state",
-                        "country"
+                        "country",
+                        [Sequelize.literal(`"customer->user"."first_name"`), "first_name"],
+                        [Sequelize.literal(`"customer->user"."last_name"`), "last_name"],
+                        [Sequelize.literal(`"customer->user"."email"`), "email"],
+                        [Sequelize.literal(`"customer->user"."phone_number"`), "phone_number"],
+                    ],
+                    include: [
+                        {
+                            model: AppUser,
+                            as: "user",
+                            required: true,
+                            attributes: []
+                        }
                     ]
                 },
                 {
@@ -514,12 +525,23 @@ export const getAllInvoice = async (req: Request) => {
                     "id",
                     "company_name",
                     "company_website",
-                    "company_email",
                     "registration_number",
                     "address",
                     "city",
                     "state",
-                    "country"
+                    "country",
+                    [Sequelize.literal(`"customer->user"."first_name"`), "first_name"],
+                    [Sequelize.literal(`"customer->user"."last_name"`), "last_name"],
+                    [Sequelize.literal(`"customer->user"."email"`), "email"],
+                    [Sequelize.literal(`"customer->user"."phone_number"`), "phone_number"],
+                ],
+                include: [
+                    {
+                        model: AppUser,
+                        as: "user",
+                        required: true,
+                        attributes: []
+                    }
                 ]
             },
             {
