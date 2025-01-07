@@ -39,6 +39,7 @@ import Master from "../../model/masters.model";
 import dbContext from "../../config/dbContext";
 import Diamonds from "../../model/diamond.model";
 import Company from "../../model/companys.model";
+import { Op } from "sequelize";
 const readXlsxFile = require("read-excel-file/node");
 
 export const addStockCSVFile = async (req: Request) => {
@@ -961,19 +962,24 @@ export const updateBulkStockStatus = async (req: Request) => {
 }
 
 export const deleteBulkStock = async (req: Request) => {
-    const { stock_id } = req.body
+    const { stock_id } = req.params
     try {
+        const stockList = stock_id.split(",");
+
         const error = [];
 
         const stock = await Diamonds.findAll({
             where: {
-                is_deleted: DeleteStatus.No
+                is_deleted: DeleteStatus.No,
+                status: {
+                    [Op.ne]: StockStatus.MEMO
+                }
             }
         });
 
-        if (stock_id.length > 0) {
-            for (let index = 0; index < stock_id.length; index++) {
-                const number = stock_id[index];
+        if (stockList.length > 0) {
+            for (let index = 0; index < stockList.length; index++) {
+                const number = stockList[index];
                 const findStock = stock.find((data) => {
                     return data.dataValues.stock_id === number
                 })
@@ -992,8 +998,8 @@ export const deleteBulkStock = async (req: Request) => {
         }
 
         const updatedStockList = [];
-        for (let index = 0; index < stock_id.length; index++) {
-            const number = stock_id[index];
+        for (let index = 0; index < stockList.length; index++) {
+            const number = stockList[index];
             const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
             if (findStock && findStock.dataValues) {
                 updatedStockList.push({

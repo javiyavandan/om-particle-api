@@ -11,10 +11,11 @@ import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op } from "sequelize";
+import Memo from "../../model/memo.model";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -80,7 +81,11 @@ export const createInvoice = async (req: Request) => {
             where: [
                 { is_deleted: DeleteStatus.No },
                 req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
-                { status: StockStatus.AVAILABLE }
+                {
+                    status: {
+                        [Op.ne]: StockStatus.SOLD
+                    }
+                }
             ]
         })
 
@@ -149,6 +154,16 @@ export const createInvoice = async (req: Request) => {
                 ],
                 transaction: trn,
             })
+
+            if (memo_id) {
+                await Memo.update({
+                    status: MEMO_STATUS.Close,
+                }, {
+                    where: {
+                        id: memo_id
+                    }
+                })
+            }
 
             trn.commit();
             return resSuccess()
@@ -251,6 +266,8 @@ export const getInvoice = async (req: Request) => {
                         [Sequelize.literal(`"invoice_details->stocks"."user_comments"`), "user_comments"],
                         [Sequelize.literal(`"invoice_details->stocks"."admin_comments"`), "admin_comments"],
                         [Sequelize.literal(`"invoice_details->stocks"."local_location"`), "local_location"],
+                        [Sequelize.literal(`"invoice_details->stocks"."is_active"`), "is_active"],
+                        [Sequelize.literal(`"invoice_details->stocks"."is_deleted"`), "is_deleted"],
                         [Sequelize.literal(`"invoice_details->stocks->shape_master"."name"`), "shape"],
                         [Sequelize.literal(`"invoice_details->stocks->clarity_master"."name"`), "clarity"],
                         [Sequelize.literal(`"invoice_details->stocks->color_master"."name"`), "color"],
@@ -265,9 +282,6 @@ export const getInvoice = async (req: Request) => {
                             model: Diamonds,
                             as: "stocks",
                             attributes: [],
-                            where: {
-                                is_deleted: DeleteStatus.No,
-                            },
                             include: [
                                 {
                                     model: Master,
@@ -590,6 +604,8 @@ export const getAllInvoice = async (req: Request) => {
                     [Sequelize.literal(`"invoice_details->stocks"."user_comments"`), "user_comments"],
                     [Sequelize.literal(`"invoice_details->stocks"."admin_comments"`), "admin_comments"],
                     [Sequelize.literal(`"invoice_details->stocks"."local_location"`), "local_location"],
+                    [Sequelize.literal(`"invoice_details->stocks"."is_active"`), "is_active"],
+                    [Sequelize.literal(`"invoice_details->stocks"."is_deleted"`), "is_deleted"],
                     [Sequelize.literal(`"invoice_details->stocks->shape_master"."name"`), "shape"],
                     [Sequelize.literal(`"invoice_details->stocks->clarity_master"."name"`), "clarity"],
                     [Sequelize.literal(`"invoice_details->stocks->color_master"."name"`), "color"],
@@ -604,9 +620,6 @@ export const getAllInvoice = async (req: Request) => {
                         model: Diamonds,
                         as: "stocks",
                         attributes: [],
-                        where: {
-                            is_deleted: DeleteStatus.No,
-                        },
                         include: [
                             {
                                 model: Master,
