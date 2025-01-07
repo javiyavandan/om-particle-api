@@ -22,6 +22,7 @@ import { Sequelize } from "sequelize";
 import { IQueryPagination } from "../data/interfaces/common/common.interface";
 import { BIT_FIELD_VALUES, GET_HTTP_METHODS_LABEL, PER_PAGE_ROWS } from "./app-constants";
 import { HTTP_METHODS } from "./app-enumeration";
+import dbContext from "../config/dbContext";
 
 export const parseData = (data: Object) => {
   try {
@@ -223,5 +224,13 @@ export const getMethodFromRequest = (method: string) => {
       return HTTP_METHODS.Patch;
     default:
       return 0;
+  }
+};
+
+export const refreshMaterializedDiamondListView = async () => {
+  try {
+    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list");
+  } catch (error) {
+    throw error;
   }
 };

@@ -8,7 +8,7 @@ import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
 import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery } from "../../utils/shared-functions";
+import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op } from "sequelize";
 import Memo from "../../model/memo.model";
@@ -166,6 +166,8 @@ export const createInvoice = async (req: Request) => {
             }
 
             trn.commit();
+            await refreshMaterializedDiamondListView()
+
             return resSuccess()
         } catch (error) {
             trn.rollback();

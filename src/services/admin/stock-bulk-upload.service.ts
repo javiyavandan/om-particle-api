@@ -2,6 +2,7 @@ import { Request } from "express";
 import {
     getLocalDate,
     prepareMessageFromParams,
+    refreshMaterializedDiamondListView,
     resBadRequest,
     resNotFound,
     resSuccess,
@@ -894,6 +895,8 @@ const addGroupToDB = async (list: any) => {
             });
         }
         await trn.commit();
+        await refreshMaterializedDiamondListView()
+
         return resSuccess({ data: list });
     } catch (e) {
         await trn.rollback();
@@ -951,6 +954,7 @@ export const updateBulkStockStatus = async (req: Request) => {
                 updateOnDuplicate: ["is_active", "modified_by", "modified_at"],
             })
         }
+        await refreshMaterializedDiamondListView()
 
         return resSuccess({ message: RECORD_UPDATE })
 
@@ -1016,6 +1020,7 @@ export const deleteBulkStock = async (req: Request) => {
                 updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
             })
         }
+        await refreshMaterializedDiamondListView()
 
         return resSuccess({ message: RECORD_DELETED })
 

@@ -5,6 +5,7 @@ import wishlistRoute from "./wishlist.route";
 import cartProductRoute from "./cart-product.route";
 import inquiryRoute from "./inquiry.route";
 import addressRoute from "./address.route";
+import stockRoute from "./stock.route";
 
 export default () => {
   const app = Router();
@@ -14,5 +15,6 @@ export default () => {
   cartProductRoute(app);
   inquiryRoute(app);
   addressRoute(app);
+  stockRoute(app);
   return app;
 };
