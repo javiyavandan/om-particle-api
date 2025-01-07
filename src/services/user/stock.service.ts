@@ -200,6 +200,7 @@ export const getStockList = async (req: Request) => {
             ${query.lab ? `AND lab = ${query.lab}` : ""}
             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
             ${query.status ? `AND status = ${query.status}` : ""}
+            ${query.company_id ? `AND company_id = ${query.company_id}` : ""}
             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}

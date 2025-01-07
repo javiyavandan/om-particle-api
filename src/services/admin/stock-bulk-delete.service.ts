@@ -290,7 +290,7 @@ const deleteGroupToDB = async (list: any) => {
         await Diamonds.bulkCreate(list, {
             updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
         });
-        await refreshMaterializedDiamondListView()
+        refreshMaterializedDiamondListView()
 
         return resSuccess({ data: list });
     } catch (e) {

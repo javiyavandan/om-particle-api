@@ -166,7 +166,7 @@ export const createInvoice = async (req: Request) => {
             }
 
             trn.commit();
-            await refreshMaterializedDiamondListView()
+            refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {

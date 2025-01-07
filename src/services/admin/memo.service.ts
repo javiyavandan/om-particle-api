@@ -143,7 +143,7 @@ export const createMemo = async (req: Request) => {
             })
 
             trn.commit();
-            await refreshMaterializedDiamondListView()
+            refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {
@@ -833,7 +833,7 @@ export const returnMemoStock = async (req: Request) => {
             }
 
             trn.commit();
-            await refreshMaterializedDiamondListView()
+            refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {

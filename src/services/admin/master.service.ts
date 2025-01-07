@@ -174,7 +174,7 @@ export const addMaster = async (req: Request) => {
         { transaction: trn }
       );
       await trn.commit();
-      await refreshMaterializedDiamondListView()
+      refreshMaterializedDiamondListView()
 
       return resSuccess();
     } catch (e) {
@@ -349,7 +349,7 @@ export const updateMaster = async (req: Request) => {
       );
 
       trn.commit();
-      await refreshMaterializedDiamondListView()
+      refreshMaterializedDiamondListView()
 
       return resSuccess();
     } else {
@@ -529,7 +529,7 @@ export const masterStatusUpdate = async (req: Request) => {
           },
           { where: { id: MasterData.dataValues.id } }
         );
-        await refreshMaterializedDiamondListView()
+        refreshMaterializedDiamondListView()
         return resSuccess({ message: STATUS_UPDATED });
 
       case ActiveStatus.InActive:
@@ -541,7 +541,7 @@ export const masterStatusUpdate = async (req: Request) => {
           },
           { where: { id: MasterData.dataValues.id } }
         );
-        await refreshMaterializedDiamondListView()
+        refreshMaterializedDiamondListView()
         return resSuccess({ message: STATUS_UPDATED });
 
       default:
@@ -605,7 +605,7 @@ export const masterDelete = async (req: Request) => {
       }
     );
 
-    await refreshMaterializedDiamondListView()
+    refreshMaterializedDiamondListView()
     return resSuccess({ message: RECORD_DELETED });
   } catch (error) {
     throw error;
