@@ -170,7 +170,7 @@ export const wishlistProduct = async (req: Request) => {
       });
 
       trn.commit();
-      await refreshMaterializedDiamondListView()
+      refreshMaterializedDiamondListView()
       return resSuccess({ data: { count } });
     } catch (error) {
       trn.rollback();
@@ -204,7 +204,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         trn.commit();
-        await refreshMaterializedDiamondListView()
+        refreshMaterializedDiamondListView()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         trn.rollback();
@@ -245,7 +245,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         trn.commit();
-        await refreshMaterializedDiamondListView()
+        refreshMaterializedDiamondListView()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         trn.rollback();
@@ -270,7 +270,7 @@ export const deleteWishlist = async (req: Request) => {
     });
     const count = await Wishlist.count({ where: { user_id: user_id } });
 
-    await refreshMaterializedDiamondListView()
+    refreshMaterializedDiamondListView()
     return resSuccess({ data: { count }, message: RECORD_DELETED });
   } catch (error) {
     throw error;
