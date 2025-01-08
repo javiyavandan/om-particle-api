@@ -230,10 +230,10 @@ export const updateUserDetail = async (req: Request) => {
         }
       );
 
-      trn.commit();
+      await trn.commit();
       return resSuccess({ message: STATUS_UPDATED });
     } catch (error) {
-      trn.rollback();
+      await trn.rollback();
       throw error;
     }
   } catch (error) {

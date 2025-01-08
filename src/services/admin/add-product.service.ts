@@ -130,7 +130,7 @@ export const addStock = async (req: Request) => {
             created_at: getLocalDate(),
         })
 
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
 
         return resSuccess()
     } catch (error) {
@@ -283,7 +283,7 @@ export const updateStock = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
 
         return resSuccess()
     } catch (error) {
@@ -316,7 +316,7 @@ export const deleteStock = async (req: Request) => {
                 id: findDiamond.dataValues.id
             }
         })
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -525,7 +525,7 @@ export const updateStockStatus = async (req: Request) => {
             },
         })
 
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: RECORD_UPDATE })
 
     } catch (error) {

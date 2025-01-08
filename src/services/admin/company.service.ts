@@ -64,7 +64,7 @@ export const addCompany = async (req: Request) => {
             created_by: req.body.session_res.id,
         });
 
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
 
         return resSuccess();
 
@@ -148,7 +148,7 @@ export const updateCompany = async (req: Request) => {
             }
         });
 
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: RECORD_UPDATE });
 
     } catch (error) {
@@ -182,7 +182,7 @@ export const deleteCompany = async (req: Request) => {
             }
         });
 
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
 
         return resSuccess({ message: RECORD_DELETED });
     } catch (error) {
@@ -365,7 +365,7 @@ export const updateCompanyStatus = async (req: Request) => {
             },
             { where: { id: company.dataValues.id } }
         );
-        refreshMaterializedDiamondListView()
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: RECORD_UPDATE });
     } catch (error) {
         throw error;
