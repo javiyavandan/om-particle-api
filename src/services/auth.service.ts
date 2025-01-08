@@ -20,6 +20,7 @@ import {
   resUnknownError,
 } from "../utils/shared-functions";
 import {
+  APP_NAME,
   FRONT_END_BASE_URL,
   IMAGE_PATH,
   IMAGE_URL,
@@ -257,7 +258,7 @@ export const registerUser = async (req: Request, res: Response) => {
           OTP,
           frontend_url: FRONT_END_BASE_URL,
           logo_image: IMAGE_PATH,
-          app_name: "Purelab",
+          app_name: APP_NAME,
         },
       };
       await mailRegistationOtp(mailPayload);
@@ -273,6 +274,7 @@ export const registerUser = async (req: Request, res: Response) => {
       return resUnknownError({ data: error });
     }
   } catch (e) {
+    console.log(e)
     throw e;
   }
 };
@@ -558,8 +560,8 @@ export const forgotPassword = async (req: Request) => {
           name: appUser.dataValues.first_name + " " + (appUser.dataValues.last_name ? appUser.dataValues.last_name : ""),
           frontend_url: FRONT_END_BASE_URL,
           logo_image: IMAGE_PATH,
-          app_name: "PureLab",
-          support_email: "purelab@abc.in",
+          app_name: APP_NAME,
+          support_email: "ompl@abc.in",
           link: path,
         },
       };

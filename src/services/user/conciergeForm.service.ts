@@ -14,7 +14,7 @@ import {
   DEFAULT_STATUS_CODE_SUCCESS,
   ERROR_NOT_FOUND,
 } from "../../utils/app-messages";
-import { ADMIN_MAIL, FRONT_END_BASE_URL } from "../../config/env.var";
+import { ADMIN_MAIL, APP_NAME, FRONT_END_BASE_URL } from "../../config/env.var";
 import { mailAdminDiamondConcierge, mailDiamondConcierge } from "../mail.service";
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
@@ -124,8 +124,8 @@ export const diamondConciergeForm = async (req: Request) => {
         product_stones: no_of_stones,
         product_weight: weight,
         product_measurement: measurement,
-        support_email: "purelab@abc.in",
-        app_name: "PureLab",
+        support_email: "ompl@abc.in",
+        app_name: APP_NAME,
       },
     };
 
@@ -143,8 +143,8 @@ export const diamondConciergeForm = async (req: Request) => {
         product_stones: no_of_stones,
         product_weight: weight,
         product_measurement: measurement,
-        support_email: "purelab@abc.in",
-        app_name: "PureLab",
+        support_email: "ompl@abc.in",
+        app_name: APP_NAME,
       },
     };
 
