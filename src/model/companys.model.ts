@@ -53,6 +53,9 @@ const Company = dbContext.define("companys", {
     map_link: {
         type: STRING,
     },
+    contact_person: {
+        type: STRING,
+    },
     is_active: {
         type: STRING,
     },

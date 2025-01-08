@@ -24,6 +24,7 @@ export const addCompany = async (req: Request) => {
             phone_number,
             email,
             map_link,
+            contact_person
         } = req.body;
 
         const findCompany = await Company.findOne({
@@ -56,6 +57,7 @@ export const addCompany = async (req: Request) => {
             state,
             pincode,
             phone_number,
+            contact_person,
             email,
             map_link,
             is_deleted: DeleteStatus.No,
@@ -89,6 +91,7 @@ export const updateCompany = async (req: Request) => {
             pincode,
             map_link,
             phone_number,
+            contact_person,
             email, } = req.body
         const { company_id } = req.params;
 
@@ -137,6 +140,7 @@ export const updateCompany = async (req: Request) => {
             city,
             state,
             pincode,
+            contact_person,
             phone_number,
             email,
             map_link,
@@ -277,6 +281,7 @@ export const getCompanyList = async (req: Request) => {
                 "phone_number",
                 "email",
                 "map_link",
+                "contact_person",
                 "is_active",
                 [Sequelize.literal(`"country"."name"`), 'countryName'],
                 [Sequelize.literal(`country.id`), 'countryId']
@@ -319,6 +324,7 @@ export const getCompany = async (req: Request) => {
                 "pincode",
                 "phone_number",
                 "email",
+                "contact_person",
                 "map_link",
                 [Sequelize.literal(`country.name`), 'countryName'],
                 [Sequelize.literal(`country.id`), 'countryId']
