@@ -1,5 +1,5 @@
 import {
-  FILE_TYPE,
+  File_type,
   HTTP_METHODS,
   Image_type,
   UserType,
@@ -25,18 +25,6 @@ export const USER_JWT_EXPIRATION_TIME = {
   [UserType.Admin]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
   [UserType.Customer]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
 };
-// Allstart API URL
-export const ALL_STAR_DIAMOND_LIST_API_URL =
-  "http://api.pld.live/stockshare/PURELAB-DIAM016-PURELABJEWELS-PLD";
-export const ALL_STAR_JEWELRY_LIST_API_URL =
-  "https://purelabdiamonds.in/mobileapi/api_design.php";
-export const ALL_STAR_NATURAL_DIAMOND_LIST_API_URL =
-  "https://portal.valaniimpex.com/buyer/products?apikey=";
-export const ALL_STAR_JEWELRY_IMAGE_ARRAY_API_URL =
-  "https://purelabdiamonds.in/mobileapi/api_designimage.php";
-export const RESET_JWT_TOKEN_EXPRATION_TIME = 3000;
-export const ALL_STAR_NATURAL_DIAMOND_LIST_API_KEY =
-  "MhtI9sOD5xURkZZJffNKshtpZRpQPTSEVWGGG9aMiIE4wLdIG0nJb64C0SSuYhjsFoeDDz5Vnv3vtlwXpdbOutmsvezqBxbp9ts8";
 
 // bulk upload range
 export const BULK_UPLOAD_DATA_RANG = 100;
@@ -176,7 +164,7 @@ export const IMAGE_TYPE_LOCATION = {
   [Image_type.User]: "images/user",
   [Image_type.Concierge]: "images/concierge",
   [Image_type.Popup]: "images/popup",
-  [FILE_TYPE.Customer]: 'files/customer'
+  [File_type.Customer]: 'files/customer'
 };
 // Product Bulk Upload File
 export const PRODUCT_BULK_UPLOAD_FILE_MIMETYPE =

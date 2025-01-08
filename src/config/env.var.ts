@@ -42,7 +42,7 @@ export const PRODUCT_CSV_FOLDER_PATH =
   process.env.PRODUCT_CSV_FOLDER_PATH || "public/csv";
 
 // AWS S3
-export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "purelab";
+export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "ompl";
 export const S3_REGION = process.env.S3_REGION || "ap-south-1";
 export const S3_ACCESS_KEY_ID =
   process.env.S3_ACCESS_KEY_ID;
