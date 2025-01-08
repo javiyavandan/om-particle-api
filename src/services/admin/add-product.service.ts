@@ -412,10 +412,16 @@ export const getAllStock = async (req: Request) => {
                             ${!query.min_measurement_width && query.max_measurement_width ? `AND measurement_width <= ${query.max_measurement_width}` : ""}
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
-                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.start_date && query.end_date ? `AND created_at BETWEEN ${new Date(query.start_date as string).setMinutes(0, 0, 0)} AND ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
-                            ${query.start_date && !query.end_date ? `AND created_at >= ${new Date(query.start_date as string).setMinutes(0, 0, 0)}` : ""}
-                            ${!query.start_date && query.end_date ? `AND created_at <= ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}${query.start_date && query.end_date 
+                                ? `AND created_at BETWEEN '${new Date(query.start_date as string).toISOString()}' AND '${new Date(query.end_date as string).toISOString()}'` 
+                                : ""}
+                              ${query.start_date && !query.end_date 
+                                ? `AND created_at >= '${new Date(query.start_date as string).toISOString()}'` 
+                                : ""}
+                              ${!query.start_date && query.end_date 
+                                ? `AND created_at <= '${new Date(query.end_date as string).toISOString()}'` 
+                                : ""}
+                              
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -490,10 +496,16 @@ export const getAllStock = async (req: Request) => {
                             ${!query.min_measurement_width && query.max_measurement_width ? `AND measurement_width <= ${query.max_measurement_width}` : ""}
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
-                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.start_date && query.end_date ? `AND created_at BETWEEN ${new Date(query.start_date as string).setMinutes(0, 0, 0)} AND ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
-                            ${query.start_date && !query.end_date ? `AND created_at >= ${new Date(query.start_date as string).setMinutes(0, 0, 0)}` : ""}
-                            ${!query.start_date && query.end_date ? `AND created_at <= ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}${query.start_date && query.end_date 
+                                ? `AND created_at BETWEEN '${new Date(query.start_date as string).toISOString()}' AND '${new Date(query.end_date as string).toISOString()}'` 
+                                : ""}
+                              ${query.start_date && !query.end_date 
+                                ? `AND created_at >= '${new Date(query.start_date as string).toISOString()}'` 
+                                : ""}
+                              ${!query.start_date && query.end_date 
+                                ? `AND created_at <= '${new Date(query.end_date as string).toISOString()}'` 
+                                : ""}
+                              
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
