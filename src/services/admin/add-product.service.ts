@@ -384,7 +384,7 @@ export const getAllStock = async (req: Request) => {
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
                             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
-                            ${query.status ? `AND status = ${query.status}` : ""}
+                            ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -458,7 +458,7 @@ export const getAllStock = async (req: Request) => {
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
                             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
-                            ${query.status ? `AND status = ${query.status}` : ""}
+                            ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
