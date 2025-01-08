@@ -1,5 +1,5 @@
 import {
-  File_type,
+  FILE_TYPE,
   HTTP_METHODS,
   Image_type,
   UserType,
@@ -25,6 +25,8 @@ export const USER_JWT_EXPIRATION_TIME = {
   [UserType.Admin]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
   [UserType.Customer]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
 };
+
+export const RESET_JWT_TOKEN_EXPRATION_TIME = 3000;
 
 // bulk upload range
 export const BULK_UPLOAD_DATA_RANG = 100;
@@ -164,7 +166,7 @@ export const IMAGE_TYPE_LOCATION = {
   [Image_type.User]: "images/user",
   [Image_type.Concierge]: "images/concierge",
   [Image_type.Popup]: "images/popup",
-  [File_type.Customer]: 'files/customer'
+  [FILE_TYPE.Customer]: 'files/customer'
 };
 // Product Bulk Upload File
 export const PRODUCT_BULK_UPLOAD_FILE_MIMETYPE =
