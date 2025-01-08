@@ -95,17 +95,17 @@ export const createMemo = async (req: Request) => {
 
         const trn = await dbContext.transaction();
 
-        const memoList = await Memo.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
-            }
+        const lastMemo = await Memo.findOne({
+            order: [["memo_number", "DESC"]],
+            transaction: trn,
+            attributes: [
+                "memo_number"
+            ]
         })
 
-        const memoNumber = memoList[memoList.length - 1] ? Number(memoList[memoList.length - 1].dataValues.memo_number) + 1 : 1;
         try {
             const memoPayload = {
-                memo_number: memoNumber,
+                memo_number: Number(lastMemo?.dataValues.memo_number) + 1,
                 company_id: findCompany.dataValues.id,
                 customer_id: findCustomer.dataValues.id,
                 status: MEMO_STATUS.Active,
