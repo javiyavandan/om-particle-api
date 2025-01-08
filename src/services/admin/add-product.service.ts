@@ -3,7 +3,7 @@ import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
-import { ActiveStatus, DeleteStatus, Master_type } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
@@ -299,6 +299,9 @@ export const deleteStock = async (req: Request) => {
             where: {
                 id: diamond_id,
                 is_deleted: DeleteStatus.No,
+                status: {
+                    [Op.ne]: StockStatus.MEMO
+                }
             }
         })
         if (!(findDiamond && findDiamond.dataValues)) {
@@ -328,7 +331,7 @@ export const getStock = async (req: Request) => {
         const { diamond_id } = req.params
 
         const diamond = await dbContext.query(
-            `SELECT * FROM diamond_list WHERE id = ${diamond_id}`, {type: QueryTypes.SELECT}
+            `SELECT * FROM diamond_list WHERE id = ${diamond_id}`, { type: QueryTypes.SELECT }
         )
 
         return resSuccess({
@@ -365,6 +368,9 @@ export const getAllStock = async (req: Request) => {
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
+                            OR customer_name ILIKE '%${pagination.search_text}%'
+                            OR first_name ILIKE '%${pagination.search_text}%'
+                            OR last_name ILIKE '%${pagination.search_text}%'
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -382,9 +388,10 @@ export const getAllStock = async (req: Request) => {
                             ${query.polish ? `AND polish = ${query.polish}` : ""}
                             ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
-                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
+                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
+                            ${query.customer ? `AND customer_id = ${query.customer}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -406,9 +413,9 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
-                            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
-                            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
+                            ${query.start_date && query.end_date ? `AND created_at BETWEEN ${new Date(query.start_date as string).setMinutes(0, 0, 0)} AND ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${query.start_date && !query.end_date ? `AND created_at >= ${new Date(query.start_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${!query.start_date && query.end_date ? `AND created_at <= ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -439,6 +446,9 @@ export const getAllStock = async (req: Request) => {
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
+                            OR customer_name ILIKE '%${pagination.search_text}%'
+                            OR first_name ILIKE '%${pagination.search_text}%'
+                            OR last_name ILIKE '%${pagination.search_text}%'
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -456,9 +466,10 @@ export const getAllStock = async (req: Request) => {
                             ${query.polish ? `AND polish = ${query.polish}` : ""}
                             ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
-                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : ""}
+                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
+                            ${query.customer ? `AND customer_id = ${query.customer}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -480,9 +491,9 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
-                            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
-                            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
+                            ${query.start_date && query.end_date ? `AND created_at BETWEEN ${new Date(query.start_date as string).setMinutes(0, 0, 0)} AND ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${query.start_date && !query.end_date ? `AND created_at >= ${new Date(query.start_date as string).setMinutes(0, 0, 0)}` : ""}
+                            ${!query.start_date && query.end_date ? `AND created_at <= ${new Date(query.end_date as string).setMinutes(0, 0, 0)}` : ""}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS

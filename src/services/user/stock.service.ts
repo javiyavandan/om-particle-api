@@ -84,6 +84,7 @@ export const getStockList = async (req: Request) => {
                             ${query.color ? `AND color = ${query.color}` : ""}
                             ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
                             ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
+                            ${query.company ? `AND company_id = ${query.company}` : ""}
                             ${query.polish ? `AND polish = ${query.polish}` : ""}
                             ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
@@ -200,7 +201,7 @@ export const getStockList = async (req: Request) => {
             ${query.lab ? `AND lab = ${query.lab}` : ""}
             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
             ${query.status ? `AND status = ${query.status}` : ""}
-            ${query.company_id ? `AND company_id = ${query.company_id}` : ""}
+            ${query.company ? `AND company_id = ${query.company}` : ""}
             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -291,7 +292,7 @@ export const getStockDetail = async (req: Request) => {
                 FROM
                     diamond_list
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
-                    WHERE diamond_list.id = ${stock_id}`, {type: QueryTypes.SELECT}
+                    WHERE diamond_list.id = ${stock_id}`, { type: QueryTypes.SELECT }
         )
 
         return resSuccess({
