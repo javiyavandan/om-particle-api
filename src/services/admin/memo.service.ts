@@ -105,7 +105,7 @@ export const createMemo = async (req: Request) => {
 
         try {
             const memoPayload = {
-                memo_number: Number(lastMemo?.dataValues.memo_number) + 1,
+                memo_number: isNaN(Number(lastMemo?.dataValues.memo_number)) ? 1 : Number(lastMemo?.dataValues.memo_number) + 1,
                 company_id: findCompany.dataValues.id,
                 customer_id: findCustomer.dataValues.id,
                 status: MEMO_STATUS.Active,
