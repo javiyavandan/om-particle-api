@@ -19,10 +19,11 @@ import {
   verifyOtpValidator,
 } from "../validators/auth/auth.validator";
 import { adminAuthorization } from "../middlewares/authenticate";
+import { reqMultiImageParser } from "../middlewares/multipart-file-parser";
 
 export default (app: Router) => {
   app.use("/test", testFn);
-  app.post("/signup", [registerCustomerValidator], registerUserFn);
+  app.post("/signup", [reqMultiImageParser(["image", "pdf"])], registerUserFn);
   app.post("/signin", [loginCustomerValidator], loginFn);
   app.post("/verifyOtp/:user_id", [verifyOtpValidator], otpVerification);
   app.get("/resendOtp/:user_id", resendOtpFn);

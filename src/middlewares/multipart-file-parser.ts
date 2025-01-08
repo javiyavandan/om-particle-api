@@ -78,3 +78,27 @@ export const reqProductBulkUploadFileParser =
         .send(resUnknownError({ data: e }));
     }
   };
+
+  export const reqMultiImageParser =
+  (fieldArray: string[]): RequestHandler =>
+  (req, res, next) => {
+    try {
+      const session_res = req.body.session_res;
+      createFolderIfNot(STORE_TEMP_IMAGE_PATH);
+      upload(STORE_TEMP_IMAGE_PATH).fields(
+        fieldArray.map((name) => ({ name, maxCount: 1 }))
+      )(req, res, (err) => {
+        if (err) {
+          return res
+            .status(DEFAULT_STATUS_CODE_ERROR)
+            .send(resUnknownError({ data: err }));
+        }
+        req.body["session_res"] = session_res;
+        return next();
+      });
+    } catch (e) {
+      return res
+        .status(DEFAULT_STATUS_CODE_ERROR)
+        .send(resUnknownError({ data: e }));
+    }
+  };
