@@ -174,7 +174,7 @@ export enum IMAGE_TYPE {
   Preference = "select_preference_master",
   Tag = "tag_master",
   Brand = "brand_master",
-  User = "user",
+  User = "user_profile",
   Concierge = "jewelry_concierge",
   Availability = "availability_master",
   CutGrade = "cut_grade_master",
@@ -241,6 +241,10 @@ export enum MEMO_STATUS {
   Close = 'close',
 }
 
-export enum FILE_TYPE {
+export enum File_type {
   Customer = 8,
+}
+
+export enum FILE_TYPE {
+  Customer = 'customer',
 }

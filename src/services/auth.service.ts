@@ -34,7 +34,9 @@ import {
   ActiveStatus,
   DeleteStatus,
   FILE_TYPE,
+  File_type,
   HUBSPOT_ASSOCIATION,
+  IMAGE_TYPE,
   Image_type,
   UserType,
   UserVerification,
@@ -135,7 +137,7 @@ export const registerUser = async (req: Request, res: Response) => {
             created_by: req.body.session_res.id,
             is_deleted: DeleteStatus.No,
             is_active: ActiveStatus.Active,
-            image_type: Image_type.User,
+            image_type: IMAGE_TYPE.User,
           },
           { transaction: trn }
         );
@@ -146,7 +148,7 @@ export const registerUser = async (req: Request, res: Response) => {
       if (files["pdf"]) {
         const fileData = await moveFileToS3ByType(
           files["pdf"][0],
-          FILE_TYPE.Customer
+          File_type.Customer
         )
 
         if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {

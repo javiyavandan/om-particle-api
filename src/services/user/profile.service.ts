@@ -4,6 +4,7 @@ import {
   ActiveStatus,
   DeleteStatus,
   FILE_TYPE,
+  File_type,
   IMAGE_TYPE,
   Image_type,
 } from "../../utils/app-enumeration";
@@ -165,7 +166,7 @@ export const updateUserDetail = async (req: Request) => {
             created_by: req.body.session_res.id,
             is_deleted: DeleteStatus.No,
             is_active: ActiveStatus.Active,
-            image_type: Image_type.User,
+            image_type: IMAGE_TYPE.User,
           },
           { transaction: trn }
         );
@@ -178,7 +179,7 @@ export const updateUserDetail = async (req: Request) => {
       if (files["pdf"]) {
         const fileData = await moveFileToS3ByType(
           files["pdf"][0],
-          FILE_TYPE.Customer
+          File_type.Customer
         )
 
         if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
