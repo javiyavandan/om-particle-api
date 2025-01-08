@@ -618,7 +618,9 @@ export const customerList = async () => {
         attributes: [],
         where: {
           is_verified: UserVerification.Admin_Verified,
-          user_type: UserType.Customer
+          user_type: UserType.Customer,
+          is_active: ActiveStatus.Active,
+          is_deleted: DeleteStatus.No
         }
       }]
     })
