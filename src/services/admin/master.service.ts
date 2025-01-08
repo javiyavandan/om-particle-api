@@ -142,7 +142,7 @@ export const addMaster = async (req: Request) => {
             {
               image_path: filePath,
               created_at: getLocalDate(),
-              created_by: session_res.user_id,
+              created_by: session_res.id,
               is_deleted: DeleteStatus.No,
               is_active: ActiveStatus.Active,
               image_type: master_type,
@@ -168,7 +168,7 @@ export const addMaster = async (req: Request) => {
           is_deleted: DeleteStatus.No,
           is_active: ActiveStatus.Active,
           created_at: getLocalDate(),
-          created_by: session_res.user_id,
+          created_by: session_res.id,
           country_id: country_id ?? null,
         },
         { transaction: trn }
@@ -312,7 +312,7 @@ export const updateMaster = async (req: Request) => {
             {
               image_path: filePath,
               modified_at: getLocalDate(),
-              modified_by: session_res.user_id,
+              modified_by: session_res.id,
               is_deleted: DeleteStatus.No,
               image_type: master_type,
             },
@@ -337,7 +337,7 @@ export const updateMaster = async (req: Request) => {
           import_name,
           is_deleted: DeleteStatus.No,
           modified_at: getLocalDate(),
-          modified_by: session_res.user_id,
+          modified_by: session_res.id,
           country_id: country_id ?? null,
         },
         {
@@ -525,7 +525,7 @@ export const masterStatusUpdate = async (req: Request) => {
           {
             is_active: ActiveStatus.InActive,
             modified_at: getLocalDate(),
-            modified_by: session_res.user_id,
+            modified_by: session_res.id,
           },
           { where: { id: MasterData.dataValues.id } }
         );
@@ -537,7 +537,7 @@ export const masterStatusUpdate = async (req: Request) => {
           {
             is_active: ActiveStatus.Active,
             modified_at: getLocalDate(),
-            modified_by: session_res.user_id,
+            modified_by: session_res.id,
           },
           { where: { id: MasterData.dataValues.id } }
         );

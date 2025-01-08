@@ -240,3 +240,7 @@ export enum MEMO_STATUS {
   Active = 'active',
   Close = 'close',
 }
+
+export enum FILE_TYPE {
+  Customer = 8,
+}

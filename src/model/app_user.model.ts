@@ -2,6 +2,7 @@ import { BIGINT, DATE, INTEGER, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import Image from "./image.model";
 import Role from "./role.model";
+import File from "./files.model";
 
 const AppUser = dbContext.define("app_users", {
   id: {
@@ -72,9 +73,16 @@ const AppUser = dbContext.define("app_users", {
   id_image: {
     type: BIGINT,
   },
+  id_pdf: {
+    type: BIGINT,
+  },
+  remarks: {
+    type: BIGINT,
+  },
 });
 
 AppUser.belongsTo(Image, { foreignKey: "id_image", as: "image" });
+AppUser.belongsTo(File, { foreignKey: "id_pdf", as: "file" });
 AppUser.belongsTo(Role, { foreignKey: "id_role", as: "role" });
 Role.hasMany(AppUser, { foreignKey: "id_role", as: "app_user" });
 export default AppUser;

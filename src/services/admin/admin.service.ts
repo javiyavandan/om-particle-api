@@ -27,6 +27,7 @@ import { IMAGE_URL } from "../../config/env.var";
 import { mailUserVerified } from "../mail.service";
 import ContactUs from "../../model/contact-us.model";
 import Customer from "../../model/customer.modal";
+import File from "../../model/files.model";
 
 export const userList = async (req: Request) => {
   try {
@@ -84,26 +85,19 @@ export const userList = async (req: Request) => {
         "first_name",
         "last_name",
         "email",
-        "user_type",
         "phone_number",
         "is_verified",
-        "id_image",
         "is_active",
-        [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
-          "image_path",
-        ],
+        [Sequelize.literal(`customer.company_name`), "company_name"],
+        [Sequelize.literal(`customer.country`), "country"],
+        [Sequelize.literal(`customer.state`), "state"],
       ],
       include: [
         {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
+          model: Customer,
+          as: "customer",
+          attributes: []
+        }
       ],
     });
     return resSuccess({ data: { pagination, result: user } });
@@ -160,14 +154,14 @@ export const userDetail = async (req: Request) => {
             "user_type",
             "phone_number",
             "is_verified",
-            "id_image",
             "is_active",
+            "remarks",
             [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"user->image"."image_path"`)
-              ),
+              Sequelize.literal(`CASE WHEN "user->file"."file_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->file"."file_path") ELSE NULL END`),
+              "file_path",
+            ],
+            [
+              Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
             ],
           ],
@@ -175,6 +169,11 @@ export const userDetail = async (req: Request) => {
             {
               model: Image,
               as: "image",
+              attributes: [],
+            },
+            {
+              model: File,
+              as: "file",
               attributes: [],
             },
           ],

@@ -32,7 +32,9 @@ import AppUser from "../model/app_user.model";
 import {
   ActiveStatus,
   DeleteStatus,
+  FILE_TYPE,
   HUBSPOT_ASSOCIATION,
+  Image_type,
   UserType,
   UserVerification,
 } from "../utils/app-enumeration";
@@ -64,6 +66,8 @@ import Image from "../model/image.model";
 import { Sequelize } from "sequelize";
 import Role from "../model/role.model";
 import Company from "../model/companys.model";
+import { moveFileToS3ByType } from "../helpers/file-helper";
+import File from "../model/files.model";
 
 export const test = (req: Request) => {
   return resSuccess({ data: "Done encryption decryption" });
@@ -86,8 +90,10 @@ export const registerUser = async (req: Request, res: Response) => {
       country,
       state,
       postcode,
-      verification
+      verification,
+      remarks,
     } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     let OTP = "";
     for (let i = 0; i < OTP_GENERATE_DIGITS; i++) {
@@ -111,6 +117,54 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const trn = await dbContext.transaction();
     try {
+      let imageId;
+      if (files["image"]) {
+        const imageData = await moveFileToS3ByType(
+          files["image"][0],
+          Image_type.User
+        )
+
+        if (imageData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return imageData;
+        }
+        const imageResult = await Image.create(
+          {
+            image_path: imageData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            image_type: Image_type.User,
+          },
+          { transaction: trn }
+        );
+        imageId = imageResult.dataValues.id;
+      }
+
+      let pdfId;
+      if (files["pdf"]) {
+        const fileData = await moveFileToS3ByType(
+          files["pdf"][0],
+          FILE_TYPE.Customer
+        )
+
+        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return fileData;
+        }
+        const fileResult = await File.create(
+          {
+            file_path: fileData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            file_type: FILE_TYPE.Customer,
+          },
+          { transaction: trn }
+        );
+        pdfId = fileResult.dataValues.id;
+      }
+
       const createUser = await AppUser.create(
         {
           first_name: first_name,
@@ -123,11 +177,13 @@ export const registerUser = async (req: Request, res: Response) => {
           user_type: UserType.Customer,
           is_active: ActiveStatus.Active,
           is_verified: verification ?? UserVerification.NotVerified,
+          id_image: imageId,
+          id_pdf: pdfId,
+          remarks,
           one_time_pass: OTP,
         },
         { transaction: trn }
       );
-
       // add if condition
       if (createUser.dataValues.id) {
         await Customer.create(
@@ -287,11 +343,7 @@ export const login = async (req: Request, res: Response) => {
         "id_role",
         "is_active",
         [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
+          Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
           "image_path",
         ],
       ],
@@ -373,21 +425,21 @@ export const login = async (req: Request, res: Response) => {
       }
     );
 
-    // const wishlistCount = await Wishlist.count({
-    //   where: { user_id: appUser.dataValues.id },
-    // });
-    // const cartCount = await CartProducts.count({
-    //   where: { user_id: appUser.dataValues.id },
-    // });
+    const wishlistCount = await Wishlist.count({
+      where: { user_id: appUser.dataValues.id },
+    });
+    const cartCount = await CartProducts.count({
+      where: { user_id: appUser.dataValues.id },
+    });
 
     return resSuccess({
       data: {
         token: data,
         userDetails: { ...appUser.dataValues, password: '' },
-        // count: {
-        //   wishlistCount,
-        //   cartCount,
-        // },
+        count: {
+          wishlistCount,
+          cartCount,
+        },
       },
     });
   } catch (e) {
