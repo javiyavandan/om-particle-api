@@ -142,12 +142,12 @@ export const createMemo = async (req: Request) => {
                 transaction: trn,
             })
 
-            trn.commit();
-            refreshMaterializedDiamondListView()
+            await trn.commit();
+            await refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {
-            trn.rollback();
+            await trn.rollback();
             throw error
         }
 
@@ -832,12 +832,12 @@ export const returnMemoStock = async (req: Request) => {
                 })
             }
 
-            trn.commit();
-            refreshMaterializedDiamondListView()
+            await trn.commit();
+            await refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {
-            trn.rollback();
+            await trn.rollback();
             throw error
         }
 

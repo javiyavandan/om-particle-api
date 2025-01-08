@@ -165,12 +165,12 @@ export const createInvoice = async (req: Request) => {
                 })
             }
 
-            trn.commit();
-            refreshMaterializedDiamondListView()
+            await trn.commit();
+            await refreshMaterializedDiamondListView()
 
             return resSuccess()
         } catch (error) {
-            trn.rollback();
+            await trn.rollback();
             throw error
         }
 
