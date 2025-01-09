@@ -425,6 +425,7 @@ export const masterList = async (req: Request) => {
           ),
           "image_path",
         ],
+        [Sequelize.literal(`country.name`), "country_name"]
       ],
       include: [
         {
@@ -433,6 +434,12 @@ export const masterList = async (req: Request) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Country,
+          attributes: [],
+          as: "country",
+        }
       ],
     });
     return resSuccess({ data: { pagination, result: MasterData } });
@@ -462,8 +469,8 @@ export const masterDetail = async (req: Request) => {
         "id_image",
         "id_parent",
         "link",
-        "country_id",
         "import_name",
+        "country_id",
         "order_by",
         [
           Sequelize.fn(
@@ -473,6 +480,7 @@ export const masterDetail = async (req: Request) => {
           ),
           "image_path",
         ],
+        [Sequelize.literal(`country.name`), "country_name"]
       ],
       include: [
         {
@@ -481,6 +489,12 @@ export const masterDetail = async (req: Request) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Country,
+          attributes: [],
+          as: "country",
+        }
       ],
     });
 
