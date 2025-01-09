@@ -71,9 +71,10 @@ export const SingleProductInquiryList = async (req: Request) => {
                 {
                     model: Diamonds,
                     as: "product",
-                    where: {
-                        is_deleted: DeleteStatus.No,
-                    },
+                    where: [
+                        { is_deleted: DeleteStatus.No },
+                        req.body.session_res.id_role == 0 ? query.company ? { company_id: query.company } : {} : { company_id: req.body.session_res.company_id },
+                    ],
                     attributes: [
                         "id",
                         "stock_id",
@@ -406,7 +407,7 @@ export const getInquiries = async (req: Request) => {
                                 SELECT json_array_elements_text(product_details)::int
                                 FROM inquiries
                                 WHERE inquiries.id = "inquiries".id
-                            )
+                            ) ${req.body.session_res.id_role != 0 ? `AND diamonds.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND diamonds.company_id = ${query.company}` : ""}`}
                         )
                     `),
                     "diamondProduct"
