@@ -141,6 +141,12 @@ export const userDetail = async (req: Request) => {
         "state",
         "country",
         "postcode",
+        [Sequelize.literal(`(SELECT COUNT(*) FROM memo_list WHERE memo_list.customer_id = customers.id)`), "total_memo"],
+        [Sequelize.literal(`(SELECT COUNT(*) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_invoice"],
+        [Sequelize.literal(`(SELECT SUM(invoice_list.total_price) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_invoice_price"],
+        [Sequelize.literal(`(SELECT SUM(invoice_list.total_item_price) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_memo_price"],
+        [Sequelize.literal(`(SELECT SUM(invoice_list.total_weight) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_invoice_weight"],
+        [Sequelize.literal(`(SELECT SUM(memo_list.total_weight) FROM memo_list WHERE memo_list.customer_id = customers.id)`), "total_memo_weight"],
       ],
       include: [
         {
@@ -156,6 +162,7 @@ export const userDetail = async (req: Request) => {
             "is_verified",
             "is_active",
             "remarks",
+            // Corrected file_path and image_path
             [
               Sequelize.literal(`CASE WHEN "user->file"."file_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->file"."file_path") ELSE NULL END`),
               "file_path",
@@ -180,6 +187,7 @@ export const userDetail = async (req: Request) => {
         },
       ],
     });
+
     return resSuccess({ data: companyDetail });
   } catch (e) {
     throw e;
