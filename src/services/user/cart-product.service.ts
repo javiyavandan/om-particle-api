@@ -10,7 +10,7 @@ import {
 } from "../../utils/shared-functions";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { Sequelize } from "sequelize";
-import { DeleteStatus, StockStatus } from "../../utils/app-enumeration";
+import { DeleteStatus } from "../../utils/app-enumeration";
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import Company from "../../model/companys.model";
@@ -44,11 +44,6 @@ export const addCartProduct = async (req: Request) => {
           ["field_name", "Product"],
         ]),
       });
-    }
-    if (productDetail.dataValues.status !== StockStatus.AVAILABLE) {
-      return resBadRequest({
-        message: "Product is not available",
-      })
     }
 
     // create cart product
@@ -87,7 +82,6 @@ export const cartProductList = async (req: Request) => {
           as: "product",
           where: {
             is_deleted: DeleteStatus.No,
-            status: StockStatus.AVAILABLE,
           },
           attributes: [
             "id",
