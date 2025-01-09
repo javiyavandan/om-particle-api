@@ -226,10 +226,9 @@ export const getInvoice = async (req: Request) => {
 export const getAllInvoice = async (req: Request) => {
     try {
         const { query } = req;
-        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
-            search_text: query.search_text,
+            search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
 
