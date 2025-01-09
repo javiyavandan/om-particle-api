@@ -387,6 +387,7 @@ export const getInquiries = async (req: Request) => {
             ...paginationProps,
             order: [[pagination.sort_by, pagination.order_by]],
             attributes: [
+                "id",
                 "inquiry_number",
                 "total",
                 "inquiry_note",
@@ -457,6 +458,7 @@ export const getInquiryDetail = async (req: Request) => {
                 id: inquiry_id,
             },
             attributes: [
+                "id",
                 "inquiry_number",
                 "total",
                 "inquiry_note",
