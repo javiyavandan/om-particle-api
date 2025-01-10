@@ -293,6 +293,7 @@ export const getAllCurrency = async (req: Request) => {
 
 
         const result = await Currency.findAll({
+            where,
             ...paginationProps,
             order: [[pagination.sort_by, pagination.order_by]],
             attributes: [
