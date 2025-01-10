@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { ActiveStatus, DeleteStatus, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
 import Company from "../../model/companys.model";
@@ -182,6 +182,7 @@ export const getAllMemo = async (req: Request) => {
             search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
+        const currency = await getCurrencyPrice(query.currency as string);
 
         const totalItems = await dbContext.query(`
             SELECT * FROM memo_list

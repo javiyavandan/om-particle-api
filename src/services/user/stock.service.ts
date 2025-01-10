@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
-import { getInitialPaginationFromQuery, resSuccess } from "../../utils/shared-functions";
+import { getCurrencyPrice, getInitialPaginationFromQuery, resSuccess } from "../../utils/shared-functions";
 import { UserType } from "../../utils/app-enumeration";
 
 export const getStockList = async (req: Request) => {
@@ -13,6 +13,8 @@ export const getStockList = async (req: Request) => {
             search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
+
+        const currency = await getCurrencyPrice(query.currency as string);
 
         const totalItems = await dbContext.query(
             `
@@ -51,7 +53,7 @@ export const getStockList = async (req: Request) => {
                     admin_comments,
                     local_location,
                     status,
-                    rate,
+                    rate * ${currency} as rate,
                     company_id,
                     company_name,
                     is_active,
@@ -90,9 +92,9 @@ export const getStockList = async (req: Request) => {
                             ${query.lab ? `AND lab = ${query.lab}` : ""}
                             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = ${query.status}` : ""}
-                            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
-                            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
-                            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
+                            ${query.min_rate && query.max_rate ? `AND rate * ${currency} BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
+                            ${query.min_rate && !query.max_rate ? `AND rate * ${currency} >= ${query.min_rate}` : ""}
+                            ${!query.min_rate && query.max_rate ? `AND rate * ${currency} <= ${query.max_rate}` : ""}
                             ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
                             ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
                             ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
@@ -164,7 +166,7 @@ export const getStockList = async (req: Request) => {
                     admin_comments,
                     local_location,
                     status,
-                    rate,
+                    rate * ${currency} as rate,
                     company_id,
                     company_name,
                     is_active,
@@ -202,9 +204,9 @@ export const getStockList = async (req: Request) => {
             ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
             ${query.status ? `AND status = ${query.status}` : ""}
             ${query.company ? `AND company_id = ${query.company}` : ""}
-            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
-            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
-            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
+            ${query.min_rate && query.max_rate ? `AND rate * ${currency} BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
+            ${query.min_rate && !query.max_rate ? `AND rate * ${currency} >= ${query.min_rate}` : ""}
+            ${!query.min_rate && query.max_rate ? `AND rate * ${currency} <= ${query.max_rate}` : ""}
             ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
             ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
             ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
@@ -247,6 +249,7 @@ export const getStockDetail = async (req: Request) => {
     try {
         const { stock_id } = req.params
         const { id } = req.body.session_res;
+        const currency = await getCurrencyPrice(req.query.currency as string);
 
         const diamond = await dbContext.query(
             `SELECT
@@ -284,7 +287,7 @@ export const getStockDetail = async (req: Request) => {
                     admin_comments,
                     local_location,
                     status,
-                    rate,
+                    rate * ${currency} as rate,
                     company_id,
                     company_name,
                     is_active,
@@ -294,7 +297,6 @@ export const getStockDetail = async (req: Request) => {
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                     WHERE diamond_list.id = ${stock_id}`, { type: QueryTypes.SELECT }
         )
-
         return resSuccess({
             data: diamond[0]
         })
