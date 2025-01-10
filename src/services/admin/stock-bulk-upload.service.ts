@@ -160,6 +160,10 @@ const processCSVFile = async (path: string, idAppUser: number) => {
             return resRows;
         }
 
+        if (resRows.data.headers.length !== 27) {
+            return resUnprocessableEntity()
+        }
+
         const resVH = await validateHeaders(resRows.data.headers);
         if (resVH.code !== DEFAULT_STATUS_CODE_SUCCESS) {
             return resVH;
