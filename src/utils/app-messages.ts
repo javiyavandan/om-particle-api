@@ -189,4 +189,5 @@ import {
     "Phone number must be a 4 to 20 characters!";
   export const EMAIL_ALL_READY_EXIST = "User is already exists with the same email!";
   export const INVALID_OLD_PASSWORD = "Invalid old password!";
-  
+  export const CURRENCY_STATUS_DEFAULT = "Cannot change the status of default currency"
+  export const CURRENCY_DELETE_DEFAULT = "Cannot remove the default currency"

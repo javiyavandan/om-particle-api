@@ -11,6 +11,7 @@ import conciergeRoute from "./concierge.route";
 import wishlistRoute from "./wishlist-admin.route";
 import cartAdminRoute from "./cart-admin.route";
 import inquiryRoute from "./inquiry.route";
+import currencyRoute from "./currency.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -26,5 +27,6 @@ export default function adminRouter() {
   wishlistRoute(app);
   cartAdminRoute(app);
   inquiryRoute(app);
+  currencyRoute(app);
   return app;
 }

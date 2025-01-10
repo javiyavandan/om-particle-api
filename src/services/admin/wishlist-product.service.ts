@@ -76,9 +76,10 @@ export const getWishlist = async (req: Request) => {
       {
         model: Diamonds,
         as: "product",
-        where: {
-          is_deleted: DeleteStatus.No,
-        },
+        where: [
+          { is_deleted: DeleteStatus.No, },
+          req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {}
+        ],
         attributes: [
           "id",
           "stock_id",
