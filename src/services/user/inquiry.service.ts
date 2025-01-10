@@ -2,7 +2,7 @@ import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { DeleteStatus, StockStatus } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, resSuccess, getLocalDate, resUnknownError, getInitialPaginationFromQuery } from "../../utils/shared-functions";
+import { resNotFound, prepareMessageFromParams, resSuccess, getLocalDate, resUnknownError, getInitialPaginationFromQuery, getCurrencyPrice } from "../../utils/shared-functions";
 import Inquiry from "../../model/inquiry.model";
 import ProductInquiry from "../../model/product-inquiry.model";
 import dbContext from "../../config/dbContext";
@@ -84,6 +84,14 @@ export const addInquiry = async (req: Request) => {
             transaction: trn,
         })
 
+        if (userCart.length === 0) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+                    ["field_name", "Cart items"],
+                ]),
+            })
+        }
+
         const product_details = userCart.map((product) => product.dataValues.product_id)
 
         let total = 0;
@@ -139,6 +147,7 @@ export const addInquiry = async (req: Request) => {
 export const getInquiries = async (req: Request) => {
     try {
         const { user_id } = req.body.session_res;
+        const currency = await getCurrencyPrice(req.query.currency as string);
         const { query } = req;
         let paginationProps = {};
         let pagination = {
@@ -185,7 +194,7 @@ export const getInquiries = async (req: Request) => {
             order: [[pagination.sort_by, pagination.order_by]],
             attributes: [
                 "inquiry_number",
-                "total",
+                [Sequelize.literal(`(total * ${currency})`), 'total'],
                 "inquiry_note",
                 "email",
                 "inquiry_address",
@@ -222,16 +231,17 @@ export const getInquiries = async (req: Request) => {
 
 export const getInquiryDetail = async (req: Request) => {
     try {
-        const { inquiry_id } = req.params;
+        const { inquiry_number } = req.params;
+        const currency = await getCurrencyPrice(req.query.currency as string);
 
         const inquiry = await Inquiry.findOne({
             where: {
-                id: inquiry_id,
+                inquiry_number: inquiry_number,
                 user_id: req.body.session_res.id,
             },
             attributes: [
                 "inquiry_number",
-                "total",
+                [Sequelize.literal(`(total * ${currency})`), 'total'],
                 "inquiry_note",
                 "email",
                 "inquiry_address",
@@ -253,7 +263,7 @@ export const getInquiryDetail = async (req: Request) => {
                                     'fluorescence', fluorescence_master.name,
                                     'company', companys.name,
                                     'quantity', diamonds.quantity,
-                                    'rate', diamonds.rate,
+                                    'rate', diamonds.rate * ${currency},
                                     'video', diamonds.video,
                                     'image', diamonds.image,
                                     'certificate', diamonds.certificate,
@@ -282,7 +292,7 @@ export const getInquiryDetail = async (req: Request) => {
                             WHERE diamonds.is_deleted = '0' AND diamonds.id = ANY (
                                 SELECT json_array_elements_text(product_details)::int
                                 FROM inquiries
-                                WHERE inquiries.id = ${inquiry_id}
+                                WHERE inquiries.id = "id"
                             )
                         )
                     `),
@@ -290,7 +300,7 @@ export const getInquiryDetail = async (req: Request) => {
                 ]
             ]
         });
-        
+
 
         if (!(inquiry && inquiry.dataValues)) {
             return resNotFound({

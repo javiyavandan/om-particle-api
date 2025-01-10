@@ -8,6 +8,7 @@ import {
   DeleteStatus,
   Master_type,
 } from "../../utils/app-enumeration";
+import Currency from "../../model/currency-master.model";
 
 export const contactUs = async (req: Request) => {
   try {
@@ -56,3 +57,20 @@ export const getTax = async (req: Request) => {
     throw error;
   }
 };
+
+export const getCurrency = async () => {
+  try {
+    const currency = await Currency.findAll({
+      where: {
+        is_deleted: DeleteStatus.No,
+        is_active: ActiveStatus.Active,
+      },
+      attributes: ["id", "name", "code", "symbol", "format"],
+    })
+
+    return resSuccess({ data: currency });
+
+  } catch (error) {
+    throw error;
+  }
+}

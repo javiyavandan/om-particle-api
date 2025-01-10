@@ -1,6 +1,7 @@
 import { Request } from "express";
 import CartProducts from "../../model/cart-product.model";
 import {
+  getCurrencyPrice,
   getLocalDate,
   prepareMessageFromParams,
   resBadRequest,
@@ -66,6 +67,7 @@ export const addCartProduct = async (req: Request) => {
 export const cartProductList = async (req: Request) => {
   try {
     const { user_id } = req.body.session_res;
+    const currency = await getCurrencyPrice(req.query.currency as string);
 
     const products = await CartProducts.findAll({
       where: { user_id: user_id },
@@ -107,7 +109,7 @@ export const cartProductList = async (req: Request) => {
             [Sequelize.literal(`"product->company_master"."id"`), "companyId"],
             "quantity",
             "weight",
-            "rate",
+            [Sequelize.literal(`(rate * ${currency})`), 'rate'],
             "report",
             "video",
             "image",

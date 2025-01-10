@@ -2,6 +2,7 @@ import { Request } from "express";
 import Wishlist from "../../model/wishlist.model";
 import {
   columnValueLowerCase,
+  getCurrencyPrice,
   getLocalDate,
   prepareMessageFromParams,
   refreshMaterializedDiamondListView,
@@ -280,6 +281,7 @@ export const deleteWishlist = async (req: Request) => {
 export const wishlist = async (req: Request) => {
   try {
     const { session_res } = req.body;
+    const currency = await getCurrencyPrice(req.query.currency as string);
 
     const wishlistData = await Wishlist.findAll({
       order: [["id", "DESC"]],
@@ -329,7 +331,7 @@ export const wishlist = async (req: Request) => {
             [Sequelize.literal(`"product->company_master"."id"`), "companyId"],
             "quantity",
             "weight",
-            "rate",
+            [Sequelize.literal(`(rate * ${currency})`), 'rate'],
             "report",
             "video",
             "image",

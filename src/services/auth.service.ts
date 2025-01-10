@@ -71,39 +71,10 @@ import Role from "../model/role.model";
 import Company from "../model/companys.model";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
-import MenuItem from "../model/menu-items.model";
-import RoleApiPermission from "../model/role-api-permission.model";
 
 export const test = async (req: Request) => {
 
-  const payload =   [
-    {
-     "id_menu_item": 3,
-     "id_action": 1,
-     "api_endpoint": "/customer",
-     "http_method": 1,
-     "is_active": "1",
-    },
-    {
-     "id_menu_item": 11,
-     "id_action": 1,
-     "api_endpoint": "/customer",
-     "http_method": 1,
-     "is_active": "1",
-    },
-    {
-     "id_menu_item": 12,
-     "id_action": 1,
-     "api_endpoint": "/customer",
-     "http_method": 1,
-     "is_active": "1",
-    },
-   ]
-
-
-  const data = await RoleApiPermission.bulkCreate(payload)
-
-  return resSuccess({ data: data });
+  return resSuccess({ data: "sdhkfdskfhdfsd" });
 };
 
 export const registerUser = async (req: Request, res: Response) => {

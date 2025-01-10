@@ -7,5 +7,5 @@ export default (app: Router) => {
     app.post('/single-inquiry', [customerAuthorization, singleProductInquiryValidator], singleProductInquiryFn);
     app.post('/inquiry', [customerAuthorization, inquiryValidator], createInquiryFn);
     app.get('/inquiry', [customerAuthorization], getInquiryListFn);
-    app.get('/inquiry/:inquiry_id', [customerAuthorization], getInquiryDetailFn);
+    app.get('/inquiry/:inquiry_number', [customerAuthorization], getInquiryDetailFn);
 }
