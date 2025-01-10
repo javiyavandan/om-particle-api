@@ -13,5 +13,5 @@ export default (app: Router) => {
     app.post("/stock/import", [adminAuthorization, reqProductBulkUploadFileParser("stock_file")], addEditBulkStock);
     app.patch("/stock-update-status", [adminAuthorization], updateBulkStockStatusFn);
     app.delete("/stock-bulk-delete/:stock_id", [adminAuthorization], deleteBulkStockFn);
-    app.delete("/stock-bulk-delete-csv", [adminAuthorization, reqProductBulkUploadFileParser("stock_file")], deleteStockCsv);
+    app.post("/stock-bulk-delete-csv", [adminAuthorization, reqProductBulkUploadFileParser("stock_file")], deleteStockCsv);
 }
