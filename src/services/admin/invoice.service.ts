@@ -248,6 +248,8 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.registration_number LIKE '%${pagination.search_text}%'
                 OR invoice_list.email LIKE '%${pagination.search_text}%'
                 OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
+                OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
+                OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
@@ -333,6 +335,8 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.registration_number LIKE '%${pagination.search_text}%'
                 OR invoice_list.email LIKE '%${pagination.search_text}%'
                 OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
+                OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
+                OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
