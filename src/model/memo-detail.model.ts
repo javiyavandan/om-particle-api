@@ -24,6 +24,9 @@ const MemoDetail = dbContext.define("memo_details", {
     is_deleted: {
         type: STRING
     },
+    is_return: {
+        type: STRING
+    },
     deleted_at: {
         type: DATE,
     },

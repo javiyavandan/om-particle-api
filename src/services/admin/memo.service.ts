@@ -364,6 +364,7 @@ export const returnMemoStock = async (req: Request) => {
         const { memo_id, stock_list, company_id } = req.body;
         const stockError = [];
         const stockList = [];
+        const memoDetailStock = [];
 
         if (stock_list) {
             if (stock_list.length == 0) {
@@ -382,7 +383,6 @@ export const returnMemoStock = async (req: Request) => {
                 {
                     model: MemoDetail,
                     as: 'memo_details',
-                    attributes: ["stock_id"]
                 }
             ]
         })
@@ -392,12 +392,12 @@ export const returnMemoStock = async (req: Request) => {
         }
         for (let index = 0; index < stock_list.length; index++) {
             const element = stock_list[index];
-            if (!memo.dataValues.memo_details.map((data: any)=> data.dataValues.stock_id).includes(`${element}`)) {
+            if (!memo.dataValues.memo_details.map((data: any) => data.dataValues.stock_id).includes(`${element}`)) {
                 return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${element} stock`]]) })
             }
         }
 
-        const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.map((memoData: any) => memoData.dataValues.stock_id)
+        const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.filter((memoData: any) => memoData.dataValues.is_return === ActiveStatus.InActive && memoData.dataValues.memo_id === memo_id).map((data: any) => data.dataValues.stock_id)
 
         const allStock = await Diamonds.findAll({
             where: {
@@ -419,6 +419,11 @@ export const returnMemoStock = async (req: Request) => {
                     modified_by: req.body.session_res.id,
                     status: StockStatus.AVAILABLE,
                 })
+                const memoDetail = memo.dataValues.memo_details.find((data: any) => data.dataValues.stock_id == stockId)
+                memoDetailStock.push({
+                    ...memoDetail.dataValues,
+                    is_return: ActiveStatus.Active,
+                })
             }
         }
 
@@ -437,25 +442,17 @@ export const returnMemoStock = async (req: Request) => {
                 transaction: trn
             });
 
+            await MemoDetail.bulkCreate(memoDetailStock, {
+                updateOnDuplicate: ["is_return"],
+                transaction: trn
+            })
+
             const memoDetail = await MemoDetail.findAll({
                 where: {
                     memo_id: memo.dataValues.id,
                     is_deleted: DeleteStatus.No,
+                    is_return: ActiveStatus.InActive,
                 },
-                attributes: [],
-                include: [
-                    {
-                        model: Diamonds,
-                        as: "stocks",
-                        where: [
-                            {
-                                is_deleted: DeleteStatus.No,
-                                status: StockStatus.MEMO
-                            }
-                        ],
-                        attributes: []
-                    }
-                ],
                 transaction: trn
             })
 
