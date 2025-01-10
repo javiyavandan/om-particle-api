@@ -201,7 +201,7 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.phone_number LIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND memo_list.customer_id = ${query.customer}` : ''}
-            ${query.company ? `AND memo_list.company_id = '${query.company}'` : ''}
+            ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
             ${query.lab ? `AND EXISTS (
                 SELECT 1
@@ -287,7 +287,7 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.phone_number LIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND memo_list.customer_id = ${query.customer}` : ''}
-            ${query.company ? `AND memo_list.company_id = '${query.company}'` : ''}
+            ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
             ${query.lab ? `AND EXISTS (
                 SELECT 1

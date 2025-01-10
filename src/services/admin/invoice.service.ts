@@ -250,7 +250,7 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
-            ${query.company ? `AND invoice_list.company_id = '${query.company}'` : ''}
+            ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
             ${query.lab ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
@@ -335,7 +335,7 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
-            ${query.company ? `AND invoice_list.company_id = '${query.company}'` : ''}
+            ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
             ${query.lab ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
