@@ -391,14 +391,14 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
                             ${shapes ? `AND shape IN (${shapes})` : ""}
-                            ${colors ? `AND color IN ${colors}` : ""}
-                            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
-                            ${clarity ? `AND clarity IN ${clarity}` : ""}
-                            ${polish ? `AND polish IN ${polish}` : ""}
-                            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
-                            ${labs ? `AND lab IN ${labs}` : ""}
-                            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
-                            ${customer ? `AND customer_id IN ${customer}` : ""}
+                            ${colors ? `AND color IN (${colors})` : ""}
+                            ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
+                            ${clarity ? `AND clarity IN (${clarity})` : ""}
+                            ${polish ? `AND polish IN (${polish})` : ""}
+                            ${symmetry ? `AND symmetry IN (${symmetry})` : ""}
+                            ${labs ? `AND lab IN (${labs})` : ""}
+                            ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
+                            ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
@@ -475,14 +475,14 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
                             ${shapes ? `AND shape IN (${shapes})` : ""}
-                            ${colors ? `AND color IN ${colors}` : ""}
-                            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
-                            ${clarity ? `AND clarity IN ${clarity}` : ""}
-                            ${polish ? `AND polish IN ${polish}` : ""}
-                            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
-                            ${labs ? `AND lab IN ${labs}` : ""}
-                            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
-                            ${customer ? `AND customer_id IN ${customer}` : ""}
+                            ${colors ? `AND color IN (${colors})` : ""}
+                            ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
+                            ${clarity ? `AND clarity IN (${clarity})` : ""}
+                            ${polish ? `AND polish IN (${polish})` : ""}
+                            ${symmetry ? `AND symmetry IN (${symmetry})` : ""}
+                            ${labs ? `AND lab IN (${labs})` : ""}
+                            ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
+                            ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}

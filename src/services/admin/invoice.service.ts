@@ -294,7 +294,7 @@ export const getAllInvoice = async (req: Request) => {
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
-            ${customer ? `AND invoice_list.customer_id IN ${customer}` : ""}
+            ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
             ${labs ? `AND EXISTS (
                 SELECT 1
@@ -394,7 +394,7 @@ export const getAllInvoice = async (req: Request) => {
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
-            ${customer ? `AND invoice_list.customer_id IN ${customer}` : ""}
+            ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
             ${labs ? `AND EXISTS (
                 SELECT 1
