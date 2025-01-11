@@ -1,4 +1,4 @@
-import { BIGINT, DATE, STRING, TEXT } from "sequelize";
+import { BIGINT, DATE, DOUBLE, STRING, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Company from "./companys.model";
 import Customer from "./customer.modal";
@@ -50,6 +50,15 @@ const Memo = dbContext.define('memos', {
     },
     remarks: {
         type: TEXT,
+    },
+    total_item_price:{
+        type: DOUBLE,
+    },
+    total_weight:{
+        type: DOUBLE,
+    },
+    total_diamond_count:{
+        type: BIGINT,
     }
 })
 

@@ -69,12 +69,19 @@ export const createMemo = async (req: Request) => {
             ]
         })
 
+        let totalItemPrice = 0;
+        let totalWeight = 0;
+
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
             const findStock = allStock.find(stock => stock.dataValues.stock_id === stockId)
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
+
+                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity);
+                totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity);
+
                 stockList.push({
                     stock_id: findStock.dataValues.id,
                     stock_original_price: findStock.dataValues.rate,
@@ -112,6 +119,9 @@ export const createMemo = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
+                total_item_price: totalItemPrice,
+                total_weight: totalWeight,
+                total_diamond_count: stockList.length,
                 remarks,
             };
 

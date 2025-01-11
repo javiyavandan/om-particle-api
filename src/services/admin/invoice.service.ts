@@ -19,6 +19,10 @@ export const createInvoice = async (req: Request) => {
         const { company_id, customer_id, stock_list, memo_id, remarks } = req.body
         const stockError = [];
         const stockList: any = [];
+        let totalItemPrice = 0
+        let totalTaxPrice = 0
+        let totalWeight = 0
+        let taxData = [];
 
         if (stock_list.length == 0) {
             return resBadRequest({
@@ -49,12 +53,6 @@ export const createInvoice = async (req: Request) => {
             }
         })
 
-        if (!(taxFind && taxFind.length > 0)) {
-            return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Tax for this country was"]])
-            })
-        }
-
         const findCustomer = await Customer.findOne({
             where: {
                 id: customer_id,
@@ -83,9 +81,7 @@ export const createInvoice = async (req: Request) => {
                 { is_deleted: DeleteStatus.No },
                 req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
                 {
-                    status: {
-                        [Op.ne]: StockStatus.SOLD
-                    }
+                    status: StockStatus.AVAILABLE
                 }
             ]
         })
@@ -96,11 +92,27 @@ export const createInvoice = async (req: Request) => {
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
-                stockList.push({
-                    stock_id: findStock.dataValues.id,
-                    stock_price: stock_list[index].rate,
+                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity),
+                    totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity),
+                    stockList.push({
+                        stock_id: findStock.dataValues.id,
+                        stock_price: stock_list[index].rate,
+                    })
+            }
+        }
+
+        if (taxFind.length > 0) {
+            let totalTax = 0;
+            for (let index = 0; index < taxFind.length; index++) {
+                totalTax += Number(taxFind[index].dataValues.value);
+                taxData.push({
+                    id: taxFind[index].dataValues.id,
+                    value: taxFind[index].dataValues.value,
+                    name: taxFind[index].dataValues.name,
+                    tax: (totalItemPrice * Number(taxFind[index].dataValues.value)) / 100
                 })
             }
+            totalTaxPrice = (totalItemPrice * totalTax) / 100;
         }
 
         if (stockError.length > 0) {
@@ -112,13 +124,15 @@ export const createInvoice = async (req: Request) => {
 
         const trn = await dbContext.transaction();
 
-        const invoiceList = await Invoice.findAll({
-            where: {
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
-            }
+        const lastInvoice = await Invoice.findOne({
+            order: [["invoice_number", "DESC"]],
+            transaction: trn,
+            attributes: [
+                "invoice_number"
+            ]
         })
 
-        const invoiceNumber = invoiceList[invoiceList.length - 1] ? Number(invoiceList[invoiceList.length - 1].dataValues.invoice_number) + 1 : 1;
+        const invoiceNumber =  isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
         try {
             const invoicePayload = {
                 invoice_number: invoiceNumber,
@@ -126,6 +140,12 @@ export const createInvoice = async (req: Request) => {
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
+                total_item_price: totalItemPrice,
+                total_tax_price: totalTaxPrice,
+                total_weight: totalWeight,
+                total_price: totalItemPrice + totalTaxPrice,
+                total_diamond_count: stockList.length,
+                tax_data: taxData,
                 remarks,
             };
 
