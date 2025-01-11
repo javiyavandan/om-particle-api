@@ -2,7 +2,7 @@ import { Request } from "express"
 import Currency from "../../model/currency-master.model"
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration"
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions"
-import { CURRENCY_DELETE_DEFAULT, CURRENCY_STATUS_DEFAULT, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages"
+import { CURRENCY_DELETE_DEFAULT, CURRENCY_STATUS_DEFAULT, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages"
 import { Op } from "sequelize"
 import dbContext from "../../config/dbContext"
 
@@ -32,8 +32,6 @@ export const addCurrency = async (req: Request) => {
             if (is_default === ActiveStatus.Active) {
                 await Currency.update({
                     is_default: ActiveStatus.InActive,
-                    modified_at: getLocalDate(),
-                    modified_by: req.body.session_res.id,
                 }, {
                     where: {
                         is_default: ActiveStatus.Active,
@@ -43,7 +41,7 @@ export const addCurrency = async (req: Request) => {
                 });
             }
 
-            const currencyData = await Currency.create({
+            await Currency.create({
                 name,
                 code,
                 symbol,
@@ -112,8 +110,6 @@ export const updateCurrency = async (req: Request) => {
             if (is_default === ActiveStatus.Active) {
                 await Currency.update({
                     is_default: ActiveStatus.InActive,
-                    modified_at: getLocalDate(),
-                    modified_by: req.body.session_res.id,
                 }, {
                     where: {
                         is_default: ActiveStatus.Active,
@@ -123,7 +119,7 @@ export const updateCurrency = async (req: Request) => {
                 });
             }
 
-            const currencyData = await Currency.update({
+            await Currency.update({
                 name,
                 code,
                 symbol,
@@ -136,12 +132,12 @@ export const updateCurrency = async (req: Request) => {
                 },
                 transaction: trn
             });
+            await trn.commit();
+            return resSuccess({ message: RECORD_UPDATE });
         } catch (error) {
+            await trn.rollback();
             throw error
         }
-
-        return resSuccess({ message: RECORD_UPDATE });
-
     } catch (error) {
         throw error
     }
@@ -181,7 +177,7 @@ export const deleteCurrency = async (req: Request) => {
                 id: currency_id
             }
         });
-        return resSuccess({ message: RECORD_UPDATE });
+        return resSuccess({ message: RECORD_DELETED });
     } catch (error) {
         throw error
     }
