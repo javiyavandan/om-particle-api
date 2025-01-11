@@ -267,6 +267,11 @@ export const getAllInvoice = async (req: Request) => {
             total_tax_price * ${currency} as total_tax_price,
             total_price * ${currency} as total_price,
        jsonb_set(
+           invoice_details::jsonb, 
+           '{0,stock_price}', 
+           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       ) AS invoice_details,
+       jsonb_set(
            tax_data::jsonb, 
            '{0,tax}', 
            to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::numeric * ${currency})
@@ -362,9 +367,14 @@ export const getAllInvoice = async (req: Request) => {
             total_tax_price * ${currency} as total_tax_price,
             total_price * ${currency} as total_price,
        jsonb_set(
+           invoice_details::jsonb, 
+           '{0,stock_price}', 
+           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       ) AS invoice_details,
+       jsonb_set(
            tax_data::jsonb, 
            '{0,tax}', 
-           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::numeric * ${currency})
+           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::double precision * ${currency})
        ) AS tax_data
         FROM invoice_list
             WHERE 

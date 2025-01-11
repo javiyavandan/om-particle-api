@@ -204,7 +204,12 @@ export const getAllMemo = async (req: Request) => {
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(`
-            SELECT *, total_item_price * ${currency} as total_item_price FROM memo_list
+            SELECT *, total_item_price * ${currency} as total_item_price,
+       jsonb_set(
+           memo_details::jsonb, 
+           '{0,stock_price}', 
+           to_jsonb((jsonb_array_elements(memo_details::jsonb)->>'stock_price')::double precision * ${currency})
+       ) AS memo_details, FROM memo_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                 CAST(memo_list.memo_number AS text) LIKE '%${pagination.search_text}%'
