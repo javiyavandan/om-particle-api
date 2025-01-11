@@ -8,7 +8,7 @@ import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
 import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
+import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
@@ -251,6 +251,7 @@ export const getAllInvoice = async (req: Request) => {
             search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
+        const currency = await getCurrencyPrice(query.currency as string);
         const shapes = query.shape ? (query.shape as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const colors = query.color ? (query.color as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const color_intensity = query.color_intensity ? (query.color_intensity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
@@ -262,7 +263,20 @@ export const getAllInvoice = async (req: Request) => {
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(`
-            SELECT * FROM invoice_list
+            SELECT *, total_item_price * ${currency} as total_item_price,
+            total_tax_price * ${currency} as total_tax_price,
+            total_price * ${currency} as total_price,
+       jsonb_set(
+           invoice_details::jsonb, 
+           '{0,stock_price}', 
+           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       ) AS invoice_details,
+       jsonb_set(
+           tax_data::jsonb, 
+           '{0,tax}', 
+           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::numeric * ${currency})
+       ) AS tax_data
+            FROM invoice_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                 CAST(invoice_list.invoice_number AS text) LIKE '%${pagination.search_text}%'
@@ -285,37 +299,37 @@ export const getAllInvoice = async (req: Request) => {
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer IN ${labs}
+                WHERE (detail->>'lab_id')::integer IN (${labs})
             )` : ''}
             ${colors ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer IN ${colors}
+                WHERE (detail->>'color_id')::integer IN (${colors})
             )` : ''}
             ${clarity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer IN ${clarity}
+                WHERE (detail->>'clarity_id')::integer IN (${clarity})
             )` : ''}
             ${color_intensity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
+                WHERE (detail->>'color_intensity_id')::integer IN (${color_intensity})
             )` : ''}
             ${fluorescence ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
+                WHERE (detail->>'fluorescence_id')::integer IN (${fluorescence})
             )` : ''}
             ${polish ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer IN ${polish}
+                WHERE (detail->>'polish_id')::integer IN (${polish})
             )` : ''}
             ${symmetry ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
+                WHERE (detail->>'symmetry_id')::integer IN (${symmetry})
             )` : ''}
             ${shapes ? `AND EXISTS (
                 SELECT 1
@@ -349,7 +363,20 @@ export const getAllInvoice = async (req: Request) => {
         }
 
         const invoiceList = await dbContext.query(`
-            SELECT * FROM invoice_list
+            SELECT *, total_item_price * ${currency} as total_item_price,
+            total_tax_price * ${currency} as total_tax_price,
+            total_price * ${currency} as total_price,
+       jsonb_set(
+           invoice_details::jsonb, 
+           '{0,stock_price}', 
+           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       ) AS invoice_details,
+       jsonb_set(
+           tax_data::jsonb, 
+           '{0,tax}', 
+           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::double precision * ${currency})
+       ) AS tax_data
+        FROM invoice_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                 CAST(invoice_list.invoice_number AS text) LIKE '%${pagination.search_text}%'
@@ -372,37 +399,37 @@ export const getAllInvoice = async (req: Request) => {
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer IN ${labs}
+                WHERE (detail->>'lab_id')::integer IN (${labs})
             )` : ''}
             ${colors ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer IN ${colors}
+                WHERE (detail->>'color_id')::integer IN (${colors})
             )` : ''}
             ${clarity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer IN ${clarity}
+                WHERE (detail->>'clarity_id')::integer IN (${clarity})
             )` : ''}
             ${color_intensity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
+                WHERE (detail->>'color_intensity_id')::integer IN (${color_intensity})
             )` : ''}
             ${fluorescence ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
+                WHERE (detail->>'fluorescence_id')::integer IN (${fluorescence})
             )` : ''}
             ${polish ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer IN ${polish}
+                WHERE (detail->>'polish_id')::integer IN (${polish})
             )` : ''}
             ${symmetry ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
+                WHERE (detail->>'symmetry_id')::integer IN (${symmetry})
             )` : ''}
             ${shapes ? `AND EXISTS (
                 SELECT 1
