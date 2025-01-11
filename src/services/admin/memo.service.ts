@@ -200,6 +200,8 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.registration_number LIKE '%${pagination.search_text}%'
                 OR memo_list.email LIKE '%${pagination.search_text}%'
                 OR memo_list.phone_number LIKE '%${pagination.search_text}%'
+                OR CAST(memo_list.total_item_price as text) ILIKE '%${pagination.search_text}%'
+                OR CAST(memo_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND memo_list.customer_id = ${query.customer}` : ''}
             ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
@@ -286,6 +288,8 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.registration_number LIKE '%${pagination.search_text}%'
                 OR memo_list.email LIKE '%${pagination.search_text}%'
                 OR memo_list.phone_number LIKE '%${pagination.search_text}%'
+                OR CAST(memo_list.total_item_price as text) ILIKE '%${pagination.search_text}%'
+                OR CAST(memo_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
             ${query.customer ? `AND memo_list.customer_id = ${query.customer}` : ''}
             ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
