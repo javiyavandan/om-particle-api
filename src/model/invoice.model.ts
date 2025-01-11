@@ -1,4 +1,4 @@
-import { BIGINT, DATE, TEXT } from "sequelize";
+import { BIGINT, DATE, DOUBLE, JSON, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Company from "./companys.model";
 import Customer from "./customer.modal";
@@ -27,6 +27,24 @@ const Invoice = dbContext.define('invoices', {
     },
     created_by: {
         type: BIGINT,
+    },
+    tax_data: {
+        type: JSON,
+    },
+    total_item_price: {
+        type: DOUBLE,
+    },
+    total_tax_price: {
+        type: DOUBLE,
+    },
+    total_price: {
+        type: DOUBLE,
+    },
+    total_weight: {
+        type: DOUBLE,
+    },
+    total_diamond_count: {
+        type: DOUBLE,
     }
 });
 
