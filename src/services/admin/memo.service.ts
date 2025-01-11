@@ -209,7 +209,7 @@ export const getAllMemo = async (req: Request) => {
            memo_details::jsonb, 
            '{0,stock_price}', 
            to_jsonb((jsonb_array_elements(memo_details::jsonb)->>'stock_price')::double precision * ${currency})
-       ) AS memo_details, FROM memo_list
+       ) AS memo_details FROM memo_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                 CAST(memo_list.memo_number AS text) LIKE '%${pagination.search_text}%'
