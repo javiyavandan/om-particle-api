@@ -81,7 +81,9 @@ export const createInvoice = async (req: Request) => {
                 { is_deleted: DeleteStatus.No },
                 req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
                 {
-                    status: StockStatus.AVAILABLE
+                    status: {
+                        [Op.ne]: StockStatus.SOLD
+                    }
                 }
             ]
         })
