@@ -124,6 +124,7 @@ export const updateCurrency = async (req: Request) => {
                 code,
                 symbol,
                 format,
+                is_default,
                 modified_at: getLocalDate(),
                 modified_by: req.body.session_res.id,
             }, {
