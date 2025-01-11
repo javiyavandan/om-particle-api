@@ -127,7 +127,6 @@ export const updateUserDetail = async (req: Request) => {
     } = req.body;
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    let filePath = null;
 
     const user = await AppUser.findOne({
       where: {
@@ -136,8 +135,6 @@ export const updateUserDetail = async (req: Request) => {
         is_active: ActiveStatus.Active,
       },
     });
-
-    let id_image;
 
     if (!(user && user.dataValues)) {
       return resNotFound({

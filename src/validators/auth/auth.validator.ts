@@ -10,6 +10,7 @@ import {
   forgotPasswordValidatorRules,
   resetPasswordValidatorRules,
   updateCustomerValidatorRules,
+  updateUserAdminRules,
 } from "./auth.rules";
 
 export const registerUserValidator: RequestHandler = async (req, res, next) => {
@@ -43,4 +44,8 @@ export const resetPasswordValidator: RequestHandler = async (req, res, next) => 
 
 export const updateCustomerValidator: RequestHandler = async (req, res, next) => {
   return await modelValidator(req, res, next, updateCustomerValidatorRules);
+}
+
+export const updateCustomerFromAdminValidator: RequestHandler = async (req, res, next) => {
+  return await modelValidator(req, res, next, updateUserAdminRules);
 }

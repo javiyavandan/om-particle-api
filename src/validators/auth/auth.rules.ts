@@ -100,3 +100,16 @@ export const resetPasswordValidatorRules = [
     .isEmpty()
     .withMessage(AUTHORIZATION_TOKEN_IS_REQUIRED),
 ];
+
+export const updateUserAdminRules = [
+  fieldStringChain("first name", "first_name"),
+  fieldStringChain("last name", "last_name"),
+  fieldStringChain("company name", "company_name"),
+  urlChain("company website", "company_website"),
+  fieldStringChain("Registration Number", "registration_number"),
+  fieldStringChain("address", "address"),
+  fieldStringChain("city", "city"),
+  fieldStringChain("state", "state"),
+  fieldStringChain("country", "country"),
+  fieldIntegerChain("postcode", "postcode"),
+];

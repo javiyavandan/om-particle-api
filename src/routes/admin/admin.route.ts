@@ -3,11 +3,13 @@ import {
   contactUsListFn,
   // dashboardFn,
   getAllUser,
+  updateUserFn,
   updateUserStatusFn,
   userDetailFn,
   userVerifyFn,
 } from "../../controllers/admin/admin.controller";
 import { adminAuthorization } from "../../middlewares/authenticate";
+import { updateCustomerFromAdminValidator } from "../../validators/auth/auth.validator";
 
 export default (app: Router) => {
   app.get("/users", [adminAuthorization], getAllUser);
@@ -16,4 +18,5 @@ export default (app: Router) => {
   app.patch("/user-status/:user_id", [adminAuthorization], updateUserStatusFn);
   // app.get("/dashboard", [adminAuthorization], dashboardFn);
   app.get("/contact-us", [adminAuthorization], contactUsListFn);
+  app.put("/user/:user_id", [adminAuthorization, updateCustomerFromAdminValidator], updateUserFn); 
 };
