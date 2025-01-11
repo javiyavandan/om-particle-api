@@ -160,7 +160,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
             return resRows;
         }
 
-        if (resRows.data.headers.length !== 27) {
+        if (resRows.data.headers.length !== 26) {
             return resUnprocessableEntity()
         }
 
@@ -215,32 +215,31 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
                     rows.forEach((row: any) => {
                         let data = {
                             "stock #": row[0],
-                            available: row[1],
-                            shape: row[2],
-                            quantity: row[3],
-                            weight: row[4],
-                            rate: row[5],
-                            color: row[6],
-                            "color intensity": row[7],
-                            clarity: row[8],
-                            video: row[9],
-                            image: row[10],
-                            certificate: row[11],
-                            lab: row[12],
-                            report: row[13],
-                            polish: row[14],
-                            symmetry: row[15],
-                            "measurement height": row[16],
-                            "measurement width": row[17],
-                            "measurement depth": row[18],
-                            "table %": row[19],
-                            "depth %": row[20],
-                            ratio: row[21],
-                            fluorescence: row[22],
-                            location: row[23],
-                            "local location": row[24],
-                            "user comment": row[25],
-                            "admin comment": row[26],
+                            shape: row[1],
+                            quantity: row[2],
+                            weight: row[3],
+                            rate: row[4],
+                            color: row[5],
+                            "color intensity": row[6],
+                            clarity: row[7],
+                            video: row[8],
+                            image: row[9],
+                            certificate: row[10],
+                            lab: row[11],
+                            report: row[12],
+                            polish: row[13],
+                            symmetry: row[14],
+                            "measurement height": row[15],
+                            "measurement width": row[16],
+                            "measurement depth": row[17],
+                            "table %": row[18],
+                            "depth %": row[19],
+                            ratio: row[20],
+                            fluorescence: row[21],
+                            location: row[22],
+                            "local location": row[23],
+                            "user comment": row[24],
+                            "admin comment": row[25],
                         };
 
                         batchSize++;
@@ -287,7 +286,6 @@ const getIdFromName = (
 const validateHeaders = async (headers: string[]) => {
     const STOCK_BULK_UPLOAD_HEADERS = [
         "stock #",
-        "available",
         "shape",
         "quantity",
         "weight",
