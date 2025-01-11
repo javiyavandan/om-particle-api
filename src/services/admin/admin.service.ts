@@ -60,10 +60,15 @@ export const userList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-          [Op.or]: {
-            first_name: { [Op.iLike]: `%${pagination.search_text}%` },
-            last_name: { [Op.iLike]: `%${pagination.search_text}%` },
-          },
+          [Op.or]: [
+            { first_name: { [Op.iLike]: `%${pagination.search_text}%` } },
+            { last_name: { [Op.iLike]: `%${pagination.search_text}%` } },
+            { email: { [Op.iLike]: `%${pagination.search_text}%` } },
+            { phone_number: { [Op.iLike]: `%${pagination.search_text}%` } },
+            { '$customer.company_name$': { [Op.iLike]: `%${pagination.search_text}%` } },
+            { '$customer.country$': { [Op.iLike]: `%${pagination.search_text}%` } },
+            { '$customer.state$': { [Op.iLike]: `%${pagination.search_text}%` } },
+          ],
         }
         : {},
     ];
