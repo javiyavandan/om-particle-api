@@ -10,7 +10,9 @@ import {
 } from "../../utils/shared-functions";
 import { Op, Sequelize } from "sequelize";
 import {
+  DEFAULT_STATUS_CODE_SUCCESS,
   ERROR_NOT_FOUND,
+  STATUS_UPDATED,
   UPDATE,
   USER_NOT_FOUND,
   USER_NOT_VERIFIED,
@@ -22,6 +24,10 @@ import {
   UserType,
   UserVerification,
   UserListType,
+  File_type,
+  FILE_TYPE,
+  Image_type,
+  IMAGE_TYPE,
 } from "../../utils/app-enumeration";
 import Image from "../../model/image.model";
 import { IMAGE_URL } from "../../config/env.var";
@@ -29,6 +35,8 @@ import { mailUserVerified } from "../mail.service";
 import ContactUs from "../../model/contact-us.model";
 import Customer from "../../model/customer.modal";
 import File from "../../model/files.model";
+import dbContext from "../../config/dbContext";
+import { moveFileToS3ByType } from "../../helpers/file-helper";
 
 export const userList = async (req: Request) => {
   try {
@@ -267,7 +275,7 @@ export const updateUserStatus = async (req: Request) => {
             ? ActiveStatus.InActive
             : ActiveStatus.Active,
         modified_at: getLocalDate(),
-        modified_by: req.body.session_res.user_id,
+        modified_by: req.body.session_res.id,
       },
       { where: { id: user.dataValues.id } }
     );
@@ -334,3 +342,149 @@ export const contactUsList = async (req: Request) => {
     throw error;
   }
 };
+
+export const updateUserDetail = async (req: Request) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      company_name,
+      company_website,
+      registration_number,
+      address,
+      city,
+      country,
+      state,
+      postcode,
+      remarks,
+      session_res
+    } = req.body;
+    const { user_id } = req.params;
+
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    const user = await AppUser.findOne({
+      where: {
+        id: user_id,
+        is_deleted: DeleteStatus.No,
+        is_active: ActiveStatus.Active,
+      },
+    });
+
+    if (!(user && user.dataValues)) {
+      return resNotFound({
+        message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+          ["field_name", "User"],
+        ]),
+      });
+    }
+
+    const trn = await dbContext.transaction();
+
+    try {
+      let imageId;
+      if (files["image"]) {
+        const imageData = await moveFileToS3ByType(
+          files["image"][0],
+          Image_type.User
+        )
+
+        if (imageData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return imageData;
+        }
+        const imageResult = await Image.create(
+          {
+            image_path: imageData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            image_type: IMAGE_TYPE.User,
+          },
+          { transaction: trn }
+        );
+        imageId = imageResult.dataValues.id;
+      } else {
+        imageId = user.dataValues.id_image;
+      }
+
+      let pdfId;
+      if (files["pdf"]) {
+        const fileData = await moveFileToS3ByType(
+          files["pdf"][0],
+          File_type.Customer
+        )
+
+        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return fileData;
+        }
+        const fileResult = await File.create(
+          {
+            file_path: fileData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            file_type: FILE_TYPE.Customer,
+          },
+          { transaction: trn }
+        );
+        pdfId = fileResult.dataValues.id;
+      } else {
+        pdfId = user.dataValues.id_pdf;
+      }
+
+      await AppUser.update(
+        {
+          first_name: first_name,
+          last_name: last_name,
+          remarks,
+          modified_at: getLocalDate(),
+          modified_by: session_res.id,
+          id_image: imageId,
+          id_pdf: pdfId,
+        },
+        {
+          where: {
+            id: user.dataValues.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+          },
+          transaction: trn,
+        }
+      );
+
+      await Customer.update(
+        {
+          company_name: company_name,
+          company_website: company_website,
+          registration_number: registration_number,
+          address: address,
+          city: city,
+          country: country,
+          state: state,
+          postcode: postcode,
+          modified_at: getLocalDate(),
+          modified_by: session_res.id,
+        },
+        {
+          where: {
+            user_id: user.dataValues.id,
+            is_deleted: DeleteStatus.No,
+          },
+          transaction: trn,
+        }
+      );
+
+      await trn.commit();
+      await refreshMaterializedDiamondListView();
+      return resSuccess({ message: STATUS_UPDATED });
+    } catch (error) {
+      await trn.rollback();
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+

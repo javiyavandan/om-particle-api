@@ -3,6 +3,7 @@ import {
   contactUsListFn,
   // dashboardFn,
   getAllUser,
+  updateUserFn,
   updateUserStatusFn,
   userDetailFn,
   userVerifyFn,
@@ -16,4 +17,5 @@ export default (app: Router) => {
   app.patch("/user-status/:user_id", [adminAuthorization], updateUserStatusFn);
   // app.get("/dashboard", [adminAuthorization], dashboardFn);
   app.get("/contact-us", [adminAuthorization], contactUsListFn);
+  app.put("/user/:user_id", [adminAuthorization], updateUserFn);
 };
