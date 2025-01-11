@@ -410,14 +410,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         for (const row of rows) {
             currentGroupIndex++;
             if (row["stock #"]) {
-                if (row.available == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "Available"],
-                        ]),
-                    });
-                }
                 if (row.shape == null) {
                     errors.push({
                         row_id: currentGroupIndex + 1 + 1,
@@ -584,14 +576,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "location"],
                         ]),
-                    });
-                }
-
-                let available: any = row.available;
-                if (available && !Object.values(StockStatus).includes(available)) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: "Invalid available value",
                     });
                 }
 
@@ -797,7 +781,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
-                        status: available,
+                        status: StockStatus.AVAILABLE,
                         modified_by: idAppUser,
                         modified_at: getLocalDate(),
                         created_at: getLocalDate(),
@@ -831,7 +815,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
-                        status: available,
+                        status: StockStatus.AVAILABLE,
                         is_active: ActiveStatus.Active,
                         is_deleted: DeleteStatus.No,
                         created_by: idAppUser,
