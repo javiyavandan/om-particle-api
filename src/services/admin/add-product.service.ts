@@ -398,7 +398,7 @@ export const getAllStock = async (req: Request) => {
                             ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
                             ${labs ? `AND lab IN ${labs}` : ""}
                             ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
-                            ${customer ? `AND customer_id IN ${customer}` : ""}
+                            ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
@@ -482,7 +482,7 @@ export const getAllStock = async (req: Request) => {
                             ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
                             ${labs ? `AND lab IN ${labs}` : ""}
                             ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
-                            ${customer ? `AND customer_id IN ${customer}` : ""}
+                            ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
