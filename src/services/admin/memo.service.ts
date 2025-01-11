@@ -227,42 +227,42 @@ export const getAllMemo = async (req: Request) => {
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer IN ${labs}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'lab_id')::integer IN (${labs})
             )` : ''}
             ${colors ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer IN ${colors}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'color_id')::integer IN (${colors})
             )` : ''}
             ${clarity ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer IN ${clarity}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'clarity_id')::integer IN (${clarity})
             )` : ''}
             ${color_intensity ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'color_intensity_id')::integer IN (${color_intensity})
             )` : ''}
             ${fluorescence ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'fluorescence_id')::integer IN (${fluorescence})
             )` : ''}
             ${polish ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer IN ${polish}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'polish_id')::integer IN (${polish})
             )` : ''}
             ${symmetry ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'symmetry_id')::integer IN (${symmetry})
             )` : ''}
             ${shapes ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
                 WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
@@ -315,42 +315,42 @@ export const getAllMemo = async (req: Request) => {
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer IN ${labs}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'lab_id')::integer IN (${labs})
             )` : ''}
             ${colors ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer IN ${colors}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'color_id')::integer IN (${colors})
             )` : ''}
             ${clarity ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer IN ${clarity}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'clarity_id')::integer IN (${clarity})
             )` : ''}
             ${color_intensity ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'color_intensity_id')::integer IN (${color_intensity})
             )` : ''}
             ${fluorescence ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'fluorescence_id')::integer IN (${fluorescence})
             )` : ''}
             ${polish ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer IN ${polish}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'polish_id')::integer IN (${polish})
             )` : ''}
             ${symmetry ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
+                WHERE (detail->>'symmetry_id')::integer IN (${symmetry})
             )` : ''}
             ${shapes ? `AND EXISTS (
                 SELECT 1
-                FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
+                FROM jsonb_array_elements(memo_list.memo_details) AS detail
                 WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
