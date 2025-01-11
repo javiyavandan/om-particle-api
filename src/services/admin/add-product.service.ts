@@ -65,7 +65,7 @@ export const addStock = async (req: Request) => {
         const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const companyData: any = await Company.findOne({
             where: {
-                id: company_id,
+                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
                 is_active: ActiveStatus.Active,
                 is_deleted: DeleteStatus.No
             }
@@ -123,7 +123,7 @@ export const addStock = async (req: Request) => {
             depth_value: depth_value,
             ratio: ratio,
             fluorescence: fluorescence,
-            company_id: company_id,
+            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             user_comments,
             admin_comments,
             created_by: session_res.id,
@@ -221,7 +221,7 @@ export const updateStock = async (req: Request) => {
         const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
         const companyData: any = await Company.findOne({
             where: {
-                id: company_id,
+                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
                 is_active: ActiveStatus.Active,
                 is_deleted: DeleteStatus.No
             }
@@ -273,7 +273,7 @@ export const updateStock = async (req: Request) => {
             depth_value: depth_value,
             ratio: ratio,
             fluorescence: fluorescence,
-            company_id: company_id,
+            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             user_comments,
             admin_comments,
             modified_by: session_res.id,
