@@ -350,6 +350,15 @@ export const getAllStock = async (req: Request) => {
             search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
+        const shapes = query.shape ? (query.shape as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const colors = query.color ? (query.color as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const color_intensity = query.color_intensity ? (query.color_intensity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const clarity = query.clarity ? (query.clarity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const polish = query.polish ? (query.polish as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const symmetry = query.symmetry ? (query.symmetry as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const customer = query.customer ? (query.customer as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(
             `
@@ -381,17 +390,17 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
-                            ${query.shape ? `AND shape = ${query.shape}` : ""}
-                            ${query.color ? `AND color = ${query.color}` : ""}
-                            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
-                            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
-                            ${query.polish ? `AND polish = ${query.polish}` : ""}
-                            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
-                            ${query.lab ? `AND lab = ${query.lab}` : ""}
+                            ${shapes ? `AND shape IN (${shapes})` : ""}
+                            ${colors ? `AND color IN ${colors}` : ""}
+                            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
+                            ${clarity ? `AND clarity IN ${clarity}` : ""}
+                            ${polish ? `AND polish IN ${polish}` : ""}
+                            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
+                            ${labs ? `AND lab IN ${labs}` : ""}
+                            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
+                            ${customer ? `AND customer_id IN ${customer}` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
-                            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
-                            ${query.customer ? `AND customer_id = ${query.customer}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -413,15 +422,15 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.start_date && query.end_date 
-                                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
-                              ${query.start_date && !query.end_date 
-                                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
-                              ${!query.start_date && query.end_date 
-                                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
+                            ${query.start_date && query.end_date
+                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
+                              ${query.start_date && !query.end_date
+                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
+                              ${!query.start_date && query.end_date
+                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -465,17 +474,17 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
-                            ${query.shape ? `AND shape = ${query.shape}` : ""}
-                            ${query.color ? `AND color = ${query.color}` : ""}
-                            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
-                            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
-                            ${query.polish ? `AND polish = ${query.polish}` : ""}
-                            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
-                            ${query.lab ? `AND lab = ${query.lab}` : ""}
+                            ${shapes ? `AND shape IN (${shapes})` : ""}
+                            ${colors ? `AND color IN ${colors}` : ""}
+                            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
+                            ${clarity ? `AND clarity IN ${clarity}` : ""}
+                            ${polish ? `AND polish IN ${polish}` : ""}
+                            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
+                            ${labs ? `AND lab IN ${labs}` : ""}
+                            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
+                            ${customer ? `AND customer_id IN ${customer}` : ""}
                             ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
-                            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
-                            ${query.customer ? `AND customer_id = ${query.customer}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -497,15 +506,15 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.start_date && query.end_date 
-                                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
-                              ${query.start_date && !query.end_date 
-                                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
-                              ${!query.start_date && query.end_date 
-                                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'` 
-                                : ""}
+                            ${query.start_date && query.end_date
+                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
+                              ${query.start_date && !query.end_date
+                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
+                              ${!query.start_date && query.end_date
+                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                : ""}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS

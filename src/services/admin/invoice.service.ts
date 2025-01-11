@@ -132,7 +132,7 @@ export const createInvoice = async (req: Request) => {
             ]
         })
 
-        const invoiceNumber =  isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
+        const invoiceNumber = isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
         try {
             const invoicePayload = {
                 invoice_number: invoiceNumber,
@@ -251,6 +251,15 @@ export const getAllInvoice = async (req: Request) => {
             search_text: query.search_text ?? "0",
         };
         let noPagination = req.query.no_pagination === "1";
+        const shapes = query.shape ? (query.shape as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const colors = query.color ? (query.color as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const color_intensity = query.color_intensity ? (query.color_intensity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const clarity = query.clarity ? (query.clarity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const polish = query.polish ? (query.polish as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const symmetry = query.symmetry ? (query.symmetry as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const customer = query.customer ? (query.customer as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(`
             SELECT * FROM invoice_list
@@ -271,47 +280,47 @@ export const getAllInvoice = async (req: Request) => {
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
-            ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
+            ${customer ? `AND invoice_list.customer_id IN ${customer}` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
-            ${query.lab ? `AND EXISTS (
+            ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer = ${query.lab}
+                WHERE (detail->>'lab_id')::integer IN ${labs}
             )` : ''}
-            ${query.color ? `AND EXISTS (
+            ${colors ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer = ${query.color}
+                WHERE (detail->>'color_id')::integer IN ${colors}
             )` : ''}
-            ${query.clarity ? `AND EXISTS (
+            ${clarity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer = ${query.clarity}
+                WHERE (detail->>'clarity_id')::integer IN ${clarity}
             )` : ''}
-            ${query.color_intensity ? `AND EXISTS (
+            ${color_intensity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer = ${query.color_intensity}
+                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
             )` : ''}
-            ${query.fluorescence ? `AND EXISTS (
+            ${fluorescence ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer = ${query.fluorescence}
+                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
             )` : ''}
-            ${query.polish ? `AND EXISTS (
+            ${polish ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer = ${query.polish}
+                WHERE (detail->>'polish_id')::integer IN ${polish}
             )` : ''}
-            ${query.symmetry ? `AND EXISTS (
+            ${symmetry ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer = ${query.symmetry}
+                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
             )` : ''}
-            ${query.shape ? `AND EXISTS (
+            ${shapes ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'shape_id')::integer = ${query.shape}
+                WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
                 ? `AND invoice_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
@@ -358,47 +367,47 @@ export const getAllInvoice = async (req: Request) => {
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
-            ${query.customer ? `AND invoice_list.customer_id = ${query.customer}` : ''}
+            ${customer ? `AND invoice_list.customer_id IN ${customer}` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
-            ${query.lab ? `AND EXISTS (
+            ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'lab_id')::integer = ${query.lab}
+                WHERE (detail->>'lab_id')::integer IN ${labs}
             )` : ''}
-            ${query.color ? `AND EXISTS (
+            ${colors ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_id')::integer = ${query.color}
+                WHERE (detail->>'color_id')::integer IN ${colors}
             )` : ''}
-            ${query.clarity ? `AND EXISTS (
+            ${clarity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'clarity_id')::integer = ${query.clarity}
+                WHERE (detail->>'clarity_id')::integer IN ${clarity}
             )` : ''}
-            ${query.color_intensity ? `AND EXISTS (
+            ${color_intensity ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'color_intensity_id')::integer = ${query.color_intensity}
+                WHERE (detail->>'color_intensity_id')::integer IN ${color_intensity}
             )` : ''}
-            ${query.fluorescence ? `AND EXISTS (
+            ${fluorescence ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'fluorescence_id')::integer = ${query.fluorescence}
+                WHERE (detail->>'fluorescence_id')::integer IN ${fluorescence}
             )` : ''}
-            ${query.polish ? `AND EXISTS (
+            ${polish ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'polish_id')::integer = ${query.polish}
+                WHERE (detail->>'polish_id')::integer IN ${polish}
             )` : ''}
-            ${query.symmetry ? `AND EXISTS (
+            ${symmetry ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'symmetry_id')::integer = ${query.symmetry}
+                WHERE (detail->>'symmetry_id')::integer IN ${symmetry}
             )` : ''}
-            ${query.shape ? `AND EXISTS (
+            ${shapes ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
-                WHERE (detail->>'shape_id')::integer = ${query.shape}
+                WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
                 ? `AND invoice_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`

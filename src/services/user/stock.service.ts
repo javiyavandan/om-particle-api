@@ -15,6 +15,14 @@ export const getStockList = async (req: Request) => {
         let noPagination = req.query.no_pagination === "1";
 
         const currency = await getCurrencyPrice(query.currency as string);
+        const shapes = query.shape ? (query.shape as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const colors = query.color ? (query.color as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const color_intensity = query.color_intensity ? (query.color_intensity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const clarity = query.clarity ? (query.clarity as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const polish = query.polish ? (query.polish as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const symmetry = query.symmetry ? (query.symmetry as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(
             `
@@ -82,15 +90,15 @@ export const getStockList = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
-                            ${query.shape ? `AND shape = ${query.shape}` : ""}
-                            ${query.color ? `AND color = ${query.color}` : ""}
-                            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
-                            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
+                            ${shapes ? `AND shape IN (${shapes})` : ""}
+                            ${colors ? `AND color IN ${colors}` : ""}
+                            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
+                            ${clarity ? `AND clarity IN ${clarity}` : ""}
+                            ${polish ? `AND polish IN ${polish}` : ""}
+                            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
+                            ${labs ? `AND lab IN ${labs}` : ""}
+                            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
                             ${query.company ? `AND company_id = ${query.company}` : ""}
-                            ${query.polish ? `AND polish = ${query.polish}` : ""}
-                            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
-                            ${query.lab ? `AND lab = ${query.lab}` : ""}
-                            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
                             ${query.status ? `AND status = ${query.status}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate * ${currency} BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate * ${currency} >= ${query.min_rate}` : ""}
@@ -113,9 +121,6 @@ export const getStockList = async (req: Request) => {
                             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
-                            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
-                            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -194,16 +199,16 @@ export const getStockList = async (req: Request) => {
                             OR CAST(measurement_height AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%' END
-            ${query.shape ? `AND shape = ${query.shape}` : ""}
-            ${query.color ? `AND color = ${query.color}` : ""}
-            ${query.color_intensity ? `AND color_intensity = ${query.color_intensity}` : ""}
-            ${query.clarity ? `AND clarity = ${query.clarity}` : ""}
-            ${query.polish ? `AND polish = ${query.polish}` : ""}
-            ${query.symmetry ? `AND symmetry = ${query.symmetry}` : ""}
-            ${query.lab ? `AND lab = ${query.lab}` : ""}
-            ${query.fluorescence ? `AND fluorescence = ${query.fluorescence}` : ""}
-            ${query.status ? `AND status = ${query.status}` : ""}
+            ${shapes ? `AND shape IN (${shapes})` : ""}
+            ${colors ? `AND color IN ${colors}` : ""}
+            ${color_intensity ? `AND color_intensity IN ${color_intensity}` : ""}
+            ${clarity ? `AND clarity IN ${clarity}` : ""}
+            ${polish ? `AND polish IN ${polish}` : ""}
+            ${symmetry ? `AND symmetry IN ${symmetry}` : ""}
+            ${labs ? `AND lab IN ${labs}` : ""}
+            ${fluorescence ? `AND fluorescence IN ${fluorescence}` : ""}
             ${query.company ? `AND company_id = ${query.company}` : ""}
+            ${query.status ? `AND status = ${query.status}` : ""}
             ${query.min_rate && query.max_rate ? `AND rate * ${currency} BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
             ${query.min_rate && !query.max_rate ? `AND rate * ${currency} >= ${query.min_rate}` : ""}
             ${!query.min_rate && query.max_rate ? `AND rate * ${currency} <= ${query.max_rate}` : ""}
@@ -225,9 +230,6 @@ export const getStockList = async (req: Request) => {
             ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-            ${query.min_ratio && query.max_ratio ? `AND ratio BETWEEN ${query.min_ratio} AND ${query.max_ratio}` : ""}
-            ${query.min_ratio && !query.max_ratio ? `AND ratio >= ${query.min_ratio}` : ""}
-            ${!query.min_ratio && query.max_ratio ? `AND ratio <= ${query.max_ratio}` : ""}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
