@@ -11,6 +11,8 @@ import Image from "../model/image.model";
 import { Sequelize } from "sequelize";
 import { IMAGE_URL } from "../config/env.var";
 import { FilterOrder } from "../utils/app-constants";
+import Company from "../model/companys.model";
+import Customer from "../model/customer.modal";
 
 export const getAllFilterData = async (req: Request) => {
   const where = () => {
@@ -61,12 +63,16 @@ export const getAllFilterData = async (req: Request) => {
     const colorIntensityData = masterData.filter((data) => {
       return data.dataValues.master_type === Master_type.colorIntensity;
     });
+    const companyData = await Company.findAll({ where: where(), attributes: ["id", "name"] });
+    const customerData = await Customer.findAll({ where: where(), attributes: ["id", "company_name"] });
     return resSuccess({
       data: {
         shapeData: shapeData,
         clarityData: clarityData,
         colorData: colorData,
         colorIntensityData: colorIntensityData,
+        companyData,
+        customerData
       },
     });
   } catch (error) {
