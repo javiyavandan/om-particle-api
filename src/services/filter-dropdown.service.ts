@@ -5,6 +5,7 @@ import {
   DeleteStatus,
   IMAGE_TYPE,
   Master_type,
+  UserType,
 } from "../utils/app-enumeration";
 import { resSuccess } from "../utils/shared-functions";
 import Image from "../model/image.model";
@@ -13,6 +14,7 @@ import { IMAGE_URL } from "../config/env.var";
 import { FilterOrder } from "../utils/app-constants";
 import Company from "../model/companys.model";
 import Customer from "../model/customer.modal";
+import AppUser from "../model/app_user.model";
 
 export const getAllFilterData = async (req: Request) => {
   const where = () => {
@@ -32,6 +34,7 @@ export const getAllFilterData = async (req: Request) => {
       "value",
       "sort_code",
       "stone_type",
+      "master_type",
       [
         Sequelize.fn(
           "CONCAT",
@@ -64,7 +67,14 @@ export const getAllFilterData = async (req: Request) => {
       return data.dataValues.master_type === Master_type.colorIntensity;
     });
     const companyData = await Company.findAll({ where: where(), attributes: ["id", "name"] });
-    const customerData = await Customer.findAll({ where: where(), attributes: ["id", "company_name"] });
+    const customerData = await Customer.findAll({
+      attributes: ["id", "company_name"], include: [{
+        model: AppUser, as: "user", where: {
+          user_type: UserType.Customer,
+          ...where()
+        }
+      }]
+    });
     return resSuccess({
       data: {
         shapeData: shapeData,
