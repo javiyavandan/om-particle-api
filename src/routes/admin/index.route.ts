@@ -12,6 +12,7 @@ import wishlistRoute from "./wishlist-admin.route";
 import cartAdminRoute from "./cart-admin.route";
 import inquiryRoute from "./inquiry.route";
 import currencyRoute from "./currency.route";
+import homePageRoute from "./home-page.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -28,5 +29,6 @@ export default function adminRouter() {
   cartAdminRoute(app);
   inquiryRoute(app);
   currencyRoute(app);
+  homePageRoute(app);
   return app;
 }

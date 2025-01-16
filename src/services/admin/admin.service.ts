@@ -75,6 +75,13 @@ export const userList = async (req: Request) => {
 
     const totalItems = await AppUser.count({
       where,
+      include: [
+        {
+          model: Customer,
+          as: "customer",
+          attributes: []
+        }
+      ],
     });
 
     if (!noPagination) {

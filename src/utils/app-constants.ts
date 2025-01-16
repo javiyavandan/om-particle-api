@@ -160,7 +160,7 @@ export const HUB_SPOT_API_URL = {
 };
 
 export const IMAGE_TYPE_LOCATION = {
-  [Image_type.Banner]: "images/banners",
+  [Image_type.HomePage]: "images/banners",
   [Image_type.About]: "images/aboutUs",
   [Image_type.Masters]: "images/masters",
   [Image_type.Preference]: "images/preference",
