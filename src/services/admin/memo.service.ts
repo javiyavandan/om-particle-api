@@ -543,6 +543,16 @@ export const returnMemoStock = async (req: Request) => {
                     is_deleted: DeleteStatus.No,
                     is_return: ActiveStatus.InActive,
                 },
+                include:[
+                    {
+                        model: Diamonds,
+                        as: 'stocks',
+                        attributes: ["status"],
+                        where: {
+                            status: StockStatus.MEMO
+                        }
+                    }
+                ],
                 transaction: trn
             })
 

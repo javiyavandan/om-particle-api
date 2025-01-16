@@ -268,15 +268,25 @@ export const getAllInvoice = async (req: Request) => {
             SELECT *, total_item_price * ${currency} as total_item_price,
             total_tax_price * ${currency} as total_tax_price,
             total_price * ${currency} as total_price,
-       jsonb_set(
-           invoice_details::jsonb, 
-           '{0,stock_price}', 
-           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       (
+           SELECT jsonb_agg(
+                      jsonb_set(
+                          elem,
+                          '{stock_price}',
+                          to_jsonb((elem->>'stock_price')::double precision * 1)
+                      )
+                  )
+           FROM jsonb_array_elements(invoice_details::jsonb) AS elem
        ) AS invoice_details,
-       jsonb_set(
-           tax_data::jsonb, 
-           '{0,tax}', 
-           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::numeric * ${currency})
+       (
+           SELECT jsonb_agg(
+                      jsonb_set(
+                          tax_elem,
+                          '{tax}',
+                          to_jsonb((tax_elem->>'tax')::double precision * 1)
+                      )
+                  )
+           FROM jsonb_array_elements(tax_data::jsonb) AS tax_elem
        ) AS tax_data
             FROM invoice_list
             WHERE 
@@ -368,15 +378,25 @@ export const getAllInvoice = async (req: Request) => {
             SELECT *, total_item_price * ${currency} as total_item_price,
             total_tax_price * ${currency} as total_tax_price,
             total_price * ${currency} as total_price,
-       jsonb_set(
-           invoice_details::jsonb, 
-           '{0,stock_price}', 
-           to_jsonb((jsonb_array_elements(invoice_details::jsonb)->>'stock_price')::double precision * ${currency})
+       (
+           SELECT jsonb_agg(
+                      jsonb_set(
+                          elem,
+                          '{stock_price}',
+                          to_jsonb((elem->>'stock_price')::double precision * 1)
+                      )
+                  )
+           FROM jsonb_array_elements(invoice_details::jsonb) AS elem
        ) AS invoice_details,
-       jsonb_set(
-           tax_data::jsonb, 
-           '{0,tax}', 
-           to_jsonb((jsonb_array_elements(tax_data::jsonb)->>'tax')::double precision * ${currency})
+       (
+           SELECT jsonb_agg(
+                      jsonb_set(
+                          tax_elem,
+                          '{tax}',
+                          to_jsonb((tax_elem->>'tax')::double precision * 1)
+                      )
+                  )
+           FROM jsonb_array_elements(tax_data::jsonb) AS tax_elem
        ) AS tax_data
         FROM invoice_list
             WHERE 
