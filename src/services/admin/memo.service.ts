@@ -12,7 +12,7 @@ import Customer from "../../model/customer.modal";
 import AppUser from "../../model/app_user.model";
 import Master from "../../model/masters.model";
 import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
-import { ADMIN_MAIL } from "../../config/env.var";
+import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
@@ -187,6 +187,29 @@ export const createMemo = async (req: Request) => {
                         stock_id: diamond.stock_id,
                         product_image: diamond.image,
                     }))
+                },
+                attachments: {
+                    filename: `${memoData.dataValues.memo_number}-MEMO.pdf`,
+                    content: "../../../templates/mail-template/india-memo.html",
+                    toBeReplace: {
+                        admin_contact: admin?.dataValues.phone_number,
+                        memo_number: memoData.dataValues.memo_number,
+                        total: memoData.dataValues.total_item_price,
+                        total_weight: memoData.dataValues.total_weight,
+                        total_diamond: memoData.dataValues.total_diamond_count,
+                        created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                        company_address: findCompany.dataValues.company_address + ' ' + findCompany.dataValues.city + ' ' + findCompany.dataValues.state + ' ' + findCompany.dataValues.pincode,
+                        company_name: findCompany.dataValues.name,
+                        company_contact: findCompany.dataValues.phone_number,
+                        logo_image: IMAGE_PATH,
+                        data: stockUpdate.map((diamond, index) => ({
+                            index: index + 1,
+                            weight: diamond.weight,
+                            rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
+                            stock_id: diamond.stock_id,
+                            quantity: diamond.quantity,
+                        })),
+                    }
                 }
             }
 
@@ -543,7 +566,7 @@ export const returnMemoStock = async (req: Request) => {
                     is_deleted: DeleteStatus.No,
                     is_return: ActiveStatus.InActive,
                 },
-                include:[
+                include: [
                     {
                         model: Diamonds,
                         as: 'stocks',

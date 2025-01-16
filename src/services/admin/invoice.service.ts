@@ -184,7 +184,7 @@ export const createInvoice = async (req: Request) => {
                     where: {
                         memo_id,
                         is_deleted: DeleteStatus.No,
-                        is_returned: DeleteStatus.No
+                        is_return: DeleteStatus.No
                     },
                     attributes: [],
                     include: [

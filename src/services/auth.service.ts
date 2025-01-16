@@ -62,7 +62,7 @@ import {
   createUserJWT,
   verifyJWT,
 } from "../helpers/jwt.helper";
-import { mailPasswordResetLink, mailRegistationOtp } from "./mail.service";
+import { mailAdminMemo, mailPasswordResetLink, mailRegistationOtp } from "./mail.service";
 import Wishlist from "../model/wishlist.model";
 import CartProducts from "../model/cart-product.model";
 import Image from "../model/image.model";
@@ -74,7 +74,36 @@ import File from "../model/files.model";
 
 export const test = async (req: Request) => {
 
-  return resSuccess({ data: "sdhkfdskfhdfsd" });
+  try {
+
+    const adminMail = {
+      toEmailAddress: "javiyashreyas@gmail.com",
+      contentTobeReplaced: {
+        admin_name: "Shreyas",
+        customer_name: "Javiya",
+        customer_email: "abc@gmail.com",
+        customer_company: "Javiya Diamond",
+        customer_contact: "4568971320",
+        memo_number: "456879",
+        total: "45",
+        total_weight: "45",
+        total_diamond: "45",
+        created_at: "4/1/2025",
+      },
+      attachments: {
+        filename: "memo.pdf",
+        content: "../../../templates/mail-template/india-memo.html",
+      }
+    }
+    
+    await mailAdminMemo(adminMail);
+
+    return resSuccess({ data: "sdhkfdskfhdfsd" });
+  } catch (error) {
+    console.log(error)
+    throw error;
+  }
+
 };
 
 export const registerUser = async (req: Request, res: Response) => {
