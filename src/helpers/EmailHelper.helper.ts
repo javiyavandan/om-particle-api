@@ -62,8 +62,9 @@ export default class EmailHelper {
       const templateFile = handlebars.compile(sourceAttachments);
       const contentReplacement = this._attachments.toBeReplace;
       htmlToSendFile = templateFile(contentReplacement);
+
       const browser = await puppeteer.launch({
-        headless: "new" as any,
+        headless: "new",
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
       const page = await browser.newPage();
@@ -72,10 +73,14 @@ export default class EmailHelper {
       await page.emulateMediaType("screen");
       pdf = await page.pdf();
 
+
       await browser.close();
     }
 
     try {
+      // if (PROCESS_ENVIRONMENT === "development") {
+      //   this._emailTo = "khushi.vihaainfotech@gmail.com";
+      // }
 
       if (htmlToSendFile) {
         const sendMailResult = await this._transporter.sendMail({
@@ -85,7 +90,7 @@ export default class EmailHelper {
           html: htmlToSend,
           attachments: [
             {
-              filename: `Invoice-${this._attachments.toBeReplace.invoice_number}.pdf`,
+              filename: this._attachments.filename,
               content: pdf,
             },
           ],

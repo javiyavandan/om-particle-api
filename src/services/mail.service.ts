@@ -34,7 +34,9 @@ async function prepareAndSendEmail(
     };
     await objMail.prepareEmail(mailInfo);
     objMail.sendMail();
-  } catch (e) {}
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 export const mailRegistationOtp = async (payload: any) => {
