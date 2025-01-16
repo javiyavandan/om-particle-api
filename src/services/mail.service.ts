@@ -1,6 +1,7 @@
-import { APP_NAME, IMAGE_PATH } from "../config/env.var";
+import { APP_NAME, FRONT_END_BASE_URL, IMAGE_PATH } from "../config/env.var";
 import EmailHelper from "../helpers/EmailHelper.helper";
 import { MESSAGE_TYPE } from "../utils/app-enumeration";
+
 async function prepareAndSendEmail(
   mailTemplate: string,
   mailSubject: string,
@@ -8,51 +9,17 @@ async function prepareAndSendEmail(
   payload: any
 ) {
   try {
-    //   const companyInfo = await <any>CompanyInfo.findOne({
-    //     where: { id: 1 },
-    //     attributes: [
-    //       "id",
-    //       "company_name",
-    //       "company_email",
-    //       "company_phone",
-    //       "copy_right",
-    //       "sort_about",
-    //       "web_link",
-    //       "facebook_link",
-    //       "insta_link",
-    //       "youtube_link",
-    //       "linkdln_link",
-    //       "twitter_link",
-    //       "web_primary_color",
-    //       "web_secondary_color",
-    //       "light_id_image",
-    //       'company_phone',
-    //       "dark_id_image"
-    //     ],
-    //   });
-
-    //   const darkImagedata = await Image.findOne({ where: { id: companyInfo.dataValues.dark_id_image } })
-
     payload = {
       ...payload,
       contentTobeReplaced: {
         ...payload?.contentTobeReplaced,
         app_name: APP_NAME,
-        //   insta_url: companyInfo?.insta_link,
-        //   insta_logo: IMAGE_PATH + "/static/insta.png",
-        //   twiiter_url: companyInfo?.twitter_link,
-        //   twitter_logo: IMAGE_PATH + "/static/twitter.png",
-        //   facebook_url: companyInfo?.facebook_link,
-        //   facbook_logo: IMAGE_PATH + "/static/facbook.png",
-        //   youtube_url: companyInfo?.youtube_link,
-        //   youtube_logo: IMAGE_PATH + "/static/youtube.png",
-        //   linked_url: companyInfo?.linkdln_link,
-        //   linked_logo: IMAGE_PATH + "/static/linkedin.png",
+        instagram: "https://www.instagram.com/omparticlellp/",
+        facebook: "https://www.facebook.com/profile.php?id=61552838724840",
+        twitter: "https://x.com/OMParticleLLP?mx=2",
+        pinterest: "https://in.pinterest.com/omparticlellp/",
         logo_image: IMAGE_PATH,
-        //   frontend_url :  companyInfo.web_link,
-        //   app_name : companyInfo?.company_name,
-        //   company_phone: companyInfo?.company_phone,
-        //   support_email : companyInfo?.company_email
+        frontend_url: FRONT_END_BASE_URL
       },
     };
     const objMail = new EmailHelper();
@@ -154,6 +121,28 @@ export const mailUserVerified = async (payload: any) => {
     emailTemplate,
     subject,
     MESSAGE_TYPE.UserVerify,
+    payload
+  );
+};
+
+export const mailAdminMemo = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/admin-memo.html";
+  const subject = "Memo";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Memo,
+    payload
+  );
+};
+
+export const mailCustomerMemo = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/customer-memo.html";
+  const subject = "Memo";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Memo,
     payload
   );
 };
