@@ -250,7 +250,6 @@ export const getMemo = async (req: Request) => {
 export const getAllMemo = async (req: Request) => {
     try {
         const { query } = req;
-        let paginationProps = {};
         let pagination = {
             ...getInitialPaginationFromQuery(query),
             search_text: query.search_text ?? "0",
@@ -268,12 +267,7 @@ export const getAllMemo = async (req: Request) => {
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
 
         const totalItems = await dbContext.query(`
-            SELECT *, total_item_price * ${currency} as total_item_price,
-       jsonb_set(
-           memo_details::jsonb, 
-           '{0,stock_price}', 
-           to_jsonb((jsonb_array_elements(memo_details::jsonb)->>'stock_price')::double precision * ${currency})
-       ) AS memo_details FROM memo_list
+            SELECT *, total_item_price * ${currency} as total_item_price FROM memo_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                 CAST(memo_list.memo_number AS text) LIKE '%${pagination.search_text}%'
@@ -349,6 +343,7 @@ export const getAllMemo = async (req: Request) => {
                 ${query.min_weight && query.max_weight ? `AND memo_list.total_weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
                 ${query.min_weight && !query.max_weight ? `AND memo_list.total_weight >= ${query.min_weight}` : ""}
                 ${!query.min_weight && query.max_weight ? `AND memo_list.total_weight <= ${query.max_weight}` : ""}
+                ORDER BY id ASC
         `, { type: QueryTypes.SELECT });
 
         if (!noPagination) {
