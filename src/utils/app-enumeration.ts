@@ -42,7 +42,7 @@ export enum ActiveStatus {
 }
 
 export enum Image_type {
-  Banner = 1,
+  HomePage = 1,
   Masters = 2,
   User = 3,
   Concierge = 4,
@@ -154,7 +154,7 @@ export enum Master_type {
 
 
 export enum IMAGE_TYPE {
-  Banner = "banner_image",
+  HomePage = "home_page_section",
   AboutUsSection = "about_us_image",
   Metal = "metal_master",
   Metal_tone = "metal_tone_master",
@@ -247,4 +247,12 @@ export enum File_type {
 
 export enum FILE_TYPE {
   Customer = 'customer',
+}
+
+export enum Home_page_sections {
+  Banner = 'banner',
+  DiamondShape = 'diamond_shape',
+  Highlights = 'features_highlights',
+  Counter = 'counter_section',
+  Info = 'info_section',
 }
