@@ -21,7 +21,7 @@ export const FRONT_END_BASE_URL =
 export const RESET_PASSWORD_PATH =
   process.env.RESET_PASSWORD_PATH || "/reset-password?token=";
 export const IMAGE_PATH =
-  process.env.IMAGE_PATH || "";
+  process.env.IMAGE_PATH || "https://omparticle.com/wp-content/uploads/2022/09/398672904_122104802492094624_657999244555465152_n-1-300x134.png";
 export const IMAGE_URL =
   process.env.IMAGE_URL || "https://d3d05p2gd539q7.cloudfront.net/";
 
@@ -60,6 +60,6 @@ export const MAIL_PORT = process.env.MAIL_PORT || 465;
 export const MAIL_SECURE = process.env.MAIL_SECURE || false;
 export const MAIL_FROM = process.env.MAIL_FROM || "noreply@vihaainfotech.com";
 
-export const ADMIN_MAIL = "info@oml.com";
+export const ADMIN_MAIL = "sales@omparticle.com";
 
 export const ORDER_NUMBER_IDENTITY = process.env.ORDER_NUMBER_IDENTITY || "OMPL";

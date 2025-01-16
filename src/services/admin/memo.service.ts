@@ -11,6 +11,8 @@ import { Op, QueryTypes, Sequelize } from "sequelize";
 import Customer from "../../model/customer.modal";
 import AppUser from "../../model/app_user.model";
 import Master from "../../model/masters.model";
+import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
+import { ADMIN_MAIL } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
@@ -151,6 +153,68 @@ export const createMemo = async (req: Request) => {
                 ],
                 transaction: trn,
             })
+
+            const admin = await AppUser.findOne({
+                where: {
+                    id_role: req.body.session_res.id_role,
+                    id: req.body.session_res.id,
+                    is_deleted: DeleteStatus.No,
+                    is_active: ActiveStatus.Active
+                },
+                attributes: ["first_name", "last_name", "email", "phone_number"],
+                transaction: trn,
+            })
+
+            const adminMail = {
+                toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
+                contentTobeReplaced: {
+                    admin_name: admin?.dataValues.first_name,
+                    customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
+                    customer_email: findCustomer.dataValues.user.dataValues.email,
+                    customer_company: findCustomer.dataValues.company_name,
+                    customer_contact: findCustomer.dataValues.user.dataValues.phone_number,
+                    memo_number: memoData.dataValues.memo_number,
+                    total: memoData.dataValues.total_item_price,
+                    total_weight: memoData.dataValues.total_weight,
+                    total_diamond: memoData.dataValues.total_diamond_count,
+                    created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    data: stockUpdate.map(diamond => ({
+                        shape: diamond.shape,
+                        weight: diamond.weight,
+                        color: diamond.color,
+                        clarity: diamond.clarity,
+                        rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
+                        stock_id: diamond.stock_id,
+                        product_image: diamond.image,
+                    }))
+                }
+            }
+
+            const customerMail = {
+                toEmailAddress: findCustomer?.dataValues.user.dataValues.email,
+                contentTobeReplaced: {
+                    admin_email: admin?.dataValues.email,
+                    admin_contact: admin?.dataValues.phone_number,
+                    customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
+                    memo_number: memoData.dataValues.memo_number,
+                    total: memoData.dataValues.total_item_price,
+                    total_weight: memoData.dataValues.total_weight,
+                    total_diamond: memoData.dataValues.total_diamond_count,
+                    created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    data: stockUpdate.map(diamond => ({
+                        shape: diamond.shape,
+                        weight: diamond.weight,
+                        color: diamond.color,
+                        clarity: diamond.clarity,
+                        rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
+                        stock_id: diamond.stock_id,
+                        product_image: diamond.image,
+                    }))
+                }
+            }
+
+            await mailAdminMemo(adminMail);
+            await mailCustomerMemo(customerMail);
 
             await trn.commit();
             await refreshMaterializedDiamondListView()
@@ -419,10 +483,13 @@ export const returnMemoStock = async (req: Request) => {
         if (!(memo && memo.dataValues)) {
             return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Memo"]]) })
         }
-        for (let index = 0; index < stock_list.length; index++) {
-            const element = stock_list[index];
-            if (!memo.dataValues.memo_details.map((data: any) => data.dataValues.stock_id).includes(`${element}`)) {
-                return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${element} stock`]]) })
+
+        if (stock_list) {
+            for (let index = 0; index < stock_list.length; index++) {
+                const element = stock_list[index];
+                if (!memo.dataValues.memo_details.map((data: any) => data.dataValues.stock_id).includes(`${element}`)) {
+                    return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${element} stock`]]) })
+                }
             }
         }
 
@@ -462,7 +529,6 @@ export const returnMemoStock = async (req: Request) => {
                 data: stockError.map(err => err)
             })
         }
-
 
         const trn = await dbContext.transaction();
         try {

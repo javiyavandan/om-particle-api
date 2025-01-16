@@ -111,6 +111,7 @@ export const registerUser = async (req: Request, res: Response) => {
         email: columnValueLowerCase("email", email),
         is_deleted: DeleteStatus.No,
         is_active: ActiveStatus.Active,
+        user_type: UserType.Customer,
       },
     });
     if (emailExists && emailExists.dataValues) {
