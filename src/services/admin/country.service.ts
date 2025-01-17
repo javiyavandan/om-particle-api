@@ -67,7 +67,8 @@ export const updateCountry = async (req: Request) => {
         const duplicateCountry = await Country.findOne({
             where: {
                 id: { [Op.ne]: country.dataValues.id },
-                name: name
+                name: name,
+                is_deleted: DeleteStatus.No,
             }
         });
 
