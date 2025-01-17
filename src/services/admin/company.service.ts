@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages";
+import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages";
 import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import { Op, Sequelize } from "sequelize";
@@ -37,7 +37,7 @@ export const addCompany = async (req: Request) => {
         if (findCompany && findCompany.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
-                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
                     ["field_name", "Company"],
                 ]),
             });
@@ -121,7 +121,7 @@ export const updateCompany = async (req: Request) => {
         if (duplicateCompany && duplicateCompany.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
-                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
                     ["field_name", "Company"],
                 ]),
             });

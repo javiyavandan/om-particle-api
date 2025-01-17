@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
+import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
@@ -198,7 +198,7 @@ export const updateStock = async (req: Request) => {
         if (duplicateDiamond && duplicateDiamond.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
-                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
                     ["field_name", "Diamond"],
                 ]),
             });
