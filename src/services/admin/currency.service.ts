@@ -2,7 +2,7 @@ import { Request } from "express"
 import Currency from "../../model/currency-master.model"
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration"
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions"
-import { CURRENCY_DELETE_DEFAULT, CURRENCY_STATUS_DEFAULT, DUPLICATE_ERROR_CODE, DUPLICATE_VALUE_ERROR_MESSAGE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages"
+import { CURRENCY_DELETE_DEFAULT, CURRENCY_STATUS_DEFAULT, DUPLICATE_ERROR_CODE, DATA_ALREADY_EXITS, ERROR_NOT_FOUND, RECORD_UPDATE, RECORD_DELETED } from "../../utils/app-messages"
 import { Op } from "sequelize"
 import dbContext from "../../config/dbContext"
 
@@ -20,7 +20,7 @@ export const addCurrency = async (req: Request) => {
         if (findCurrency && findCurrency.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
-                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
                     ["field_name", "Currency"],
                 ]),
             });
@@ -98,7 +98,7 @@ export const updateCurrency = async (req: Request) => {
         if (duplicateCurrency && duplicateCurrency.dataValues) {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
-                message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
                     ["field_name", "Currency"],
                 ]),
             });
