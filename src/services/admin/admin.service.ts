@@ -12,6 +12,7 @@ import { Op, Sequelize } from "sequelize";
 import {
   DEFAULT_STATUS_CODE_SUCCESS,
   ERROR_NOT_FOUND,
+  RECORD_UPDATE,
   STATUS_UPDATED,
   UPDATE,
   USER_NOT_FOUND,
@@ -490,7 +491,7 @@ export const updateUserDetail = async (req: Request) => {
 
       await trn.commit();
       await refreshMaterializedDiamondListView();
-      return resSuccess({ message: STATUS_UPDATED });
+      return resSuccess({ message: RECORD_UPDATE });
     } catch (error) {
       await trn.rollback();
       throw error;
