@@ -13,8 +13,8 @@ import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
 import MemoDetail from "../../model/memo-detail.model";
-import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
-import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
+import { ADMIN_MAIL } from "../../config/env.var";
+import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
@@ -277,8 +277,8 @@ export const createInvoice = async (req: Request) => {
                 },
             }
 
-            await mailAdminMemo(adminMail);
-            await mailCustomerMemo(customerMail);
+            await mailAdminInvoice(adminMail);
+            await mailCustomerInvoice(customerMail);
 
             await trn.commit();
             await refreshMaterializedDiamondListView()
@@ -358,18 +358,18 @@ export const getAllInvoice = async (req: Request) => {
             FROM invoice_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
-                CAST(invoice_list.invoice_number AS text) LIKE '%${pagination.search_text}%'
-                OR invoice_list.company_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.state LIKE '%${pagination.search_text}%'
-                OR invoice_list.remarks LIKE '%${pagination.search_text}%'
-                OR invoice_list.country LIKE '%${pagination.search_text}%'
-                OR invoice_list.city LIKE '%${pagination.search_text}%'
-                OR invoice_list.customer_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.last_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.first_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.registration_number LIKE '%${pagination.search_text}%'
-                OR invoice_list.email LIKE '%${pagination.search_text}%'
-                OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
+                CAST(invoice_list.invoice_number AS text) ILIKE '%${pagination.search_text}%'
+                OR invoice_list.company_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.state ILIKE '%${pagination.search_text}%'
+                OR invoice_list.remarks ILIKE '%${pagination.search_text}%'
+                OR invoice_list.country ILIKE '%${pagination.search_text}%'
+                OR invoice_list.city ILIKE '%${pagination.search_text}%'
+                OR invoice_list.customer_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.last_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.first_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.registration_number ILIKE '%${pagination.search_text}%'
+                OR invoice_list.email ILIKE '%${pagination.search_text}%'
+                OR invoice_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
@@ -468,18 +468,18 @@ export const getAllInvoice = async (req: Request) => {
         FROM invoice_list
             WHERE 
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
-                CAST(invoice_list.invoice_number AS text) LIKE '%${pagination.search_text}%'
-                OR invoice_list.company_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.state LIKE '%${pagination.search_text}%'
-                OR invoice_list.remarks LIKE '%${pagination.search_text}%'
-                OR invoice_list.country LIKE '%${pagination.search_text}%'
-                OR invoice_list.city LIKE '%${pagination.search_text}%'
-                OR invoice_list.customer_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.last_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.first_name LIKE '%${pagination.search_text}%'
-                OR invoice_list.registration_number LIKE '%${pagination.search_text}%'
-                OR invoice_list.email LIKE '%${pagination.search_text}%'
-                OR invoice_list.phone_number LIKE '%${pagination.search_text}%'
+                CAST(invoice_list.invoice_number AS text) ILIKE '%${pagination.search_text}%'
+                OR invoice_list.company_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.state ILIKE '%${pagination.search_text}%'
+                OR invoice_list.remarks ILIKE '%${pagination.search_text}%'
+                OR invoice_list.country ILIKE '%${pagination.search_text}%'
+                OR invoice_list.city ILIKE '%${pagination.search_text}%'
+                OR invoice_list.customer_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.last_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.first_name ILIKE '%${pagination.search_text}%'
+                OR invoice_list.registration_number ILIKE '%${pagination.search_text}%'
+                OR invoice_list.email ILIKE '%${pagination.search_text}%'
+                OR invoice_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_weight as text) ILIKE '%${pagination.search_text}%'
             END
