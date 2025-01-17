@@ -95,7 +95,7 @@ export const test = async (req: Request) => {
         content: "../../../templates/mail-template/india-memo.html",
       }
     }
-    
+
     await mailAdminMemo(adminMail);
 
     return resSuccess({ data: "sdhkfdskfhdfsd" });
@@ -357,11 +357,13 @@ export const verifyOtp = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    const { user_type = UserType.Customer } = req.query
     const appUser = await AppUser.findOne({
       where: {
         email: columnValueLowerCase("email", email),
         is_deleted: DeleteStatus.No,
         is_active: ActiveStatus.Active,
+        user_type
       },
       attributes: [
         "approved_date",
