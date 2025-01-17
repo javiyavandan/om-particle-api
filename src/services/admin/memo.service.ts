@@ -63,30 +63,26 @@ export const createMemo = async (req: Request) => {
             })
         }
 
-        const allStock = await Diamonds.findAll({
-            where: [
-                { is_deleted: DeleteStatus.No },
-                req.body.session_res.company_id ? { company_id: req.body.session_res.company_id } : {},
-                { status: StockStatus.AVAILABLE }
-            ]
-        })
+        const allStock = await dbContext.query(
+            `SELECT * FROM diamond_list WHERE status != '${StockStatus.SOLD}' ${req.body.session_res.company_id ? `and company_id = ${req.body.session_res.company_id}` : ""}`, { type: QueryTypes.SELECT }
+        )
 
         let totalItemPrice = 0;
         let totalWeight = 0;
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id === stockId)
-            if (!(findStock && findStock.dataValues)) {
+            const findStock: any = allStock.find((stock: any) => stock.stock_id === stockId)
+            if (!(findStock && findStock)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
 
-                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity);
-                totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity);
+                totalItemPrice += (stock_list[index].rate * findStock.weight * findStock.quantity);
+                totalWeight += (findStock.weight * findStock.quantity);
 
                 stockList.push({
-                    stock_id: findStock.dataValues.id,
-                    stock_original_price: findStock.dataValues.rate,
+                    stock_id: findStock.id,
+                    stock_original_price: findStock.rate,
                     stock_price: stock_list[index].rate,
                     created_at: getLocalDate(),
                     created_by: req.body.session_res.id,
@@ -142,8 +138,8 @@ export const createMemo = async (req: Request) => {
                 transaction: trn,
             })
 
-            const stockUpdate = allStock.filter(stock => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
-                ...stock.dataValues,
+            const stockUpdate: any = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.id)).map(stock => ({
+                ...stock,
                 status: StockStatus.MEMO
             }))
 
@@ -178,11 +174,11 @@ export const createMemo = async (req: Request) => {
                     total_weight: memoData.dataValues.total_weight,
                     total_diamond: memoData.dataValues.total_diamond_count,
                     created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                    data: stockUpdate.map(diamond => ({
-                        shape: diamond.shape,
+                    data: stockUpdate.map((diamond: any) => ({
+                        shape: diamond.shape_name,
                         weight: diamond.weight,
-                        color: diamond.color,
-                        clarity: diamond.clarity,
+                        color: diamond.color_name,
+                        clarity: diamond.clarity_name,
                         rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
                         stock_id: diamond.stock_id,
                         product_image: diamond.image,
@@ -202,7 +198,7 @@ export const createMemo = async (req: Request) => {
                         company_name: findCompany.dataValues.name,
                         company_contact: findCompany.dataValues.phone_number,
                         logo_image: IMAGE_PATH,
-                        data: stockUpdate.map((diamond, index) => ({
+                        data: stockUpdate.map((diamond: any, index: number) => ({
                             index: index + 1,
                             weight: diamond.weight,
                             rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
@@ -224,11 +220,11 @@ export const createMemo = async (req: Request) => {
                     total_weight: memoData.dataValues.total_weight,
                     total_diamond: memoData.dataValues.total_diamond_count,
                     created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                    data: stockUpdate.map(diamond => ({
-                        shape: diamond.shape,
+                    data: stockUpdate.map((diamond: any) => ({
+                        shape: diamond.shape_name,
                         weight: diamond.weight,
-                        color: diamond.color,
-                        clarity: diamond.clarity,
+                        color: diamond.color_name,
+                        clarity: diamond.clarity_name,
                         rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
                         stock_id: diamond.stock_id,
                         product_image: diamond.image,
@@ -248,7 +244,7 @@ export const createMemo = async (req: Request) => {
                         company_name: findCompany.dataValues.name,
                         company_contact: findCompany.dataValues.phone_number,
                         logo_image: IMAGE_PATH,
-                        data: stockUpdate.map((diamond, index) => ({
+                        data: stockUpdate.map((diamond: any, index: number) => ({
                             index: index + 1,
                             weight: diamond.weight,
                             rate: stockListWithMemoId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,

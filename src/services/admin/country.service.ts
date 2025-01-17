@@ -7,7 +7,7 @@ import { Op } from "sequelize";
 
 export const addCountry = async (req: Request) => {
     try {
-        const { name } = req.body;
+        const { name, code } = req.body;
 
         const findCountry = await Country.findOne({
             where: {
@@ -27,6 +27,7 @@ export const addCountry = async (req: Request) => {
 
         const country = await Country.create({
             name: name,
+            code,
             slug: name.toLowerCase().replaceAll(" ", "-"),
             is_deleted: DeleteStatus.No,
             is_active: ActiveStatus.Active,
@@ -45,7 +46,7 @@ export const addCountry = async (req: Request) => {
 
 export const updateCountry = async (req: Request) => {
     try {
-        const { name } = req.body
+        const { name, code } = req.body
         const { country_id } = req.params;
 
         const country = await Country.findOne({
@@ -81,6 +82,7 @@ export const updateCountry = async (req: Request) => {
 
         await Country.update({
             name: name,
+            code,
             slug: name.toLowerCase().replaceAll(" ", "-"),
             updated_at: getLocalDate(),
             updated_by: req.body.session_res.user_id,
@@ -152,6 +154,7 @@ export const getCountries = async (req: Request) => {
                     [Op.or]: {
                         name: { [Op.iLike]: `%${pagination.search_text}%` },
                         slug: { [Op.iLike]: `%${pagination.search_text}%` },
+                        code: { [Op.iLike]: `%${pagination.search_text}%` },
                     },
                 }
                 : {},
@@ -179,7 +182,7 @@ export const getCountries = async (req: Request) => {
             ...paginationProps,
             order: [[pagination.sort_by, pagination.order_by]],
             where,
-            attributes: ["id", "name", "slug", "is_active"],
+            attributes: ["id", "name", "code", "slug", "is_active"],
         });
 
         return resSuccess({ data: noPagination ? result : { pagination, result } });
@@ -195,7 +198,7 @@ export const getCountry = async (req: Request) => {
         const { country_id } = req.params;
         const country = await Country.findOne({
             where: { id: country_id, is_deleted: DeleteStatus.No, },
-            attributes: ["id", "name", "slug", "is_active"],
+            attributes: ["id", "name", "code", "slug", "is_active"],
         });
         if (!(country && country.dataValues)) {
             return resNotFound({
