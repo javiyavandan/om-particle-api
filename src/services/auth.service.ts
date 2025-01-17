@@ -38,6 +38,7 @@ import {
   HUBSPOT_ASSOCIATION,
   IMAGE_TYPE,
   Image_type,
+  StockStatus,
   UserType,
   UserVerification,
 } from "../utils/app-enumeration";
@@ -66,7 +67,7 @@ import { mailAdminMemo, mailPasswordResetLink, mailRegistationOtp } from "./mail
 import Wishlist from "../model/wishlist.model";
 import CartProducts from "../model/cart-product.model";
 import Image from "../model/image.model";
-import { Sequelize } from "sequelize";
+import { QueryTypes, Sequelize } from "sequelize";
 import Role from "../model/role.model";
 import Company from "../model/companys.model";
 import { moveFileToS3ByType } from "../helpers/file-helper";
@@ -76,29 +77,11 @@ export const test = async (req: Request) => {
 
   try {
 
-    const adminMail = {
-      toEmailAddress: "javiyashreyas@gmail.com",
-      contentTobeReplaced: {
-        admin_name: "Shreyas",
-        customer_name: "Javiya",
-        customer_email: "abc@gmail.com",
-        customer_company: "Javiya Diamond",
-        customer_contact: "4568971320",
-        memo_number: "456879",
-        total: "45",
-        total_weight: "45",
-        total_diamond: "45",
-        created_at: "4/1/2025",
-      },
-      attachments: {
-        filename: "memo.pdf",
-        content: "../../../templates/mail-template/india-memo.html",
-      }
-    }
+    const allStock = await dbContext.query(
+      `SELECT * FROM diamond_list WHERE status != '${StockStatus.SOLD}' ${req.body.session_res.company_id ? `and company_id = ${req.body.session_res.company_id}` : ""}`, { type: QueryTypes.SELECT }
+    )
 
-    await mailAdminMemo(adminMail);
-
-    return resSuccess({ data: "sdhkfdskfhdfsd" });
+    return resSuccess({ data: allStock });
   } catch (error) {
     console.log(error)
     throw error;

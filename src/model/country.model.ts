@@ -17,6 +17,9 @@ const Country = dbContext.define("countrys", {
         allowNull: false,
         unique: true,
     },
+    code: {
+        type: STRING,
+    },
     is_active: {
         type: STRING,
     },
