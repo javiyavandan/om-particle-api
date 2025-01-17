@@ -1,5 +1,6 @@
 import { Request } from "express";
 import {
+  getCurrencyPrice,
   getInitialPaginationFromQuery,
   prepareMessageFromParams,
   resNotFound,
@@ -25,6 +26,7 @@ export const getAllCartList = async (req: Request) => {
       search_text: query.search_text,
       company_name: query.company_name,
     };
+    const currency = await getCurrencyPrice(req.query.currency as string);
 
     let where = [
       pagination.is_active ? { is_active: pagination.is_active } : {},
@@ -86,7 +88,7 @@ export const getAllCartList = async (req: Request) => {
           [Sequelize.literal(`"product->company_master"."id"`), "companyId"],
           "quantity",
           "weight",
-          "rate",
+          [Sequelize.literal(`(rate * ${currency})`), 'rate'],
           "report",
           "video",
           "image",
@@ -231,6 +233,7 @@ export const getAllCartList = async (req: Request) => {
 export const getCartDetail = async (req: Request) => {
   try {
     const { cart_id } = req.params;
+    const currency = await getCurrencyPrice(req.query.currency as string);
 
     const cartData = await CartProducts.findOne({
       where: { id: cart_id },
@@ -316,7 +319,7 @@ export const getCartDetail = async (req: Request) => {
             [Sequelize.literal(`"product->company_master"."id"`), "companyId"],
             "quantity",
             "weight",
-            "rate",
+            [Sequelize.literal(`(rate * ${currency})`), 'rate'],
             "report",
             "video",
             "image",

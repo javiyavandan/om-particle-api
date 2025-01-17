@@ -13,6 +13,8 @@ import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
 import MemoDetail from "../../model/memo-detail.model";
+import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
+import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
@@ -213,6 +215,70 @@ export const createInvoice = async (req: Request) => {
                     })
                 }
             }
+
+            const admin = await AppUser.findOne({
+                where: {
+                    id_role: req.body.session_res.id_role,
+                    id: req.body.session_res.id,
+                    is_deleted: DeleteStatus.No,
+                    is_active: ActiveStatus.Active
+                },
+                attributes: ["first_name", "last_name", "email", "phone_number"],
+                transaction: trn,
+            })
+
+            const adminMail = {
+                toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
+                contentTobeReplaced: {
+                    admin_name: admin?.dataValues.first_name,
+                    customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
+                    customer_email: findCustomer.dataValues.user.dataValues.email,
+                    customer_company: findCustomer.dataValues.company_name,
+                    customer_contact: findCustomer.dataValues.user.dataValues.phone_number,
+                    invoice_number: invoiceData.dataValues.invoice_number,
+                    total: invoiceData.dataValues.total_item_price,
+                    total_weight: invoiceData.dataValues.total_weight,
+                    total_diamond: invoiceData.dataValues.total_diamond_count,
+                    total_tax: invoiceData.dataValues.total_tax_price,
+                    created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    data: stockUpdate.map(diamond => ({
+                        shape: diamond.shape,
+                        weight: diamond.weight,
+                        color: diamond.color,
+                        clarity: diamond.clarity,
+                        rate: stockListWithInvoiceId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
+                        stock_id: diamond.stock_id,
+                        product_image: diamond.image,
+                    }))
+                },
+            }
+
+            const customerMail = {
+                toEmailAddress: findCustomer?.dataValues.user.dataValues.email,
+                contentTobeReplaced: {
+                    admin_email: admin?.dataValues.email,
+                    admin_contact: admin?.dataValues.phone_number,
+                    customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
+                    invoice_number: invoiceData.dataValues.invoice_number,
+                    total: invoiceData.dataValues.total_item_price,
+                    total_weight: invoiceData.dataValues.total_weight,
+                    total_diamond: invoiceData.dataValues.total_diamond_count,
+                    total_tax: invoiceData.dataValues.total_tax_price,
+                    created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    data: stockUpdate.map(diamond => ({
+                        shape: diamond.shape,
+                        weight: diamond.weight,
+                        color: diamond.color,
+                        clarity: diamond.clarity,
+                        rate: stockListWithInvoiceId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
+                        stock_id: diamond.stock_id,
+                        product_image: diamond.image,
+                    }))
+                },
+            }
+
+            await mailAdminMemo(adminMail);
+            await mailCustomerMemo(customerMail);
 
             await trn.commit();
             await refreshMaterializedDiamondListView()

@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from '../../utils/shared-functions';
+import { getCurrencyPrice, getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from '../../utils/shared-functions';
 import { Op, Sequelize } from 'sequelize';
 import ProductInquiry from '../../model/product-inquiry.model';
 import { ERROR_NOT_FOUND, RECORD_UPDATE } from '../../utils/app-messages';
@@ -350,6 +350,7 @@ export const getInquiries = async (req: Request) => {
             search_text: query.search_text,
         };
         let noPagination = req.query.no_pagination === "1";
+        const currency = await getCurrencyPrice(req.query.currency as string);
 
         let where = [
             pagination.is_active ? { is_active: pagination.is_active } : {},
@@ -389,7 +390,7 @@ export const getInquiries = async (req: Request) => {
             attributes: [
                 "id",
                 "inquiry_number",
-                "total",
+                [Sequelize.literal(`(total * ${currency})`), 'total'],
                 "inquiry_note",
                 "email",
                 "inquiry_address",
@@ -405,10 +406,13 @@ export const getInquiries = async (req: Request) => {
                             )
                             FROM diamonds
                             WHERE diamonds.id = ANY (
-                                SELECT json_array_elements_text(product_details)::int
+                                SELECT (json_array_elements(product_details)->>'id')::int
                                 FROM inquiries
                                 WHERE inquiries.id = "inquiries".id
-                            ) ${req.body.session_res.id_role != 0 ? `AND diamonds.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND diamonds.company_id = ${query.company}` : ""}`}
+                            )
+                            ${req.body.session_res.id_role != 0 ?
+                            `AND diamonds.company_id = ${req.body.session_res.company_id}` :
+                            `${query.company ? `AND diamonds.company_id = ${query.company}` : ""}`}
                         )
                     `),
                     "diamondProduct"
@@ -452,6 +456,7 @@ export const getInquiries = async (req: Request) => {
 export const getInquiryDetail = async (req: Request) => {
     try {
         const { inquiry_id } = req.params;
+        const currency = await getCurrencyPrice(req.query.currency as string);
 
         const inquiry = await Inquiry.findOne({
             where: {
@@ -460,7 +465,7 @@ export const getInquiryDetail = async (req: Request) => {
             attributes: [
                 "id",
                 "inquiry_number",
-                "total",
+                [Sequelize.literal(`(total * ${currency})`), 'total'],
                 "inquiry_note",
                 "email",
                 "inquiry_address",
@@ -482,7 +487,7 @@ export const getInquiryDetail = async (req: Request) => {
                                     'fluorescence', fluorescence_master.name,
                                     'company', companys.name,
                                     'quantity', diamonds.quantity,
-                                    'rate', diamonds.rate,
+                                    'rate', diamonds.rate * ${currency},
                                     'video', diamonds.video,
                                     'image', diamonds.image,
                                     'certificate', diamonds.certificate,
@@ -509,7 +514,7 @@ export const getInquiryDetail = async (req: Request) => {
                             LEFT JOIN masters AS fluorescence_master ON fluorescence_master.id = diamonds.fluorescence
                             LEFT JOIN companys ON companys.id = diamonds.company_id
                             WHERE diamonds.is_deleted = '0' AND diamonds.id = ANY (
-                                SELECT json_array_elements_text(product_details)::int
+                                SELECT (json_array_elements(product_details)->>'id')::int
                                 FROM inquiries
                                 WHERE inquiries.id = ${inquiry_id}
                             )

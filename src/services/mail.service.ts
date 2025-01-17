@@ -148,3 +148,69 @@ export const mailCustomerMemo = async (payload: any) => {
     payload
   );
 };
+
+export const mailAdminInvoice = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/admin-invoice.html";
+  const subject = "Invoice";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Invoice,
+    payload
+  );
+};
+
+export const mailCustomerInvoice = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/customer-invoice.html";
+  const subject = "Invoice";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Invoice,
+    payload
+  );
+};
+
+export const mailAdminInquiry = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/admin-inquiry.html";
+  const subject = "Inquiry";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Inquiry,
+    payload
+    );
+}
+
+export const mailCustomerInquiry = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/customer-inquiry.html";
+  const subject = "Inquiry";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Inquiry,
+    payload
+    );
+}
+
+export const mailAdminProductInquiry = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/admin-inquiry-product.html";
+  const subject = "Inquiry";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Inquiry,
+    payload
+    );
+}
+
+export const mailCustomerProductInquiry = async (payload: any) => {
+  const emailTemplate = "../../../templates/mail-template/customer-inquiry-product.html";
+  const subject = "Inquiry";
+  await prepareAndSendEmail(
+    emailTemplate,
+    subject,
+    MESSAGE_TYPE.Inquiry,
+    payload
+    );
+}
