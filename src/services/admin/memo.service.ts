@@ -375,13 +375,13 @@ export const getAllMemo = async (req: Request) => {
                 WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
-                ? `AND memo_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
               ${query.start_date && !query.end_date
-                ? `AND memo_list.created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
                 : ""}
               ${!query.start_date && query.end_date
-                ? `AND memo_list.created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
                 ${query.min_rate && query.max_rate ? `AND memo_list.total_price BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                 ${query.min_rate && !query.max_rate ? `AND memo_list.total_price >= ${query.min_rate}` : ""}
@@ -464,13 +464,13 @@ export const getAllMemo = async (req: Request) => {
                 WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
-                ? `AND memo_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
               ${query.start_date && !query.end_date
-                ? `AND memo_list.created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
                 : ""}
               ${!query.start_date && query.end_date
-                ? `AND memo_list.created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND memo_list.created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
                 ${query.min_rate && query.max_rate ? `AND memo_list.total_price BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                 ${query.min_rate && !query.max_rate ? `AND memo_list.total_price >= ${query.min_rate}` : ""}
