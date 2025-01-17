@@ -6,9 +6,10 @@ import { resNotFound, prepareMessageFromParams, resSuccess, getLocalDate, resUnk
 import Inquiry from "../../model/inquiry.model";
 import ProductInquiry from "../../model/product-inquiry.model";
 import dbContext from "../../config/dbContext";
-import { ORDER_NUMBER_IDENTITY } from "../../config/env.var";
+import { ADMIN_MAIL, ORDER_NUMBER_IDENTITY } from "../../config/env.var";
 import CartProducts from "../../model/cart-product.model";
 import { Op, Sequelize } from "sequelize";
+import { mailAdminInquiry, mailAdminProductInquiry, mailCustomerInquiry, mailCustomerProductInquiry } from "../mail.service";
 const crypto = require("crypto");
 
 export const singleProductInquiry = async (req: Request) => {
@@ -41,6 +42,46 @@ export const singleProductInquiry = async (req: Request) => {
         })
         // Send the email or any other notification using the findProduct object
 
+        const adminMail = {
+            toEmailAddress: ADMIN_MAIL,
+            contentTobeReplaced: {
+                full_name: findProduct.dataValues.full_name,
+                email: findProduct.dataValues.email,
+                phone_number: findProduct.dataValues.phone_number,
+                message: findProduct.dataValues.message,
+                data: [
+                    {
+                        shape: findProduct.dataValues.shape,
+                        weight: findProduct.dataValues.weight,
+                        color: findProduct.dataValues.color,
+                        clarity: findProduct.dataValues.clarity,
+                        rate: findProduct.dataValues.rate,
+                        stock_id: findProduct.dataValues.stock_id,
+                        product_image: findProduct.dataValues.image,
+                    }
+                ]
+            },
+        };
+
+        const customerMail = {
+            toEmailAddress: email,
+            contentTobeReplaced: {
+                data: [
+                    {
+                        shape: findProduct.dataValues.shape,
+                        weight: findProduct.dataValues.weight,
+                        color: findProduct.dataValues.color,
+                        clarity: findProduct.dataValues.clarity,
+                        rate: findProduct.dataValues.rate,
+                        stock_id: findProduct.dataValues.stock_id,
+                        product_image: findProduct.dataValues.image,
+                    }
+                ]
+            },
+        }
+
+        await mailAdminProductInquiry(adminMail);
+        await mailCustomerProductInquiry(customerMail);
 
         return resSuccess()
     } catch (error) {
@@ -92,7 +133,7 @@ export const addInquiry = async (req: Request) => {
             })
         }
 
-        const product_details = userCart.map((product) => product.dataValues.product_id)
+        const cart_product = userCart.map((product) => ({ product_id: product.dataValues.product_id, quantity: product.dataValues.quantity }))
 
         let total = 0;
         for (let index = 0; index < userCart.length; index++) {
@@ -105,9 +146,11 @@ export const addInquiry = async (req: Request) => {
             transaction: trn,
         })
 
+        let product_details = [];
+
         try {
-            for (let product of product_details) {
-                const products = diamonds.find((i) => i.dataValues.id == product);
+            for (let product of cart_product) {
+                const products = diamonds.find((i) => i.dataValues.id == product.product_id);
                 if (!(products && products.dataValues)) {
                     await trn.rollback();
                     return resNotFound({
@@ -116,6 +159,12 @@ export const addInquiry = async (req: Request) => {
                         ]),
                     });
                 }
+                product_details.push({
+                    ...products.dataValues,
+                    quantity: product.quantity,
+                    weight: products.dataValues.weight * product.quantity,
+                    product_image: products.dataValues.image,
+                });
             }
 
             const inquiryPayload = {
@@ -125,14 +174,59 @@ export const addInquiry = async (req: Request) => {
                 inquiry_note: inquiry_note,
                 email: email,
                 inquiry_address: inquiry_address,
-                product_details,
+                product_details: product_details,
                 created_by: user_id,
                 created_at: getLocalDate(),
             };
 
             const inquiry = await Inquiry.create(inquiryPayload, { transaction: trn });
 
+            CartProducts.destroy({
+                where: { user_id: user_id },
+                transaction: trn,
+            })
+
             await trn.commit();
+
+            let total_weight = 0;
+            for (let item of product_details) {
+                total_weight += item.weight;
+            }
+
+            const adminMail = {
+                toEmailAddress: ADMIN_MAIL,
+                contentTobeReplaced: {
+                    inquiry_number: inquiry.dataValues.inquiry_number,
+                    total: total,
+                    email: email,
+                    total_weight,
+                    created_at: new Date(inquiry.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    address: {
+                        full_name: inquiry_address.first_name + ' ' + inquiry_address.last_name,
+                        address: inquiry_address.address,
+                        phone_number: inquiry_address.phone_number,
+                        city: inquiry_address.city,
+                        state: inquiry_address.state,
+                        country: inquiry_address.country,
+                        postcode: inquiry_address.postcode,
+                    },
+                    data: product_details,
+                },
+            };
+
+            const customerMail = {
+                toEmailAddress: email,
+                contentTobeReplaced: {
+                    inquiry_number: inquiry.dataValues.inquiry_number,
+                    total: total,
+                    total_weight,
+                    created_at: new Date(inquiry.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    data: product_details,
+                },
+            }
+
+            await mailAdminInquiry(adminMail);
+            await mailCustomerInquiry(customerMail)
 
             return resSuccess();
         } catch (error) {

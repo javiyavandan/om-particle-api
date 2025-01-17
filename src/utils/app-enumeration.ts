@@ -25,6 +25,8 @@ export enum MESSAGE_TYPE {
   DiamondConcierge = 8,
   UserVerify = 9,
   Memo = 10,
+  Invoice = 11,
+  Inquiry = 12,
 }
 
 export enum DefaultStatus {
