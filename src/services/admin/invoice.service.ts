@@ -13,8 +13,8 @@ import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
 import MemoDetail from "../../model/memo-detail.model";
-import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
-import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
+import { ADMIN_MAIL } from "../../config/env.var";
+import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
@@ -277,8 +277,8 @@ export const createInvoice = async (req: Request) => {
                 },
             }
 
-            await mailAdminMemo(adminMail);
-            await mailCustomerMemo(customerMail);
+            await mailAdminInvoice(adminMail);
+            await mailCustomerInvoice(customerMail);
 
             await trn.commit();
             await refreshMaterializedDiamondListView()
