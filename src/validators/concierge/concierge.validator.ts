@@ -9,5 +9,6 @@ export const diamondConciergeValidator: RequestHandler = async (
   res,
   next
 ) => {
+  console.log(req.body)
   return await modelValidator(req, res, next, diamondConciergeRules);
 };

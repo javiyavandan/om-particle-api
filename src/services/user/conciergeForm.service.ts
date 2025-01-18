@@ -8,6 +8,8 @@ import {
 import {
   ActiveStatus,
   DeleteStatus,
+  IMAGE_TYPE,
+  Image_type,
   Master_type,
 } from "../../utils/app-enumeration";
 import {
@@ -19,6 +21,9 @@ import { mailAdminDiamondConcierge, mailDiamondConcierge } from "../mail.service
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import DiamondConcierge from "../../model/diamondConcierge.model";
+import { moveFileToS3ByType } from "../../helpers/file-helper";
+import Image from "../../model/image.model";
+import dbContext from "../../config/dbContext";
 
 export const diamondConciergeForm = async (req: Request) => {
   try {
@@ -37,6 +42,8 @@ export const diamondConciergeForm = async (req: Request) => {
       session_res,
       certificate,
     } = req.body;
+
+    const file = req.file;
 
     let productData;
     if (product_id) {
@@ -92,66 +99,107 @@ export const diamondConciergeForm = async (req: Request) => {
       });
     }
 
-    const conciergeData = await DiamondConcierge.create({
-      name: name,
-      email: email,
-      phone_number: phone_number,
-      message: message,
-      measurement: measurement,
-      weight: weight,
-      user_id: session_res.user_id,
-      color: colorData.dataValues.id,
-      clarity: clarityData.dataValues.id,
-      product_id: productData?.dataValues.id,
-      shape: shapeData.dataValues.id,
-      stones: no_of_stones,
-      certificate,
-      created_at: getLocalDate(),
-      created_by: session_res.user_id,
-    });
+    const trn = await dbContext.transaction();
 
-    const mailPayload = {
-      toEmailAddress: conciergeData.dataValues.email,
-      contentTobeReplaced: {
-        name: conciergeData.dataValues.name,
-        email: conciergeData.dataValues.email,
-        phone_number: conciergeData.dataValues.phone_number,
-        message: conciergeData.dataValues.message,
-        frontend_url: FRONT_END_BASE_URL,
-        product_shape: shapeData.dataValues.name,
-        product_color: colorData.dataValues.name,
-        product_clarity: clarityData.dataValues.name,
-        product_stones: no_of_stones,
-        product_weight: weight,
-        product_measurement: measurement,
-        support_email: "ompl@abc.in",
-        app_name: APP_NAME,
+    try {
+
+      let id_image;
+
+      if (file) {
+        const imageData = await moveFileToS3ByType(
+          file,
+          Image_type.Concierge
+        )
+
+        if (imageData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return imageData;
+        }
+        const imageResult = await Image.create(
+          {
+            image_path: imageData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            image_type: IMAGE_TYPE.Concierge,
+          },
+          { transaction: trn }
+        );
+
+        id_image = imageResult.dataValues.id;
+
+      }
+
+      const conciergeData = await DiamondConcierge.create({
+        name: name,
+        email: email,
+        phone_number: phone_number,
+        message: message,
+        measurement: measurement,
+        weight: weight,
+        user_id: session_res.user_id,
+        color: colorData.dataValues.id,
+        clarity: clarityData.dataValues.id,
+        product_id: productData?.dataValues.id,
+        shape: shapeData.dataValues.id,
+        id_image,
+        stones: no_of_stones,
+        certificate,
+        created_at: getLocalDate(),
+        created_by: session_res.user_id,
       },
-    };
+        { transaction: trn }
+      );
 
-    const admin = {
-      toEmailAddress: ADMIN_MAIL,
-      contentTobeReplaced: {
-        name: conciergeData.dataValues.name,
-        email: conciergeData.dataValues.email,
-        phone_number: conciergeData.dataValues.phone_number,
-        message: conciergeData.dataValues.message,
-        frontend_url: FRONT_END_BASE_URL,
-        product_shape: shapeData.dataValues.name,
-        product_color: colorData.dataValues.name,
-        product_clarity: clarityData.dataValues.name,
-        product_stones: no_of_stones,
-        product_weight: weight,
-        product_measurement: measurement,
-        support_email: "ompl@abc.in",
-        app_name: APP_NAME,
-      },
-    };
+      const mailPayload = {
+        toEmailAddress: conciergeData.dataValues.email,
+        contentTobeReplaced: {
+          name: conciergeData.dataValues.name,
+          email: conciergeData.dataValues.email,
+          phone_number: conciergeData.dataValues.phone_number,
+          message: conciergeData.dataValues.message,
+          frontend_url: FRONT_END_BASE_URL,
+          product_shape: shapeData.dataValues.name,
+          product_color: colorData.dataValues.name,
+          product_clarity: clarityData.dataValues.name,
+          product_stones: no_of_stones,
+          product_weight: weight,
+          product_measurement: measurement,
+          support_email: "ompl@abc.in",
+          app_name: APP_NAME,
+        },
+      };
 
-    await mailAdminDiamondConcierge(admin)
-    await mailDiamondConcierge(mailPayload);
+      const admin = {
+        toEmailAddress: ADMIN_MAIL,
+        contentTobeReplaced: {
+          name: conciergeData.dataValues.name,
+          email: conciergeData.dataValues.email,
+          phone_number: conciergeData.dataValues.phone_number,
+          message: conciergeData.dataValues.message,
+          frontend_url: FRONT_END_BASE_URL,
+          product_shape: shapeData.dataValues.name,
+          product_color: colorData.dataValues.name,
+          product_clarity: clarityData.dataValues.name,
+          product_stones: no_of_stones,
+          product_weight: weight,
+          product_measurement: measurement,
+          support_email: "ompl@abc.in",
+          app_name: APP_NAME,
+        },
+      };
 
-    return resSuccess();
+      await mailAdminDiamondConcierge(admin)
+      await mailDiamondConcierge(mailPayload);
+
+      await trn.commit();
+
+      return resSuccess();
+    } catch (error) {
+      await trn.rollback();
+      throw error
+    }
+
   } catch (error) {
     throw error;
   }
