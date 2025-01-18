@@ -178,7 +178,7 @@ export enum IMAGE_TYPE {
   Tag = "tag_master",
   Brand = "brand_master",
   User = "user_profile",
-  Concierge = "jewelry_concierge",
+  jewelry_Concierge = "jewelry_concierge",
   Availability = "availability_master",
   CutGrade = "cut_grade_master",
   Polish = "polish_master",
@@ -216,6 +216,7 @@ export enum IMAGE_TYPE {
   HandA = "H&A_master",
   growthType = "growth_type_master",
   Profile = "user_profile",
+  Concierge = 'concierge'
 }
 
 export enum HTTP_METHODS {

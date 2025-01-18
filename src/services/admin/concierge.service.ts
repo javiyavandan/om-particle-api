@@ -26,11 +26,11 @@ export const getDiamondConciergeList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -62,6 +62,7 @@ export const getDiamondConciergeList = async (req: Request) => {
         "product_id",
         "stones",
         "certificate",
+        [Sequelize.literal(`image.image_path`), 'image_path']
       ],
       include: [
         {
@@ -99,6 +100,11 @@ export const getDiamondConciergeList = async (req: Request) => {
             },
           ],
         },
+        {
+          model: Image,
+          as: 'image',
+          attributes: [],
+        }
       ],
     });
     return resSuccess({ data: { pagination, result: diamondData } });
@@ -123,6 +129,7 @@ export const getDiamondConciergeDetail = async (req: Request) => {
         "measurement",
         "product_id",
         "certificate",
+        [Sequelize.literal(`image.image_path`), 'image_path']
       ],
       include: [
         {
@@ -223,6 +230,11 @@ export const getDiamondConciergeDetail = async (req: Request) => {
           as: "clarityData",
           attributes: ["id", "name", "sort_code", "slug"],
         },
+        {
+          model: Image,
+          as: 'image',
+          attributes: [],
+        }
       ],
     });
 
