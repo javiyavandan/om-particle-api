@@ -66,6 +66,18 @@ export const getAllFilterData = async (req: Request) => {
     const colorIntensityData = masterData.filter((data) => {
       return data.dataValues.master_type === Master_type.colorIntensity;
     });
+    const labData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.lab;
+    });
+    const fluorescenceData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.fluorescence;
+    });
+    const polishData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.Polish;
+    });
+    const symmetryData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.symmetry;
+    });
     const companyData = await Company.findAll({ where: where(), attributes: ["id", "name"] });
     const customerData = await Customer.findAll({
       attributes: ["id", "company_name"], include: [{
@@ -82,7 +94,11 @@ export const getAllFilterData = async (req: Request) => {
         colorData: colorData,
         colorIntensityData: colorIntensityData,
         companyData,
-        customerData
+        customerData,
+        labData,
+        fluorescenceData,
+        polishData,
+        symmetryData,
       },
     });
   } catch (error) {
