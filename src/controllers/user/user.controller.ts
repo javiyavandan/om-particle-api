@@ -1,6 +1,8 @@
 import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
 import { contactUs, getCurrency } from "../../services/user/user.service";
+import { updateUserDetail } from "../../services/admin/admin.service";
+import { getUserDetail } from "../../services/user/profile.service";
 
 export const contactUsFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, contactUs(req), "contactUsFn")
@@ -9,3 +11,11 @@ export const contactUsFn: RequestHandler = (req, res) => {
 export const getCurrencyFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, getCurrency(), "getCurrencyFn")
 }
+
+export const getUserDetailFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, getUserDetail(req), "getUserDetailFn")
+} 
+
+export const updateUserDetailFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, updateUserDetail(req), "updateUserDetailFn")
+} 
