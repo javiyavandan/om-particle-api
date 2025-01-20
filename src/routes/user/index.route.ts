@@ -7,6 +7,7 @@ import inquiryRoute from "./inquiry.route";
 import addressRoute from "./address.route";
 import stockRoute from "./stock.route";
 import userRoute from "./user.route";
+import compareDiamondsRoute from "./compare-diamonds.route";
 
 export default () => {
   const app = Router();
@@ -18,5 +19,6 @@ export default () => {
   addressRoute(app);
   stockRoute(app);
   userRoute(app);
+  compareDiamondsRoute(app);
   return app;
 };
