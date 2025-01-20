@@ -79,7 +79,7 @@ export const createShareProduct = async (req: Request) => {
 export const shareProduct = async (req: Request) => {
   try {
     const { share_id } = req.params;
-    const shareProduct = await ShareProducts.findOne({
+    const shareProduct = await ShareProducts.findAll({
       where: { share_id: share_id },
       attributes: [
         [Sequelize.literal(`diamond_product.id`), "id"],
@@ -87,7 +87,7 @@ export const shareProduct = async (req: Request) => {
         [Sequelize.literal(`diamond_product.status`), "status"],
         [Sequelize.literal(`diamond_product.quantity`), "quantity"],
         [Sequelize.literal(`diamond_product.weight`), "weight"],
-        [Sequelize.literal(`price`), "rate"],
+        [Sequelize.literal(`diamond_product.rate`), "rate"],
         [Sequelize.literal(`diamond_product.report`), "report"],
         [Sequelize.literal(`diamond_product.video`), "video"],
         [Sequelize.literal(`diamond_product.image`), "image"],
@@ -175,7 +175,7 @@ export const shareProduct = async (req: Request) => {
         },
       ],
     });
-    if (!(shareProduct && shareProduct.dataValues)) {
+    if (!(shareProduct)) {
       return resNotFound({ message: RESOURCE_NOT_FOUND });
     }
 
