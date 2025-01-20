@@ -1,8 +1,9 @@
 import { Request } from "express";
 import { QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
-import { getCurrencyPrice, getInitialPaginationFromQuery, resSuccess } from "../../utils/shared-functions";
+import { getCurrencyPrice, getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { UserType } from "../../utils/app-enumeration";
+import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 
 export const getStockList = async (req: Request) => {
     try {
@@ -299,6 +300,13 @@ export const getStockDetail = async (req: Request) => {
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                     WHERE diamond_list.stock_id = '${stock_id}'`, { type: QueryTypes.SELECT }
         )
+
+        if (!diamond[0]) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_message", 'Diamond']])
+            })
+        }
+
         return resSuccess({
             data: diamond[0]
         })
