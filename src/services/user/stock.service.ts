@@ -297,7 +297,7 @@ export const getStockDetail = async (req: Request) => {
                 FROM
                     diamond_list
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
-                    WHERE diamond_list.id = ${stock_id}`, { type: QueryTypes.SELECT }
+                    WHERE diamond_list.stock_id = '${stock_id}'`, { type: QueryTypes.SELECT }
         )
         return resSuccess({
             data: diamond[0]
