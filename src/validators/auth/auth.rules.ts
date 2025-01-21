@@ -111,5 +111,5 @@ export const updateUserAdminRules = [
   fieldStringChain("city", "city"),
   fieldStringChain("state", "state"),
   fieldStringChain("country", "country"),
-  fieldIntegerChain("postcode", "postcode"),
+  fieldStringChain("postcode", "postcode"),
 ];
