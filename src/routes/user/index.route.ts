@@ -8,7 +8,7 @@ import addressRoute from "./address.route";
 import stockRoute from "./stock.route";
 import userRoute from "./user.route";
 import compareDiamondsRoute from "./compare-diamonds.route";
-import homePageRoute from "../admin/home-page.route";
+import homePageRoute from "./home-section.route";
 
 export default () => {
   const app = Router();

@@ -227,7 +227,7 @@ export const addInquiry = async (req: Request) => {
 
             await trn.commit();
 
-            return resSuccess();
+            return resSuccess({ data: inquiry.dataValues.inquiry_number });
         } catch (error) {
             await trn.rollback();
             return resUnknownError({ data: error });
