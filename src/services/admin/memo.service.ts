@@ -170,8 +170,8 @@ export const createMemo = async (req: Request) => {
                     customer_company: findCustomer.dataValues.company_name,
                     customer_contact: findCustomer.dataValues.user.dataValues.phone_number,
                     memo_number: memoData.dataValues.memo_number,
-                    total: memoData.dataValues.total_item_price,
-                    total_weight: memoData.dataValues.total_weight,
+                    total: Number(memoData.dataValues.total_item_price).toFixed(2),
+                    total_weight: Number(memoData.dataValues.total_weight).toFixed(2),
                     total_diamond: memoData.dataValues.total_diamond_count,
                     created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                     data: stockUpdate.map((diamond: any) => ({
@@ -190,8 +190,8 @@ export const createMemo = async (req: Request) => {
                     toBeReplace: {
                         admin_contact: admin?.dataValues.phone_number,
                         memo_number: memoData.dataValues.memo_number,
-                        total: memoData.dataValues.total_item_price,
-                        total_weight: memoData.dataValues.total_weight,
+                        total: Number(memoData.dataValues.total_item_price).toFixed(2),
+                        total_weight: Number(memoData.dataValues.total_weight).toFixed(2),
                         total_diamond: memoData.dataValues.total_diamond_count,
                         created_at: new Date(memoData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                         company_address: findCompany.dataValues.company_address + ' ' + findCompany.dataValues.city + ' ' + findCompany.dataValues.state + ' ' + findCompany.dataValues.pincode,
@@ -254,6 +254,8 @@ export const createMemo = async (req: Request) => {
                     }
                 }
             }
+
+            console.log(adminMail, customerMail);
 
             await mailAdminMemo(adminMail);
             await mailCustomerMemo(customerMail);
