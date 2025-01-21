@@ -8,7 +8,7 @@ import ProductInquiry from "../../model/product-inquiry.model";
 import dbContext from "../../config/dbContext";
 import { ADMIN_MAIL, ORDER_NUMBER_IDENTITY } from "../../config/env.var";
 import CartProducts from "../../model/cart-product.model";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
 import { mailAdminInquiry, mailAdminProductInquiry, mailCustomerInquiry, mailCustomerProductInquiry } from "../mail.service";
 const crypto = require("crypto");
 
@@ -138,20 +138,19 @@ export const addInquiry = async (req: Request) => {
         let total = 0;
         for (let index = 0; index < userCart.length; index++) {
             const item = userCart[index].dataValues;
-            total += item.quantity * item.product.rate;
+            const itemPrice = item.product.rate * item.product.weight
+            total += item.quantity * itemPrice;
         }
 
-        const diamonds = await Diamonds.findAll({
-            where: { is_deleted: DeleteStatus.No, status: StockStatus.AVAILABLE },
-            transaction: trn,
-        })
-
+        const diamonds = await dbContext.query(
+            `SELECT * FROM diamond_list where status = '${StockStatus.AVAILABLE}'`, { type: QueryTypes.SELECT }
+        )
         let product_details = [];
 
         try {
             for (let product of cart_product) {
-                const products = diamonds.find((i) => i.dataValues.id == product.product_id);
-                if (!(products && products.dataValues)) {
+                const products: any = diamonds.find((i: any) => i.id == product.product_id);
+                if (!(products && products)) {
                     await trn.rollback();
                     return resNotFound({
                         message: prepareMessageFromParams(ERROR_NOT_FOUND, [
@@ -160,10 +159,10 @@ export const addInquiry = async (req: Request) => {
                     });
                 }
                 product_details.push({
-                    ...products.dataValues,
+                    ...products,
                     quantity: product.quantity,
-                    weight: products.dataValues.weight * product.quantity,
-                    product_image: products.dataValues.image,
+                    weight: products.weight * product.quantity,
+                    product_image: products.image,
                 });
             }
 
@@ -186,8 +185,6 @@ export const addInquiry = async (req: Request) => {
                 transaction: trn,
             })
 
-            await trn.commit();
-
             let total_weight = 0;
             for (let item of product_details) {
                 total_weight += item.weight;
@@ -197,7 +194,7 @@ export const addInquiry = async (req: Request) => {
                 toEmailAddress: ADMIN_MAIL,
                 contentTobeReplaced: {
                     inquiry_number: inquiry.dataValues.inquiry_number,
-                    total: total,
+                    total: total.toFixed(2),
                     email: email,
                     total_weight,
                     created_at: new Date(inquiry.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
@@ -218,7 +215,7 @@ export const addInquiry = async (req: Request) => {
                 toEmailAddress: email,
                 contentTobeReplaced: {
                     inquiry_number: inquiry.dataValues.inquiry_number,
-                    total: total,
+                    total: total.toFixed(2),
                     total_weight,
                     created_at: new Date(inquiry.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                     data: product_details,
@@ -227,6 +224,8 @@ export const addInquiry = async (req: Request) => {
 
             await mailAdminInquiry(adminMail);
             await mailCustomerInquiry(customerMail)
+
+            await trn.commit();
 
             return resSuccess();
         } catch (error) {
