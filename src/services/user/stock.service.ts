@@ -30,8 +30,8 @@ export const getStockList = async (req: Request) => {
             `
                 SELECT
                     *,
-                    rate * ${currency} as rate,
-                    wishlist_products.id AS wishlist_id
+                    rate * ${currency} as rate
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
@@ -120,8 +120,8 @@ export const getStockList = async (req: Request) => {
                 SELECT
                     *,
                     diamond_list.id as id,
-                    rate * ${currency} as rate,
-                    wishlist_products.id AS wishlist_id
+                    rate * ${currency} as rate
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
@@ -255,10 +255,10 @@ export const getStockDetail = async (req: Request) => {
                     company_id,
                     company_name,
                     diamond_list.is_active,
-                    wishlist_products.id AS wishlist_id,
                     companys.email AS company_email,
                     companys.phone_number AS company_phone_number,
                     companys.name AS company_name
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
                     LEFT JOIN companys ON diamond_list.company_id = companys.id
