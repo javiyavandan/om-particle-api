@@ -29,9 +29,12 @@ export const getStockList = async (req: Request) => {
         const totalItems = await dbContext.query(
             `
                 SELECT
-                    *
+                    *,
+                    rate * ${currency} as rate,
+                    wishlist_products.id AS wishlist_id
                 FROM
                     diamond_list
+                    ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
@@ -115,9 +118,13 @@ export const getStockList = async (req: Request) => {
         const diamondList = await dbContext.query(
             `
                 SELECT
-                    *
+                    *,
+                    diamond_list.id as id,
+                    rate * ${currency} as rate,
+                    wishlist_products.id AS wishlist_id
                 FROM
                     diamond_list
+                    ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
@@ -185,7 +192,7 @@ export const getStockList = async (req: Request) => {
                               ${!query.start_date && query.end_date
                 ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
-                    ORDER BY ${pagination.sort_by} ${pagination.order_by}
+                    ORDER BY diamond_list.${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
                       FETCH NEXT ${pagination.per_page_rows} ROWS ONLY
@@ -261,7 +268,7 @@ export const getStockDetail = async (req: Request) => {
 
         if (!diamond[0]) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_message", 'Diamond']])
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Diamond']])
             })
         }
 
