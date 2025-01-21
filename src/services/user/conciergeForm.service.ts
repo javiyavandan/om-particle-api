@@ -10,7 +10,6 @@ import {
   DeleteStatus,
   IMAGE_TYPE,
   Image_type,
-  Master_type,
 } from "../../utils/app-enumeration";
 import {
   DEFAULT_STATUS_CODE_SUCCESS,
@@ -18,7 +17,6 @@ import {
 } from "../../utils/app-messages";
 import { ADMIN_MAIL, APP_NAME, FRONT_END_BASE_URL } from "../../config/env.var";
 import { mailAdminDiamondConcierge, mailDiamondConcierge } from "../mail.service";
-import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import DiamondConcierge from "../../model/diamondConcierge.model";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
@@ -61,44 +59,6 @@ export const diamondConciergeForm = async (req: Request) => {
       }
     }
 
-    const masterData = await Master.findAll({
-      where: {
-        is_active: ActiveStatus.Active,
-        is_deleted: DeleteStatus.No,
-      },
-    })
-
-    const colorData = masterData.find((data) => data.dataValues.id == color && data.dataValues.master_type === Master_type.Diamond_color)
-    const clarityData = masterData.find((data) => data.dataValues.id == clarity && data.dataValues.master_type === Master_type.Diamond_clarity)
-    const shapeData = masterData.find((data) => data.dataValues.id == shape && data.dataValues.master_type === Master_type.Stone_shape);
-
-    if (!(shapeData && shapeData.dataValues)) {
-      return resNotFound({
-        message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-          ["field_name", "Shape"],
-        ]),
-        code: DEFAULT_STATUS_CODE_SUCCESS,
-      });
-    }
-
-    if (!(clarityData && clarityData.dataValues)) {
-      return resNotFound({
-        message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-          ["field_name", "Diamond Clarity"],
-        ]),
-        code: DEFAULT_STATUS_CODE_SUCCESS,
-      });
-    }
-
-    if (!(colorData && colorData.dataValues)) {
-      return resNotFound({
-        message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-          ["field_name", "Diamond Color"],
-        ]),
-        code: DEFAULT_STATUS_CODE_SUCCESS,
-      });
-    }
-
     const trn = await dbContext.transaction();
 
     try {
@@ -138,10 +98,10 @@ export const diamondConciergeForm = async (req: Request) => {
         measurement: measurement,
         weight: weight,
         user_id: session_res.user_id,
-        color: colorData.dataValues.id,
-        clarity: clarityData.dataValues.id,
+        color,
+        clarity,
         product_id: productData?.dataValues.id,
-        shape: shapeData.dataValues.id,
+        shape,
         id_image,
         stones: no_of_stones,
         certificate,
@@ -159,9 +119,9 @@ export const diamondConciergeForm = async (req: Request) => {
           phone_number: conciergeData.dataValues.phone_number,
           message: conciergeData.dataValues.message,
           frontend_url: FRONT_END_BASE_URL,
-          product_shape: shapeData.dataValues.name,
-          product_color: colorData.dataValues.name,
-          product_clarity: clarityData.dataValues.name,
+          product_shape: conciergeData.dataValues.shape,
+          product_color: conciergeData.dataValues.color,
+          product_clarity: conciergeData.dataValues.clarity,
           product_stones: no_of_stones,
           product_weight: weight,
           product_measurement: measurement,
@@ -178,9 +138,9 @@ export const diamondConciergeForm = async (req: Request) => {
           phone_number: conciergeData.dataValues.phone_number,
           message: conciergeData.dataValues.message,
           frontend_url: FRONT_END_BASE_URL,
-          product_shape: shapeData.dataValues.name,
-          product_color: colorData.dataValues.name,
-          product_clarity: clarityData.dataValues.name,
+          product_shape: conciergeData.dataValues.shape,
+          product_color: conciergeData.dataValues.color,
+          product_clarity: conciergeData.dataValues.clarity,
           product_stones: no_of_stones,
           product_weight: weight,
           product_measurement: measurement,

@@ -11,7 +11,6 @@ import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import DiamondConcierge from "../../model/diamondConcierge.model";
 import AppUser from "../../model/app_user.model";
 import Customer from "../../model/customer.modal";
-import Master from "../../model/masters.model";
 import { IMAGE_URL } from "../../config/env.var";
 
 export const getDiamondConciergeList = async (req: Request) => {
@@ -62,7 +61,14 @@ export const getDiamondConciergeList = async (req: Request) => {
         "product_id",
         "stones",
         "certificate",
-        [Sequelize.literal(`image.image_path`), 'image_path']
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
       ],
       include: [
         {
@@ -129,7 +135,17 @@ export const getDiamondConciergeDetail = async (req: Request) => {
         "measurement",
         "product_id",
         "certificate",
-        [Sequelize.literal(`image.image_path`), 'image_path']
+        "color",
+        "clarity",
+        "shape",
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
       ],
       include: [
         {
@@ -166,69 +182,6 @@ export const getDiamondConciergeDetail = async (req: Request) => {
               attributes: [],
             },
           ],
-        },
-        {
-          model: Master,
-          as: "shapeData",
-          attributes: [
-            "id",
-            "name",
-            "sort_code",
-            "slug",
-            "id_image",
-            [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"shapeData->image"."image_path"`)
-              ),
-              "image_path",
-            ],
-          ],
-          include: [
-            {
-              model: Image,
-              as: "image",
-              attributes: [],
-            },
-          ],
-        },
-        {
-          model: Master,
-          as: "stonesData",
-          attributes: [
-            "id",
-            "name",
-            "sort_code",
-            "slug",
-            "id_image",
-            [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"stonesData->image"."image_path"`)
-              ),
-              "image_path",
-            ],
-          ],
-          include: [
-            {
-              required: false,
-              model: Image,
-              as: "image",
-              attributes: [],
-            },
-          ],
-        },
-        {
-          model: Master,
-          as: "colorData",
-          attributes: ["id", "name", "sort_code", "slug"],
-        },
-        {
-          model: Master,
-          as: "clarityData",
-          attributes: ["id", "name", "sort_code", "slug"],
         },
         {
           model: Image,
