@@ -742,8 +742,8 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
 
                 let local_location: any = row["local location"];
-                let user_comments: any = row["user comments"];
-                let admin_comments: any = row["admin comments"];
+                let user_comments: any = row["user comment"];
+                let admin_comments: any = row["admin comment"];
 
                 const findStock = await stockList.find(
                     (t: any) => t.dataValues.stock_id == row["stock #"]
