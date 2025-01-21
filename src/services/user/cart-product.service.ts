@@ -11,7 +11,7 @@ import {
 } from "../../utils/shared-functions";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { Sequelize } from "sequelize";
-import { DeleteStatus } from "../../utils/app-enumeration";
+import { DeleteStatus, StockStatus } from "../../utils/app-enumeration";
 import Master from "../../model/masters.model";
 import Diamonds from "../../model/diamond.model";
 import Company from "../../model/companys.model";
@@ -45,6 +45,11 @@ export const addCartProduct = async (req: Request) => {
           ["field_name", "Product"],
         ]),
       });
+    }
+    if (productDetail.dataValues.status !== StockStatus.AVAILABLE) {
+      return resBadRequest({
+        message: "Product not available",
+      })
     }
 
     // create cart product
