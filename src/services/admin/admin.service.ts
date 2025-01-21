@@ -64,6 +64,10 @@ export const userList = async (req: Request) => {
           [Op.or]: [
             { first_name: { [Op.iLike]: `%${pagination.search_text}%` } },
             { last_name: { [Op.iLike]: `%${pagination.search_text}%` } },
+            Sequelize.where(
+              Sequelize.fn('concat', Sequelize.col('first_name'), ' ', Sequelize.col('last_name')),
+              { [Op.iLike]: `%${pagination.search_text}%` }
+            ),
             { email: { [Op.iLike]: `%${pagination.search_text}%` } },
             { phone_number: { [Op.iLike]: `%${pagination.search_text}%` } },
             { '$customer.company_name$': { [Op.iLike]: `%${pagination.search_text}%` } },
