@@ -10,8 +10,7 @@ import Image from "../../model/image.model";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import DiamondConcierge from "../../model/diamondConcierge.model";
 import AppUser from "../../model/app_user.model";
-import Company from "../../model/company.modal";
-import Master from "../../model/masters.model";
+import Customer from "../../model/customer.modal";
 import { IMAGE_URL } from "../../config/env.var";
 
 export const getDiamondConciergeList = async (req: Request) => {
@@ -26,11 +25,11 @@ export const getDiamondConciergeList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -62,6 +61,14 @@ export const getDiamondConciergeList = async (req: Request) => {
         "product_id",
         "stones",
         "certificate",
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
       ],
       include: [
         {
@@ -75,30 +82,35 @@ export const getDiamondConciergeList = async (req: Request) => {
             "user_type",
             "phone_number",
             "is_verified",
-            [Sequelize.literal(`"user->company"."id"`), "company_id"],
+            [Sequelize.literal(`"user->customer"."id"`), "customer_id"],
             [
-              Sequelize.literal(`"user->company"."company_name"`),
-              "company_name",
+              Sequelize.literal(`"user->customer"."company_name"`),
+              "customer_name",
             ],
             [
-              Sequelize.literal(`"user->company"."company_website"`),
-              "company_website",
+              Sequelize.literal(`"user->customer"."company_website"`),
+              "customer_website",
             ],
-            [Sequelize.literal(`"user->company"."abn_number"`), "abn_number"],
-            [Sequelize.literal(`"user->company"."address"`), "address"],
-            [Sequelize.literal(`"user->company"."city"`), "city"],
-            [Sequelize.literal(`"user->company"."state"`), "state"],
-            [Sequelize.literal(`"user->company"."country"`), "country"],
-            [Sequelize.literal(`"user->company"."postcode"`), "postcode"],
+            [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
+            [Sequelize.literal(`"user->customer"."address"`), "address"],
+            [Sequelize.literal(`"user->customer"."city"`), "city"],
+            [Sequelize.literal(`"user->customer"."state"`), "state"],
+            [Sequelize.literal(`"user->customer"."country"`), "country"],
+            [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
           ],
           include: [
             {
-              model: Company,
-              as: "company",
+              model: Customer,
+              as: "customer",
               attributes: [],
             },
           ],
         },
+        {
+          model: Image,
+          as: 'image',
+          attributes: [],
+        }
       ],
     });
     return resSuccess({ data: { pagination, result: diamondData } });
@@ -123,6 +135,17 @@ export const getDiamondConciergeDetail = async (req: Request) => {
         "measurement",
         "product_id",
         "certificate",
+        "color",
+        "clarity",
+        "shape",
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
       ],
       include: [
         {
@@ -136,93 +159,35 @@ export const getDiamondConciergeDetail = async (req: Request) => {
             "user_type",
             "phone_number",
             "is_verified",
-            [Sequelize.literal(`"user->company"."id"`), "company_id"],
+            [Sequelize.literal(`"user->customer"."id"`), "customer_id"],
             [
-              Sequelize.literal(`"user->company"."company_name"`),
-              "company_name",
+              Sequelize.literal(`"user->customer"."company_name"`),
+              "customer_name",
             ],
             [
-              Sequelize.literal(`"user->company"."company_website"`),
-              "company_website",
+              Sequelize.literal(`"user->customer"."company_website"`),
+              "customer_website",
             ],
-            [Sequelize.literal(`"user->company"."abn_number"`), "abn_number"],
-            [Sequelize.literal(`"user->company"."address"`), "address"],
-            [Sequelize.literal(`"user->company"."city"`), "city"],
-            [Sequelize.literal(`"user->company"."state"`), "state"],
-            [Sequelize.literal(`"user->company"."country"`), "country"],
-            [Sequelize.literal(`"user->company"."postcode"`), "postcode"],
+            [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
+            [Sequelize.literal(`"user->customer"."address"`), "address"],
+            [Sequelize.literal(`"user->customer"."city"`), "city"],
+            [Sequelize.literal(`"user->customer"."state"`), "state"],
+            [Sequelize.literal(`"user->customer"."country"`), "country"],
+            [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
           ],
           include: [
             {
-              model: Company,
-              as: "company",
+              model: Customer,
+              as: "customer",
               attributes: [],
             },
           ],
         },
         {
-          model: Master,
-          as: "shapeData",
-          attributes: [
-            "id",
-            "name",
-            "sort_code",
-            "slug",
-            "id_image",
-            [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"shapeData->image"."image_path"`)
-              ),
-              "image_path",
-            ],
-          ],
-          include: [
-            {
-              model: Image,
-              as: "image",
-              attributes: [],
-            },
-          ],
-        },
-        {
-          model: Master,
-          as: "stonesData",
-          attributes: [
-            "id",
-            "name",
-            "sort_code",
-            "slug",
-            "id_image",
-            [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"stonesData->image"."image_path"`)
-              ),
-              "image_path",
-            ],
-          ],
-          include: [
-            {
-              required: false,
-              model: Image,
-              as: "image",
-              attributes: [],
-            },
-          ],
-        },
-        {
-          model: Master,
-          as: "colorData",
-          attributes: ["id", "name", "sort_code", "slug"],
-        },
-        {
-          model: Master,
-          as: "clarityData",
-          attributes: ["id", "name", "sort_code", "slug"],
-        },
+          model: Image,
+          as: 'image',
+          attributes: [],
+        }
       ],
     });
 

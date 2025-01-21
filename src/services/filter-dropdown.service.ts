@@ -5,174 +5,100 @@ import {
   DeleteStatus,
   IMAGE_TYPE,
   Master_type,
+  UserType,
 } from "../utils/app-enumeration";
 import { resSuccess } from "../utils/shared-functions";
 import Image from "../model/image.model";
 import { Sequelize } from "sequelize";
 import { IMAGE_URL } from "../config/env.var";
 import { FilterOrder } from "../utils/app-constants";
+import Company from "../model/companys.model";
+import Customer from "../model/customer.modal";
+import AppUser from "../model/app_user.model";
 
 export const getAllFilterData = async (req: Request) => {
-  const where = (type: string) => {
+  const where = () => {
     return {
-      master_type: type,
       is_deleted: DeleteStatus.No,
       is_active: ActiveStatus.Active,
     };
   };
 
+  const masterData = await Master.findAll({
+    where: where(),
+    order: [[FilterOrder.sort_by, FilterOrder.order_by]],
+    attributes: [
+      "id",
+      "name",
+      "slug",
+      "value",
+      "sort_code",
+      "stone_type",
+      "master_type",
+      [
+        Sequelize.fn(
+          "CONCAT",
+          IMAGE_URL,
+          Sequelize.literal(`"image"."image_path"`)
+        ),
+        "image_path",
+      ],
+    ],
+    include: [
+      {
+        model: Image,
+        attributes: [],
+        as: "image",
+      },
+    ],
+  })
+
   try {
-    const shapeData = await Master.findAll({
-      where: where(Master_type.Stone_shape),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: [
-        "id",
-        "name",
-        "slug",
-        "value",
-        "sort_code",
-        "stone_type",
-        [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
-          "image_path",
-        ],
-      ],
-      include: [
-        {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
+    const shapeData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.Stone_shape;
     });
-    const cutData = await Master.findAll({
-      where: where(Master_type.Diamond_cut),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code"],
+    const clarityData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.Diamond_clarity;
     });
-    const clarityData = await Master.findAll({
-      where: where(Master_type.Diamond_clarity),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code", "stone_type"],
+    const colorData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.Diamond_color;
     });
-    const colorData = await Master.findAll({
-      where: where(Master_type.Diamond_color),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code", "stone_type"],
+    const colorIntensityData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.colorIntensity;
     });
-    const certificateData = await Master.findAll({
-      where: where(Master_type.Diamond_certificate),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code", "stone_type"],
+    const labData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.lab;
     });
-    const processData = await Master.findAll({
-      where: where(Master_type.Diamond_process),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code", "stone_type"],
+    const fluorescenceData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.fluorescence;
     });
-    const metalKarat = await Master.findAll({
-      where: where(Master_type.Metal_karat),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code", "stone_type"],
+    const polishData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.Polish;
     });
-    const metalTone = await Master.findAll({
-      where: where(Master_type.Metal_tone),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: [
-        "id",
-        "name",
-        "slug",
-        "value",
-        "sort_code",
-        "stone_type",
-        "id_image",
-        [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
-          "image_path",
-        ],
-      ],
-      include: [
-        {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
+    const symmetryData = masterData.filter((data) => {
+      return data.dataValues.master_type === Master_type.symmetry;
     });
-    const category = await Master.findAll({
-      where: where(Master_type.Category_master),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: [
-        "id",
-        "name",
-        "slug",
-        "value",
-        "sort_code",
-        "stone_type",
-        "id_parent",
-        "id_image",
-        [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
-          "image_path",
-        ],
-      ],
-      include: [
-        {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
-    });
-    const itemSize = await Master.findAll({
-      where: where(Master_type.Item_size),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code"],
-      include: [
-        {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
-    });
-    const itemLength = await Master.findAll({
-      where: where(Master_type.Item_length),
-      order: [[FilterOrder.sort_by, FilterOrder.order_by]],
-      attributes: ["id", "name", "slug", "value", "sort_code"],
-      include: [
-        {
-          model: Image,
-          attributes: [],
-          as: "image",
-        },
-      ],
+    const companyData = await Company.findAll({ where: where(), attributes: ["id", "name"] });
+    const customerData = await Customer.findAll({
+      attributes: ["id", "company_name"], include: [{
+        model: AppUser, as: "user", where: {
+          user_type: UserType.Customer,
+          ...where()
+        }
+      }]
     });
     return resSuccess({
       data: {
         shapeData: shapeData,
-        cutData: cutData,
         clarityData: clarityData,
         colorData: colorData,
-        certificateData: certificateData,
-        processData: processData,
-        metalKarat: metalKarat,
-        metalTone: metalTone,
-        category: category,
-        itemSize: itemSize,
-        itemLength: itemLength,
+        colorIntensityData: colorIntensityData,
+        companyData,
+        customerData,
+        labData,
+        fluorescenceData,
+        polishData,
+        symmetryData,
       },
     });
   } catch (error) {

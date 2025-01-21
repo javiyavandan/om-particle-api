@@ -29,6 +29,7 @@ import {
   export const REQUIRED_ERROR_MESSAGE = "<<field_name>> is required!";
   
   export const RECORD_DELETED = "Record deleted successfully";
+  export const RECORD_UPDATE = "Record update successfully";
   export const STATUS_UPDATED = "Status Updated";
   export const INVALID_OTP = "Invalid OTP!";
   export const INVALID_ERROR_MESSAGE = "Invalid <<field_name>> type!";
@@ -52,6 +53,7 @@ import {
     "<<field_name>> field should be a type of url";
   
   export const USER_NOT_FOUND = "User not found!";
+  export const CUSTOMER_NOT_VERIFIED = "Customer not verified!";
   export const USER_NOT_VERIFIED = "User is not verified please contact admin!";
   export const VERIFIED = "<<field_name>> is verified!";
   export const UPDATE = "<<field_name>> is updated!";
@@ -99,7 +101,7 @@ import {
   export const LAST_NAME_REQUIRED = "Last name is required!";
   export const COMPANY_NAME_REQUIRED = "Company name is required!";
   export const COMPANY_WEBSITE_REQUIRED = "Company website is required!";
-  export const ABN_NUMBER_REQUIRED = "ABN number is required!";
+  export const REGISTRATION_NUMBER_REQUIRED = "Registration number is required!";
   export const ADDRESS_REQUIRED = "Address is required!";
   export const CITY_REQUIRED = "City is required!";
   export const STATE_REQUIRED = "State is required!";
@@ -187,4 +189,5 @@ import {
     "Phone number must be a 4 to 20 characters!";
   export const EMAIL_ALL_READY_EXIST = "User is already exists with the same email!";
   export const INVALID_OLD_PASSWORD = "Invalid old password!";
-  
+  export const CURRENCY_STATUS_DEFAULT = "Cannot change the status of default currency"
+  export const CURRENCY_DELETE_DEFAULT = "Cannot remove the default currency"

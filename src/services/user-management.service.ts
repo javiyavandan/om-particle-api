@@ -11,7 +11,7 @@ import {
 } from "../utils/shared-functions";
 import bcrypt from "bcrypt";
 import { PASSWORD_SOLT } from "../utils/app-constants";
-import { Image_type, IMAGE_TYPE, UserType } from "../utils/app-enumeration";
+import { ActiveStatus, Image_type, IMAGE_TYPE, UserType } from "../utils/app-enumeration";
 import Role from "../model/role.model";
 import {
   DEFAULT_STATUS_CODE_SUCCESS,
@@ -70,12 +70,12 @@ export const getAllBusinessUsers = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              email: { [Op.iLike]: `%${pagination.search_text}%` },
-              phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            email: { [Op.iLike]: `%${pagination.search_text}%` },
+            phone_number: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -154,7 +154,7 @@ export const getBusinessUserById = async (req: Request) => {
 export const addBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { email, password, name, phone_number, id_role, is_active } =
+    const { email, password, name, phone_number, id_role } =
       req.body;
     let idImage = null;
 
@@ -204,7 +204,7 @@ export const addBusinessUser = async (req: Request) => {
         phone_number,
         id_image: idImage,
         user_type: UserType.Admin,
-        is_active,
+        is_active: ActiveStatus.Active,
         created_by: req.body.session_res.id_app_user,
         created_at: getLocalDate(),
       },
@@ -217,7 +217,7 @@ export const addBusinessUser = async (req: Request) => {
         name,
         email,
         phone_number,
-        is_active,
+        is_active: ActiveStatus.Active,
         id_image: idImage,
         created_by: req.body.session_res.id_app_user,
         created_date: getLocalDate(),
@@ -236,7 +236,7 @@ export const addBusinessUser = async (req: Request) => {
 export const updateBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { name, phone_number, id_role, is_active } = req.body;
+    const { name, phone_number, id_role } = req.body;
     let idImage = null;
 
     let idBusinessUser: any = req.params.id;
@@ -256,7 +256,7 @@ export const updateBusinessUser = async (req: Request) => {
     if (req.body.only_active_inactive === "1") {
       await AppUser.update(
         {
-          is_active,
+          is_active: ActiveStatus.Active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -265,7 +265,7 @@ export const updateBusinessUser = async (req: Request) => {
 
       await BusinessUser.update(
         {
-          is_active,
+          is_active: ActiveStatus.Active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -330,7 +330,7 @@ export const updateBusinessUser = async (req: Request) => {
 
     await AppUser.update(
       {
-        is_active,
+        is_active: ActiveStatus.Active,
         id_role,
         id_image: idImage,
         modified_by: req.body.session_res.id_app_user,
@@ -343,7 +343,7 @@ export const updateBusinessUser = async (req: Request) => {
       {
         name,
         phone_number,
-        is_active,
+        is_active: ActiveStatus.Active,
         id_image: idImage,
         modified_by: req.body.session_res.id_app_user,
         modified_date: getLocalDate(),

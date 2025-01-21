@@ -1,4 +1,4 @@
-require('dotenv').config({ path: 'environment/.env.' + process.env.NODE_ENV });
+require('dotenv').config({ path: '.env' });
 
 export const PORT = process.env.PORT || 2526;
 export const SECURE_COMMUNICATION = process.env.SECURE_COMMUNICATION
@@ -21,7 +21,7 @@ export const FRONT_END_BASE_URL =
 export const RESET_PASSWORD_PATH =
   process.env.RESET_PASSWORD_PATH || "/reset-password?token=";
 export const IMAGE_PATH =
-  process.env.IMAGE_PATH || "";
+  process.env.IMAGE_PATH || "https://omparticle.com/wp-content/uploads/2022/09/398672904_122104802492094624_657999244555465152_n-1-300x134.png";
 export const IMAGE_URL =
   process.env.IMAGE_URL || "https://d3d05p2gd539q7.cloudfront.net/";
 
@@ -38,9 +38,11 @@ process.env.STORE_TEMP_IMAGE_PATH || "public/temp/images";
 export const STORE_TEMP_FILE_PATH =
 process.env.STORE_TEMP_FILE_PATH || "public/temp/files";
 export const APP_NAME = process.env.APP_NAME || "OML";
+export const PRODUCT_CSV_FOLDER_PATH =
+  process.env.PRODUCT_CSV_FOLDER_PATH || "public/csv";
 
 // AWS S3
-export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "purelab";
+export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "ompl";
 export const S3_REGION = process.env.S3_REGION || "ap-south-1";
 export const S3_ACCESS_KEY_ID =
   process.env.S3_ACCESS_KEY_ID;
@@ -58,4 +60,6 @@ export const MAIL_PORT = process.env.MAIL_PORT || 465;
 export const MAIL_SECURE = process.env.MAIL_SECURE || false;
 export const MAIL_FROM = process.env.MAIL_FROM || "noreply@vihaainfotech.com";
 
-export const ADMIN_MAIL = "info@oml.com";
+export const ADMIN_MAIL = "shreyash.vihaainfotech@gmail.com";
+
+export const ORDER_NUMBER_IDENTITY = process.env.ORDER_NUMBER_IDENTITY || "OMPL";

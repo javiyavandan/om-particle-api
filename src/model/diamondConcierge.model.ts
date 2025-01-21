@@ -2,6 +2,7 @@ import { BIGINT, DATE, DOUBLE, INTEGER, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import AppUser from "./app_user.model";
 import Master from "./masters.model";
+import Image from "./image.model";
 
 const DiamondConcierge = dbContext.define("diamond_concierges", {
   id: {
@@ -28,7 +29,7 @@ const DiamondConcierge = dbContext.define("diamond_concierges", {
     type: STRING,
   },
   shape: {
-    type: BIGINT,
+    type: STRING,
   },
   stones: {
     type: BIGINT,
@@ -40,13 +41,16 @@ const DiamondConcierge = dbContext.define("diamond_concierges", {
     type: DOUBLE,
   },
   color: {
-    type: BIGINT,
+    type: STRING,
   },
   clarity: {
-    type: BIGINT,
+    type: STRING,
   },
   certificate: {
     type: STRING,
+  },
+  id_image: {
+    type: BIGINT,
   },
   created_at: {
     type: DATE,
@@ -57,9 +61,6 @@ const DiamondConcierge = dbContext.define("diamond_concierges", {
 });
 
 DiamondConcierge.belongsTo(AppUser, { foreignKey: "user_id", as: "user" });
-DiamondConcierge.belongsTo(Master, {foreignKey: "shape", as: "shapeData"})
-DiamondConcierge.belongsTo(Master, {foreignKey: "stones", as: "stonesData"})
-DiamondConcierge.belongsTo(Master, {foreignKey: "color", as: "colorData"})
-DiamondConcierge.belongsTo(Master, {foreignKey: "clarity", as: "clarityData"})
+DiamondConcierge.belongsTo(Image, {foreignKey: "id_image", as: "image"})
 
 export default DiamondConcierge;

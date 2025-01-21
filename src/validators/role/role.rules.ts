@@ -21,6 +21,7 @@ import {
   ROLE_PERMISSION_ACCESS_REQUIRED,
   ROLE_PERMISSION_ACCESS_TYPE_ARRAY,
 } from "../../utils/app-messages";
+import { fieldIntegerChain } from "../common-validation-rules";
 
 const checkOnlyAI = (onlyAI: boolean, req: Meta["req"]) => {
   if (onlyAI) {
@@ -113,17 +114,20 @@ const rolePermissionAccessChain = [
 
 export const addRoleValidationRule = [
   roleNameChain(false),
+  fieldIntegerChain("company", "company_id"),
   roleIsOnlyAIChain,
   roleIsActiveChain,
 ];
 
 export const updateRoleValidationRule = [
   roleNameChain(true),
+  fieldIntegerChain("company", "company_id"),
   roleIsOnlyAIChain,
   roleIsActiveChain,
 ];
 
 export const addUpdateRoleConfigurationRule = [
   roleNameChain(false),
+  fieldIntegerChain("company", "company_id"),
   ...rolePermissionAccessChain,
 ];

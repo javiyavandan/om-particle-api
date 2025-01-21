@@ -12,6 +12,7 @@ import {
   updateRoleFn,
   addMenuItemsFn,
   addPermissionFn,
+  addActionFn,
 } from "../controllers/role.controller";
 import {
   addUpdateRoleConfigurationValidator,
@@ -30,6 +31,7 @@ export default (app: Router) => {
   );
   app.delete("/roles/:id", [adminAuthorization], deleteRoleFn);
   app.get("/actions", [adminAuthorization], getAllActionsFn);
+  app.post("/actions", [adminAuthorization], addActionFn);
   app.get("/menu-items", getAllMenuItemsFn);
   app.get(
     "/role-configuration/:id",

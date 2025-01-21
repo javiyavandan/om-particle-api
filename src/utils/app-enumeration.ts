@@ -3,6 +3,12 @@ export enum UserType {
   Customer = "customer_user",
 }
 
+export enum StockStatus {
+  AVAILABLE = 'available',
+  SOLD = 'sold',
+  MEMO = 'memo',
+}
+
 export enum AffiliateStatus {
   Padding = 0,
   Active = 1,
@@ -18,6 +24,14 @@ export enum MESSAGE_TYPE {
   JewelryConcierge = 7,
   DiamondConcierge = 8,
   UserVerify = 9,
+  Memo = 10,
+  Invoice = 11,
+  Inquiry = 12,
+}
+
+export enum DefaultStatus {
+  True = "1",
+  False = "0",
 }
 
 export enum DeleteStatus {
@@ -31,7 +45,7 @@ export enum ActiveStatus {
 }
 
 export enum Image_type {
-  Banner = 1,
+  HomePage = 1,
   Masters = 2,
   User = 3,
   Concierge = 4,
@@ -50,6 +64,11 @@ export enum UserVerification {
   User_Verified = "user_verified",
   Admin_Verified = "admin_verified",
   NotVerified = "not_verified",
+}
+
+export enum UserListType {
+  Approved = "approved",
+  Pending = "pending",
 }
 
 
@@ -103,8 +122,10 @@ export enum Master_type {
   symmetry = "symmetry_master",
   fluorescenceIntensity = "fluorescence_intensity_master",
   fluorescenceColor = "fluorescence_color_master",
+  fluorescence = "fluorescence_master",
   lab = "lab_master",
   fancyColor = "fancy_color_master",
+  colorIntensity = "color_intensity_master",
   fancyColorIntensity = "fancy_color_intensity_master",
   fancyColorOvertone = "fancy_color_overtone_master",
   GirdleThin = "girdle_thin_master",
@@ -136,7 +157,7 @@ export enum Master_type {
 
 
 export enum IMAGE_TYPE {
-  Banner = "banner_image",
+  HomePage = "home_page_section",
   AboutUsSection = "about_us_image",
   Metal = "metal_master",
   Metal_tone = "metal_tone_master",
@@ -156,16 +177,18 @@ export enum IMAGE_TYPE {
   Preference = "select_preference_master",
   Tag = "tag_master",
   Brand = "brand_master",
-  User = "user",
-  Concierge = "jewelry_concierge",
+  User = "user_profile",
+  jewelry_Concierge = "jewelry_concierge",
   Availability = "availability_master",
   CutGrade = "cut_grade_master",
   Polish = "polish_master",
   symmetry = "symmetry_master",
   fluorescenceIntensity = "fluorescence_intensity_master",
   fluorescenceColor = "fluorescence_color_master",
+  fluorescence = "fluorescence_master",
   lab = "lab_master",
   fancyColor = "fancy_color_master",
+  colorIntensity = "color_intensity_master",
   fancyColorIntensity = "fancy_color_intensity_master",
   fancyColorOvertone = "fancy_color_overtone_master",
   GirdleThin = "girdle_thin_master",
@@ -193,6 +216,7 @@ export enum IMAGE_TYPE {
   HandA = "H&A_master",
   growthType = "growth_type_master",
   Profile = "user_profile",
+  Concierge = 'concierge'
 }
 
 export enum HTTP_METHODS {
@@ -201,4 +225,38 @@ export enum HTTP_METHODS {
   Put = 3,
   Delete = 4,
   Patch = 5,
+}
+
+export enum FILE_STATUS {
+  Uploaded = 1,
+  ProcessedSuccess = 2,
+  ProcessedError = 3,
+}
+
+export enum FILE_BULK_UPLOAD_TYPE {
+  ProductUpload = 1,
+  ProductZipUpload = 3,
+  StockUpload = 2,
+  ConfigProductUpload = 4,
+}
+
+export enum MEMO_STATUS {
+  Active = 'active',
+  Close = 'close',
+}
+
+export enum File_type {
+  Customer = 8,
+}
+
+export enum FILE_TYPE {
+  Customer = 'customer',
+}
+
+export enum Home_page_sections {
+  Banner = 'banner',
+  DiamondShape = 'diamond_shape',
+  Highlights = 'features_highlights',
+  Counter = 'counter_section',
+  Info = 'info_section',
 }

@@ -10,9 +10,8 @@ import {
 } from "../../utils/shared-functions";
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import {
-  DATA_ALREADY_EXITS,
   DUPLICATE_ERROR_CODE,
-  DUPLICATE_VALUE_ERROR_MESSAGE,
+  DATA_ALREADY_EXITS,
   ERROR_NOT_FOUND,
   NOT_FOUND_CODE,
   STATUS_UPDATED,
@@ -33,7 +32,7 @@ export const addStaticPage = async (req: Request) => {
     if (duplicateSlug && duplicateSlug.dataValues) {
       return resBadRequest({
         code: DUPLICATE_ERROR_CODE,
-        message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+        message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
           ["field_name", "Static Page"],
         ]),
       });
@@ -48,7 +47,7 @@ export const addStaticPage = async (req: Request) => {
     if (duplicateName && duplicateName.dataValues) {
       return resBadRequest({
         code: DUPLICATE_ERROR_CODE,
-        message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+        message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
           ["field_name", "Static Page"],
         ]),
       });

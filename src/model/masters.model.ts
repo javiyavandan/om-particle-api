@@ -1,6 +1,7 @@
 import { INTEGER, STRING, DATE, BIGINT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Image from "./image.model";
+import Country from "./country.model";
 
 const Master = dbContext.define("masters", {
   id: {
@@ -65,8 +66,12 @@ const Master = dbContext.define("masters", {
   deleted_by: {
     type: BIGINT,
   },
+  country_id: {
+    type: BIGINT,
+  }
 });
 
 Master.belongsTo(Image, { foreignKey: "id_image", as: "image" });
+Master.belongsTo(Country, { foreignKey: "country_id", as: "country" });
 
 export default Master;

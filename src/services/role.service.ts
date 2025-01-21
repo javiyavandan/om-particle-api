@@ -10,6 +10,7 @@ import Role from "../model/role.model";
 import {
   ACCESS_NOT_FOUND,
   DEFAULT_STATUS_CODE_SUCCESS,
+  ERROR_NOT_FOUND,
   MENU_ITEM_NOT_FOUND,
   ROLE_NOT_FOUND,
   ROLE_WITH_SAME_NAME_AVAILABLE,
@@ -31,6 +32,7 @@ import AppUser from "../model/app_user.model";
 import BusinessUser from "../model/business-user.model";
 import dbContext from "../config/dbContext";
 import RoleApiPermission from "../model/role-api-permission.model";
+import Company from "../model/companys.model";
 
 export const getAllRoles = async (req: Request) => {
   try {
@@ -74,32 +76,41 @@ export const getAllRoles = async (req: Request) => {
           ),
           "user_count",
         ],
+        [Sequelize.literal(`company_master.name`), 'companyName'],
+        [Sequelize.literal(`company_master.id`), 'companyId']
       ],
-      include: {
-        model: AppUser,
-        as: "app_user",
-        attributes: [
-          "id",
-          [
-            Sequelize.literal(`"app_user->business_users->image"."image_path"`),
-            "image_path",
-          ],
-        ],
-        include: [
-          {
-            model: BusinessUser,
-            as: "business_users",
-            attributes: [],
-            include: [
-              {
-                model: Image,
-                as: "image",
-                attributes: [],
-              },
+      include: [
+        {
+          model: AppUser,
+          as: "app_user",
+          attributes: [
+            "id",
+            [
+              Sequelize.literal(`"app_user->business_users->image"."image_path"`),
+              "image_path",
             ],
-          },
-        ],
-      },
+          ],
+          include: [
+            {
+              model: BusinessUser,
+              as: "business_users",
+              attributes: [],
+              include: [
+                {
+                  model: Image,
+                  as: "image",
+                  attributes: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: Company,
+          as: "company_master",
+          attributes: [],
+        }
+      ],
     });
     return resSuccess({ data: noPagination ? result : { pagination, result } });
   } catch (e) {
@@ -136,9 +147,18 @@ export const addRole = async (req: Request) => {
       return nameValidaton;
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     await Role.create({
       role_name: req.body.role_name,
-      is_active: req.body.is_active,
+      company_id: req.body.company_id,
+      is_active: ActiveStatus.Active,
       created_by: req.body.session_res.id,
       created_date: getLocalDate(),
     });
@@ -163,7 +183,7 @@ export const updateRole = async (req: Request) => {
     if (req.body.only_active_inactive === "1") {
       await Role.update(
         {
-          is_active: req.body.is_active,
+          is_active: ActiveStatus.Active,
           modified_by: req.body.session_res.id,
           modified_date: getLocalDate(),
         },
@@ -181,10 +201,19 @@ export const updateRole = async (req: Request) => {
       return nameValidaton;
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     await Role.update(
       {
         role_name: req.body.role_name,
-        is_active: req.body.is_active,
+        company_id: req.body.company_id,
+        is_active: ActiveStatus.Active,
         modified_by: req.body.session_res.id,
         modified_date: getLocalDate(),
       },
@@ -215,7 +244,16 @@ export const deleteRole = async (req: Request) => {
           ),
           "user_count",
         ],
+        [Sequelize.literal(`company_master.name`), 'companyName'],
+        [Sequelize.literal(`company_master.id`), 'companyId']
       ],
+      include: [
+        {
+          model: Company,
+          as: "company_master",
+          attributes: [],
+        }
+      ]
     });
 
     if (!(roleToDelete && roleToDelete.dataValues)) {
@@ -279,6 +317,23 @@ export const getAllActions = async (req: Request) => {
     throw e;
   }
 };
+
+export const addAction = async (req: Request) => {
+  try {
+    const { name} = req.body
+
+    await Action.create({
+      action_name: name,
+      is_active: ActiveStatus.Active,
+      is_deleted: DeleteStatus.No,
+      created_by: req.body.session_res.id,
+      created_date: getLocalDate(),
+    })
+    return resSuccess()
+  } catch (error) {
+    throw error
+  }
+}
 
 export const getAllMenuItems = async (req: Request) => {
   try {
@@ -407,6 +462,7 @@ const validateMenuItemAndAction = async (
 
 export const addRoleConfiguration = async (req: Request) => {
   try {
+    const { company_id } = req.body;
     const nameValidaton = await roleWithSameNameValidation(req.body.role_name);
     if (nameValidaton.code !== DEFAULT_STATUS_CODE_SUCCESS) {
       return nameValidaton;
@@ -426,11 +482,20 @@ export const addRoleConfiguration = async (req: Request) => {
       }
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     const trn = await dbContext.transaction();
     try {
       const roleResult = await Role.create(
         {
           role_name: req.body.role_name,
+          company_id: findCompany.dataValues.id,
           is_active: "1",
           created_by: req.body.session_res.id,
           created_date: getLocalDate(),
@@ -507,8 +572,17 @@ export const updateRoleConfiguration = async (req: Request) => {
       return validateMenuAction;
     }
 
+    const findCompany = await Company.findOne({
+      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
+    }
+
     await Role.update(
       {
+        company_id: req.body.company_id,
         role_name: req.body.role_name,
         is_active: "1",
         modified_by: req.body.session_res.id,
@@ -758,21 +832,21 @@ export const getUserAccessMenuItems = async (req: Request) => {
       where: { is_deleted: "0", is_active: "1" },
       include:
         req.body.session_res.user_type === UserType.Admin &&
-        req.body.session_res.id_role !== "0"
+          req.body.session_res.id_role !== "0"
           ? {
-              model: RolePermission,
-              as: "RP",
-              where: { id_role: idRole, is_active: "1" },
-              required: true,
-              include: [
-                {
-                  required: true,
-                  model: RolePermissionAccess,
-                  as: "RPA",
-                  where: { id_action: idAction, access: "1" },
-                },
-              ],
-            }
+            model: RolePermission,
+            as: "RP",
+            where: { id_role: idRole, is_active: "1" },
+            required: true,
+            include: [
+              {
+                required: true,
+                model: RolePermissionAccess,
+                as: "RPA",
+                where: { id_action: idAction, access: "1" },
+              },
+            ],
+          }
           : [],
     });
 

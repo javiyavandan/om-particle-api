@@ -3,12 +3,15 @@ import AppUser from "../../model/app_user.model";
 import {
   ActiveStatus,
   DeleteStatus,
+  FILE_TYPE,
+  File_type,
   IMAGE_TYPE,
   Image_type,
 } from "../../utils/app-enumeration";
 import {
   getLocalDate,
   prepareMessageFromParams,
+  refreshMaterializedDiamondListView,
   resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
@@ -17,12 +20,13 @@ import {
   ERROR_NOT_FOUND,
   STATUS_UPDATED,
 } from "../../utils/app-messages";
-import Company from "../../model/company.modal";
+import Customer from "../../model/customer.modal";
 import Image from "../../model/image.model";
 import { Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
 import { IMAGE_URL } from "../../config/env.var";
+import File from "../../model/files.model";
 
 export const getUserDetail = async (req: Request) => {
   try {
@@ -42,7 +46,7 @@ export const getUserDetail = async (req: Request) => {
         ]),
       });
     }
-    const companyDetail = await Company.findOne({
+    const companyDetail = await Customer.findOne({
       where: {
         user_id: user.dataValues.id,
         is_deleted: DeleteStatus.No,
@@ -53,7 +57,7 @@ export const getUserDetail = async (req: Request) => {
         "company_name",
         "company_website",
         "company_email",
-        "abn_number",
+        "registration_number",
         "address",
         "city",
         "state",
@@ -72,13 +76,13 @@ export const getUserDetail = async (req: Request) => {
             "user_type",
             "phone_number",
             "is_verified",
-            "id_image",
+            "remarks",
             [
-              Sequelize.fn(
-                "CONCAT",
-                IMAGE_URL,
-                Sequelize.literal(`"user->image"."image_path"`)
-              ),
+              Sequelize.literal(`CASE WHEN "user->file"."file_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->file"."file_path") ELSE NULL END`),
+              "file_path",
+            ],
+            [
+              Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
             ],
           ],
@@ -86,6 +90,11 @@ export const getUserDetail = async (req: Request) => {
             {
               model: Image,
               as: "image",
+              attributes: [],
+            },
+            {
+              model: File,
+              as: "file",
               attributes: [],
             },
           ],
@@ -107,30 +116,17 @@ export const updateUserDetail = async (req: Request) => {
       phone_number,
       company_name,
       company_website,
-      abn_number,
+      registration_number,
       address,
       city,
       country,
       state,
       postcode,
+      remarks,
       session_res,
     } = req.body;
 
-    const { file } = req;
-    let filePath = null;
-
-    if (req.file) {
-      const moveFileResult = await moveFileToS3ByType(
-        req.file,
-        Image_type.User
-      );
-
-      if (moveFileResult.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-        return moveFileResult;
-      }
-
-      filePath = moveFileResult.data;
-    }
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     const user = await AppUser.findOne({
       where: {
@@ -139,8 +135,6 @@ export const updateUserDetail = async (req: Request) => {
         is_active: ActiveStatus.Active,
       },
     });
-
-    let id_image;
 
     if (!(user && user.dataValues)) {
       return resNotFound({
@@ -153,38 +147,56 @@ export const updateUserDetail = async (req: Request) => {
     const trn = await dbContext.transaction();
 
     try {
-      if (user.dataValues.id_image) {
-        if (file?.path) {
-          await Image.update(
-            {
-              image_path: filePath,
-              modified_at: getLocalDate(),
-              modified_by: session_res.user_id,
-              image_type: IMAGE_TYPE.User,
-            },
-            {
-              where: { id: user.dataValues.id_image },
-              transaction: trn,
-            }
-          );
-        }
-      } else {
-        if (file?.path) {
-          const imageData = await Image.create(
-            {
-              image_path: file.path,
-              created_at: getLocalDate(),
-              created_by: session_res.user_id,
-              is_deleted: DeleteStatus.No,
-              image_type: IMAGE_TYPE.User,
-            },
-            {
-              transaction: trn,
-            }
-          );
+      let imageId;
+      if (files["image"]) {
+        const imageData = await moveFileToS3ByType(
+          files["image"][0],
+          Image_type.User
+        )
 
-          id_image = imageData.dataValues.id;
+        if (imageData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return imageData;
         }
+        const imageResult = await Image.create(
+          {
+            image_path: imageData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            image_type: IMAGE_TYPE.User,
+          },
+          { transaction: trn }
+        );
+        imageId = imageResult.dataValues.id;
+      } else {
+        imageId = user.dataValues.id_image;
+      }
+
+      let pdfId;
+      if (files["pdf"]) {
+        const fileData = await moveFileToS3ByType(
+          files["pdf"][0],
+          File_type.Customer
+        )
+
+        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+          return fileData;
+        }
+        const fileResult = await File.create(
+          {
+            file_path: fileData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            file_type: FILE_TYPE.Customer,
+          },
+          { transaction: trn }
+        );
+        pdfId = fileResult.dataValues.id;
+      } else {
+        pdfId = user.dataValues.id_pdf;
       }
 
       await AppUser.update(
@@ -192,11 +204,11 @@ export const updateUserDetail = async (req: Request) => {
           first_name: first_name,
           last_name: last_name,
           phone_number: phone_number,
+          remarks,
           modified_at: getLocalDate(),
           modified_by: session_res.user_id,
-          id_image: user.dataValues.id_image
-            ? user.dataValues.id_image
-            : id_image,
+          id_image: imageId,
+          id_pdf: pdfId,
         },
         {
           where: {
@@ -208,11 +220,11 @@ export const updateUserDetail = async (req: Request) => {
         }
       );
 
-      await Company.update(
+      await Customer.update(
         {
           company_name: company_name,
           company_website: company_website,
-          abn_number: abn_number,
+          registration_number: registration_number,
           address: address,
           city: city,
           country: country,
@@ -230,10 +242,11 @@ export const updateUserDetail = async (req: Request) => {
         }
       );
 
-      trn.commit();
+      await trn.commit();
+      await refreshMaterializedDiamondListView();
       return resSuccess({ message: STATUS_UPDATED });
     } catch (error) {
-      trn.rollback();
+      await trn.rollback();
       throw error;
     }
   } catch (error) {

@@ -21,7 +21,9 @@ import { HUBSPOT_SYNC_URL, HUBSPOT_TOKEN } from "../config/env.var";
 import { Sequelize } from "sequelize";
 import { IQueryPagination } from "../data/interfaces/common/common.interface";
 import { BIT_FIELD_VALUES, GET_HTTP_METHODS_LABEL, PER_PAGE_ROWS } from "./app-constants";
-import { HTTP_METHODS } from "./app-enumeration";
+import { ActiveStatus, HTTP_METHODS } from "./app-enumeration";
+import dbContext from "../config/dbContext";
+import Currency from "../model/currency-master.model";
 
 export const parseData = (data: Object) => {
   try {
@@ -225,3 +227,68 @@ export const getMethodFromRequest = (method: string) => {
       return 0;
   }
 };
+
+export const refreshMaterializedDiamondListView = async () => {
+  try {
+    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list;");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCurrencyPrice = async (code: string) => {
+  try {
+    let apiCurrencyData;
+
+    const todayDate = new Date().toISOString().slice(0, 10);
+
+    let defaultCode;
+
+    const currency = await Currency.findOne({
+      where: { is_default: ActiveStatus.Active },
+    })
+
+    defaultCode = currency?.dataValues.code
+
+    await axios
+      .get(`https://${todayDate}.currency-api.pages.dev/v1/currencies/usd.json`)
+      .then((response) => {
+        apiCurrencyData = response.data.usd;
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    if (apiCurrencyData) {
+      if (code) {
+        if (!apiCurrencyData[code.toLowerCase()]) {
+          return apiCurrencyData[defaultCode.toLowerCase()];
+        } else {
+          return apiCurrencyData[code.toLowerCase()];
+        }
+      } else {
+        return apiCurrencyData[defaultCode.toLowerCase()];
+      }
+    }
+
+  } catch (error) {
+    throw error;
+  }
+}
+
+export const getCurrencyCode = async () => {
+  try {
+
+    let code;
+    
+    await axios.get('https://ipapi.co/currency/')
+      .then((response) => {code = response.data} )
+      .catch((error) => {
+        throw error
+      });
+
+      return code;
+  } catch (error) {
+    throw error;
+  }
+}

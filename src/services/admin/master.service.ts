@@ -4,7 +4,9 @@ import {
   getInitialPaginationFromQuery,
   getLocalDate,
   prepareMessageFromParams,
+  refreshMaterializedDiamondListView,
   resBadRequest,
+  resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
 import {
@@ -20,6 +22,7 @@ import {
   ActiveStatus,
   DeleteStatus,
   Image_type,
+  Master_type,
 } from "../../utils/app-enumeration";
 import dbContext from "../../config/dbContext";
 import { MasterError } from "../../utils/app-constants";
@@ -27,6 +30,7 @@ import { IMAGE_URL } from "../../config/env.var";
 import Master from "../../model/masters.model";
 import Image from "../../model/image.model";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
+import Country from "../../model/country.model";
 
 export const addMaster = async (req: Request) => {
   try {
@@ -41,6 +45,7 @@ export const addMaster = async (req: Request) => {
       link,
       import_name,
       order,
+      country_id,
     } = req.body;
     const { file } = req;
     let filePath = null;
@@ -72,8 +77,8 @@ export const addMaster = async (req: Request) => {
       where: [
         sort_code && sort_code != undefined
           ? {
-              sort_code: columnValueLowerCase("sort_code", sort_code),
-            }
+            sort_code: columnValueLowerCase("sort_code", sort_code),
+          }
           : {},
         id_parent && { id_parent: id_parent },
         { master_type: master_type },
@@ -113,6 +118,20 @@ export const addMaster = async (req: Request) => {
       }
     }
 
+    if (country_id) {
+      const country = await Country.findOne({
+        where: { id: country_id, is_deleted: DeleteStatus.No },
+      })
+
+      if (!(country && country.dataValues)) {
+        return resNotFound({
+          message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+            ["field_name", "country"],
+          ])
+        })
+      }
+    }
+
     const trn = await dbContext.transaction();
 
     let imageId;
@@ -123,7 +142,7 @@ export const addMaster = async (req: Request) => {
             {
               image_path: filePath,
               created_at: getLocalDate(),
-              created_by: session_res.user_id,
+              created_by: session_res.id,
               is_deleted: DeleteStatus.No,
               is_active: ActiveStatus.Active,
               image_type: master_type,
@@ -149,14 +168,17 @@ export const addMaster = async (req: Request) => {
           is_deleted: DeleteStatus.No,
           is_active: ActiveStatus.Active,
           created_at: getLocalDate(),
-          created_by: session_res.user_id,
+          created_by: session_res.id,
+          country_id: country_id ?? null,
         },
         { transaction: trn }
       );
       await trn.commit();
+      await refreshMaterializedDiamondListView()
+
       return resSuccess();
     } catch (e) {
-      trn.rollback();
+      await trn.rollback();
       throw e;
     }
   } catch (error) {
@@ -178,6 +200,7 @@ export const updateMaster = async (req: Request) => {
       link,
       import_name,
       order,
+      country_id,
     } = req.body;
     const slug = name.toLowerCase().replaceAll(" ", "-");
     let filePath = null;
@@ -210,8 +233,8 @@ export const updateMaster = async (req: Request) => {
         { id: { [Op.ne]: id } },
         sort_code && sort_code != undefined
           ? {
-              sort_code: columnValueLowerCase("sort_code", sort_code),
-            }
+            sort_code: columnValueLowerCase("sort_code", sort_code),
+          }
           : {},
         id_parent && { id_parent: id_parent },
         { master_type: master_type },
@@ -259,6 +282,20 @@ export const updateMaster = async (req: Request) => {
       }
     }
 
+    if (country_id) {
+      const country = await Country.findOne({
+        where: { id: country_id, is_deleted: DeleteStatus.No },
+      })
+
+      if (!(country && country.dataValues)) {
+        return resNotFound({
+          message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+            ["field_name", "country"],
+          ])
+        })
+      }
+    }
+
     const trn = await dbContext.transaction();
 
     if (MasterData) {
@@ -275,7 +312,7 @@ export const updateMaster = async (req: Request) => {
             {
               image_path: filePath,
               modified_at: getLocalDate(),
-              modified_by: session_res.user_id,
+              modified_by: session_res.id,
               is_deleted: DeleteStatus.No,
               image_type: master_type,
             },
@@ -300,7 +337,8 @@ export const updateMaster = async (req: Request) => {
           import_name,
           is_deleted: DeleteStatus.No,
           modified_at: getLocalDate(),
-          modified_by: session_res.user_id,
+          modified_by: session_res.id,
+          country_id: country_id ?? null,
         },
         {
           where: {
@@ -310,7 +348,9 @@ export const updateMaster = async (req: Request) => {
         }
       );
 
-      trn.commit();
+      await trn.commit();
+      await refreshMaterializedDiamondListView()
+
       return resSuccess();
     } else {
       return resBadRequest({
@@ -339,11 +379,11 @@ export const masterList = async (req: Request) => {
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              slug: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            slug: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
@@ -375,6 +415,7 @@ export const masterList = async (req: Request) => {
         "id_parent",
         "link",
         "import_name",
+        "country_id",
         "order_by",
         [
           Sequelize.fn(
@@ -384,6 +425,7 @@ export const masterList = async (req: Request) => {
           ),
           "image_path",
         ],
+        [Sequelize.literal(`country.name`), "country_name"]
       ],
       include: [
         {
@@ -392,6 +434,12 @@ export const masterList = async (req: Request) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Country,
+          attributes: [],
+          as: "country",
+        }
       ],
     });
     return resSuccess({ data: { pagination, result: MasterData } });
@@ -422,6 +470,7 @@ export const masterDetail = async (req: Request) => {
         "id_parent",
         "link",
         "import_name",
+        "country_id",
         "order_by",
         [
           Sequelize.fn(
@@ -431,6 +480,7 @@ export const masterDetail = async (req: Request) => {
           ),
           "image_path",
         ],
+        [Sequelize.literal(`country.name`), "country_name"]
       ],
       include: [
         {
@@ -439,6 +489,12 @@ export const masterDetail = async (req: Request) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Country,
+          attributes: [],
+          as: "country",
+        }
       ],
     });
 
@@ -483,10 +539,11 @@ export const masterStatusUpdate = async (req: Request) => {
           {
             is_active: ActiveStatus.InActive,
             modified_at: getLocalDate(),
-            modified_by: session_res.user_id,
+            modified_by: session_res.id,
           },
           { where: { id: MasterData.dataValues.id } }
         );
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: STATUS_UPDATED });
 
       case ActiveStatus.InActive:
@@ -494,10 +551,11 @@ export const masterStatusUpdate = async (req: Request) => {
           {
             is_active: ActiveStatus.Active,
             modified_at: getLocalDate(),
-            modified_by: session_res.user_id,
+            modified_by: session_res.id,
           },
           { where: { id: MasterData.dataValues.id } }
         );
+        await refreshMaterializedDiamondListView()
         return resSuccess({ message: STATUS_UPDATED });
 
       default:
@@ -542,7 +600,7 @@ export const masterDelete = async (req: Request) => {
         {
           id_deleted: DeleteStatus.Yes,
           deleted_at: getLocalDate(),
-          deleted_by: session_res.user_id,
+          deleted_by: session_res.id,
         },
         {
           where: { id: ParentData.map((t) => t.dataValues.id) },
@@ -554,13 +612,14 @@ export const masterDelete = async (req: Request) => {
       {
         is_deleted: DeleteStatus.Yes,
         deleted_at: getLocalDate(),
-        deleted_by: session_res.user_id,
+        deleted_by: session_res.id,
       },
       {
         where: { id: MasterData.dataValues.id },
       }
     );
 
+    await refreshMaterializedDiamondListView()
     return resSuccess({ message: RECORD_DELETED });
   } catch (error) {
     throw error;
