@@ -60,6 +60,6 @@ export const MAIL_PORT = process.env.MAIL_PORT || 465;
 export const MAIL_SECURE = process.env.MAIL_SECURE || false;
 export const MAIL_FROM = process.env.MAIL_FROM || "noreply@vihaainfotech.com";
 
-export const ADMIN_MAIL = "shreyash.vihaainfotech@gmail.com";
+export const ADMIN_MAIL = process.env.ADMIN_MAIL ||"shreyash.vihaainfotech@gmail.com";
 
 export const ORDER_NUMBER_IDENTITY = process.env.ORDER_NUMBER_IDENTITY || "OMPL";

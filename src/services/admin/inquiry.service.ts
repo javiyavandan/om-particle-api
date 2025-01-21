@@ -394,27 +394,9 @@ export const getInquiries = async (req: Request) => {
                 "inquiry_note",
                 "email",
                 "inquiry_address",
+                "created_at",
                 [
-                    Sequelize.literal(`
-                        (
-                            SELECT json_agg(
-                                json_build_object(
-                                    'stock_id', diamonds.stock_id,
-                                    'weight', diamonds.weight,
-                                    'status', diamonds.status
-                                )
-                            )
-                            FROM diamonds
-                            WHERE diamonds.id = ANY (
-                                SELECT (json_array_elements(product_details)->>'id')::int
-                                FROM inquiries
-                                WHERE inquiries.id = "inquiries".id
-                            )
-                            ${req.body.session_res.id_role != 0 ?
-                            `AND diamonds.company_id = ${req.body.session_res.company_id}` :
-                            `${query.company ? `AND diamonds.company_id = ${query.company}` : ""}`}
-                        )
-                    `),
+                    Sequelize.literal(`product_details`),
                     "diamondProduct"
                 ]
             ],
@@ -469,57 +451,9 @@ export const getInquiryDetail = async (req: Request) => {
                 "inquiry_note",
                 "email",
                 "inquiry_address",
+                "created_at",
                 [
-                    Sequelize.literal(`
-                        (
-                            SELECT json_agg(
-                                json_build_object(
-                                    'stock_id', diamonds.stock_id,
-                                    'weight', diamonds.weight,
-                                    'status', diamonds.status,
-                                    'shape', shape_master.name,
-                                    'clarity', clarity_master.name,
-                                    'color', color_master.name,
-                                    'color_intensity', color_intensity_master.name,
-                                    'lab', lab_master.name,
-                                    'polish', polish_master.name,
-                                    'symmetry', symmetry_master.name,
-                                    'fluorescence', fluorescence_master.name,
-                                    'company', companys.name,
-                                    'quantity', diamonds.quantity,
-                                    'rate', diamonds.rate * ${currency},
-                                    'video', diamonds.video,
-                                    'image', diamonds.image,
-                                    'certificate', diamonds.certificate,
-                                    'report', diamonds.report,
-                                    'measurement_height', diamonds.measurement_height,
-                                    'measurement_width', diamonds.measurement_width,
-                                    'measurement_depth', diamonds.measurement_depth,
-                                    'table_value', diamonds.table_value,
-                                    'depth_value', diamonds.depth_value,
-                                    'ratio', diamonds.ratio,
-                                    'local_location', diamonds.local_location,
-                                    'user_comments', diamonds.user_comments,
-                                    'admin_comments', diamonds.admin_comments
-                                )
-                            )
-                            FROM diamonds
-                            LEFT JOIN masters AS shape_master ON shape_master.id = diamonds.shape
-                            LEFT JOIN masters AS clarity_master ON clarity_master.id = diamonds.clarity
-                            LEFT JOIN masters AS color_master ON color_master.id = diamonds.color
-                            LEFT JOIN masters AS color_intensity_master ON color_intensity_master.id = diamonds.color_intensity
-                            LEFT JOIN masters AS lab_master ON lab_master.id = diamonds.lab
-                            LEFT JOIN masters AS polish_master ON polish_master.id = diamonds.polish
-                            LEFT JOIN masters AS symmetry_master ON symmetry_master.id = diamonds.symmetry
-                            LEFT JOIN masters AS fluorescence_master ON fluorescence_master.id = diamonds.fluorescence
-                            LEFT JOIN companys ON companys.id = diamonds.company_id
-                            WHERE diamonds.is_deleted = '0' AND diamonds.id = ANY (
-                                SELECT (json_array_elements(product_details)->>'id')::int
-                                FROM inquiries
-                                WHERE inquiries.id = ${inquiry_id}
-                            )
-                        )
-                    `),
+                    Sequelize.literal(`product_details`),
                     "diamondProduct"
                 ]
             ],
