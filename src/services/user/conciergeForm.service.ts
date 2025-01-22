@@ -52,7 +52,7 @@ export const diamondConciergeForm = async (req: Request) => {
       if (!(productData && productData.dataValues)) {
         return resNotFound({
           message: prepareMessageFromParams(ERROR_NOT_FOUND, [
-            ["field_name", "Jewelry Product"],
+            ["field_name", "Diamond Product"],
           ]),
           code: DEFAULT_STATUS_CODE_SUCCESS,
         });
@@ -125,7 +125,7 @@ export const diamondConciergeForm = async (req: Request) => {
           product_stones: no_of_stones,
           product_weight: weight,
           product_measurement: measurement,
-          support_email: "ompl@abc.in",
+          support_email: ADMIN_MAIL,
           app_name: APP_NAME,
         },
       };
@@ -144,7 +144,7 @@ export const diamondConciergeForm = async (req: Request) => {
           product_stones: no_of_stones,
           product_weight: weight,
           product_measurement: measurement,
-          support_email: "ompl@abc.in",
+          support_email: ADMIN_MAIL,
           app_name: APP_NAME,
         },
       };

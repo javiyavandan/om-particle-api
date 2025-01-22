@@ -47,6 +47,11 @@ export const verifyAuthorizationToken = async (req: Request, res: Response) => {
         .status(BAD_REQUEST_CODE)
         .send(resBadRequest({ message: AUTHORIZATION_TOKEN_IS_REQUIRED }));
     }
+
+    if (req.headers.authorization === PUBLIC_AUTHORIZATION_TOKEN) {
+      return resUnauthorizedAccess();
+    }
+
     const result = await verifyJWT(req.headers.authorization);
     if (result.code === DEFAULT_STATUS_CODE_SUCCESS) {
       return result.data;
