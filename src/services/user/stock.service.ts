@@ -30,10 +30,17 @@ export const getStockList = async (req: Request) => {
             `
                 SELECT
                     *,
-                    rate * ${currency} as rate
+                    rate * ${currency} as rate,
+                    companys.email AS company_email,
+                    companys.phone_number AS company_phone_number,
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
                 status != '${StockStatus.SOLD}' AND
@@ -120,10 +127,17 @@ export const getStockList = async (req: Request) => {
                 SELECT
                     *,
                     diamond_list.id as id,
-                    rate * ${currency} as rate
+                    rate * ${currency} as rate,
+                    companys.email AS company_email,
+                    companys.phone_number AS company_phone_number,
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
                 status != '${StockStatus.SOLD}' AND

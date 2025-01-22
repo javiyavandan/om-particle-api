@@ -416,14 +416,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
-                if (row.quantity == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "quantity"],
-                        ]),
-                    });
-                }
                 if (row.weight == null) {
                     errors.push({
                         row_id: currentGroupIndex + 1 + 1,
@@ -445,14 +437,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "color"],
-                        ]),
-                    });
-                }
-                if (row["color intensity"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "color intensity"],
                         ]),
                     });
                 }
@@ -480,94 +464,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
-                if (row.certificate == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "igi"],
-                        ]),
-                    });
-                }
-                if (row.lab == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "lab"],
-                        ]),
-                    });
-                }
-                if (row.report == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "report"],
-                        ]),
-                    });
-                }
-                if (row.polish == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "polish"],
-                        ]),
-                    });
-                }
-                if (row.symmetry == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "symmetry"],
-                        ]),
-                    });
-                }
-                if (row["measurement height"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement height"],
-                        ]),
-                    });
-                }
-                if (row["measurement width"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement width"],
-                        ]),
-                    });
-                }
-                if (row["measurement depth"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement depth"],
-                        ]),
-                    });
-                }
-                if (row["table %"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "table %"],
-                        ]),
-                    });
-                }
-                if (row["depth %"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "depth %"],
-                        ]),
-                    });
-                }
-                if (row.ratio == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "ratio"],
-                        ]),
-                    });
-                }
                 if (row.location == null) {
                     errors.push({
                         row_id: currentGroupIndex + 1 + 1,
@@ -589,7 +485,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     shape = null;
                 }
 
-                let quantity: any = row.quantity;
+                let quantity: any = row.quantity ?? 1;
 
                 let weight: any = row["weight"];
 
@@ -607,16 +503,19 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     color = null;
                 }
 
-                let color_intensity: any = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
-                if (color_intensity && color_intensity.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: color_intensity.error,
-                    });
-                } else if (color_intensity && color_intensity.data) {
-                    color_intensity = color_intensity?.data;
-                } else {
-                    color_intensity = null;
+                let color_intensity: any;
+                if (row["color intensity"]) {
+                    color_intensity = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
+                    if (color_intensity && color_intensity.error != undefined) {
+                        errors.push({
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: color_intensity.error,
+                        });
+                    } else if (color_intensity && color_intensity.data) {
+                        color_intensity = color_intensity?.data;
+                    } else {
+                        color_intensity = null;
+                    }
                 }
 
                 let clarity: any = getIdFromName(
@@ -640,53 +539,61 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let image: any = row.image;
                 let certificate: any = row.certificate;
 
-                let lab: any = getIdFromName(row.lab, labList, "name", "lab");
-                if (lab && lab.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: lab.error,
-                    });
-                } else if (lab && lab.data) {
-                    lab = lab?.data;
-                } else {
-                    lab = null;
+                let lab: any;
+                if (row.lab) {
+                    lab = getIdFromName(row.lab, labList, "name", "lab");
+                    if (lab && lab.error != undefined) {
+                        errors.push({
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: lab.error,
+                        });
+                    } else if (lab && lab.data) {
+                        lab = lab?.data;
+                    } else {
+                        lab = null;
+                    }
                 }
 
                 let report: any = row.report;
 
-                let polish: any = getIdFromName(
-                    row["polish"],
-                    polishList,
-                    "name",
-                    "polish"
-                );
-                if (polish && polish.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: polish.error,
-                    });
-                } else if (polish && polish.data) {
-                    polish = polish?.data;
-                } else {
-                    polish = null;
+                let polish: any;
+                if (row.polish) {
+                    polish = getIdFromName(
+                        row["polish"],
+                        polishList,
+                        "name",
+                        "polish"
+                    );
+                    if (polish && polish.error != undefined) {
+                        errors.push({
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: polish.error,
+                        });
+                    } else if (polish && polish.data) {
+                        polish = polish?.data;
+                    } else {
+                        polish = null;
+                    }
                 }
 
-                let symmetry: any = getIdFromName(
-                    row["symmetry"],
-                    SymmetryList,
-                    "name",
-                    "Symmetry"
-                );
-
-                if (symmetry && symmetry.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: symmetry.error,
-                    });
-                } else if (symmetry && symmetry.data) {
-                    symmetry = symmetry?.data;
-                } else {
-                    symmetry = null;
+                let symmetry: any;
+                if (row.symmetry) {
+                    symmetry = getIdFromName(
+                        row["symmetry"],
+                        SymmetryList,
+                        "name",
+                        "Symmetry"
+                    );
+                    if (symmetry && symmetry.error != undefined) {
+                        errors.push({
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: symmetry.error,
+                        });
+                    } else if (symmetry && symmetry.data) {
+                        symmetry = symmetry?.data;
+                    } else {
+                        symmetry = null;
+                    }
                 }
 
                 let measurement_height: any = row["measurement height"];

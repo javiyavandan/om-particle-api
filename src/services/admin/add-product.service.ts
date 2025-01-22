@@ -14,7 +14,7 @@ export const addStock = async (req: Request) => {
             stock_id,
             status,
             shape,
-            quantity,
+            quantity = 1,
             weight,
             rate,
             color,
