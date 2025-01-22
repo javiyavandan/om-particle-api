@@ -185,7 +185,9 @@ export const cartProductList = async (req: Request) => {
     for (let index = 0; index < products.length; index++) {
       const item = products[index].dataValues;
       const itemPrice = item.product.rate * item.product.weight
-      products[index].dataValues.totalRate = Number(item.quantity) * Number(itemPrice)
+      products[index].dataValues.totalRate = (Number(item.quantity) * Number(itemPrice)).toFixed(
+        2
+      )
       totalCartPrice += item.quantity * itemPrice;
     }
 

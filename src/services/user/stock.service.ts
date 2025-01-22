@@ -2,7 +2,7 @@ import { Request } from "express";
 import { QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
 import { getCurrencyPrice, getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { UserType } from "../../utils/app-enumeration";
+import { StockStatus, UserType } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 
 export const getStockList = async (req: Request) => {
@@ -29,10 +29,14 @@ export const getStockList = async (req: Request) => {
         const totalItems = await dbContext.query(
             `
                 SELECT
-                    *
+                    *,
+                    rate * ${currency} as rate
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
                             OR clarity_name ILIKE '%${pagination.search_text}%'
@@ -114,10 +118,15 @@ export const getStockList = async (req: Request) => {
         const diamondList = await dbContext.query(
             `
                 SELECT
-                    *
+                    *,
+                    diamond_list.id as id,
+                    rate * ${currency} as rate
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
                             OR clarity_name ILIKE '%${pagination.search_text}%'
@@ -183,7 +192,7 @@ export const getStockList = async (req: Request) => {
                               ${!query.start_date && query.end_date
                 ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
-                    ORDER BY ${pagination.sort_by} ${pagination.order_by}
+                    ORDER BY diamond_list.${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
                       FETCH NEXT ${pagination.per_page_rows} ROWS ONLY
@@ -245,17 +254,21 @@ export const getStockDetail = async (req: Request) => {
                     rate * ${currency} as rate,
                     company_id,
                     company_name,
-                    is_active,
-                    wishlist_products.id AS wishlist_id
+                    diamond_list.is_active,
+                    companys.email AS company_email,
+                    companys.phone_number AS company_phone_number,
+                    companys.name AS company_name
+                    ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    LEFT JOIN companys ON diamond_list.company_id = companys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
-                    WHERE diamond_list.stock_id = '${stock_id}'`, { type: QueryTypes.SELECT }
+                    WHERE diamond_list.stock_id = '${stock_id}' AND diamond_list.status != '${StockStatus.SOLD}'`, { type: QueryTypes.SELECT }
         )
 
         if (!diamond[0]) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_message", 'Diamond']])
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Diamond']])
             })
         }
 

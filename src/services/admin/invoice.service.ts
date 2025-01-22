@@ -228,10 +228,11 @@ export const createInvoice = async (req: Request) => {
                     customer_company: findCustomer.dataValues.company_name,
                     customer_contact: findCustomer.dataValues.user.dataValues.phone_number,
                     invoice_number: invoiceData.dataValues.invoice_number,
-                    total: invoiceData.dataValues.total_item_price,
-                    total_weight: invoiceData.dataValues.total_weight,
+                    total: Number(invoiceData.dataValues.total_price).toFixed(2),
+                    total_item_price: Number(invoiceData.dataValues.total_item_price).toFixed(2),
+                    total_weight: Number(invoiceData.dataValues.total_weight).toFixed(2),
                     total_diamond: invoiceData.dataValues.total_diamond_count,
-                    total_tax: invoiceData.dataValues.total_tax_price,
+                    total_tax: Number(invoiceData.dataValues.total_tax_price).toFixed(2),
                     created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                     data: stockUpdate.map((diamond: any) => ({
                         shape: diamond.shape_name,
@@ -252,10 +253,11 @@ export const createInvoice = async (req: Request) => {
                     admin_contact: admin?.dataValues.phone_number,
                     customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
                     invoice_number: invoiceData.dataValues.invoice_number,
-                    total: invoiceData.dataValues.total_item_price,
-                    total_weight: invoiceData.dataValues.total_weight,
+                    total: Number(invoiceData.dataValues.total_price).toFixed(2),
+                    total_item_price: Number(invoiceData.dataValues.total_item_price).toFixed(2),
+                    total_weight: Number(invoiceData.dataValues.total_weight).toFixed(2),
                     total_diamond: invoiceData.dataValues.total_diamond_count,
-                    total_tax: invoiceData.dataValues.total_tax_price,
+                    total_tax: Number(invoiceData.dataValues.total_tax_price).toFixed(2),
                     created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                     data: stockUpdate.map((diamond: any) => ({
                         shape: diamond.shape_name,
@@ -268,6 +270,8 @@ export const createInvoice = async (req: Request) => {
                     }))
                 },
             }
+
+            console.log(adminMail, customerMail)
 
             await mailAdminInvoice(adminMail);
             await mailCustomerInvoice(customerMail);
@@ -518,13 +522,13 @@ export const getAllInvoice = async (req: Request) => {
                 WHERE (detail->>'shape_id')::integer IN (${shapes})
             )` : ''}
             ${query.start_date && query.end_date
-                ? `AND invoice_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND invoice_list.created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
               ${query.start_date && !query.end_date
-                ? `AND invoice_list.created_at >= '${new Date(new Date(query.start_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND invoice_list.created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
                 : ""}
               ${!query.start_date && query.end_date
-                ? `AND invoice_list.created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
+                ? `AND invoice_list.created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
                 ${query.min_rate && query.max_rate ? `AND invoice_list.total_price BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                 ${query.min_rate && !query.max_rate ? `AND invoice_list.total_price >= ${query.min_rate}` : ""}
