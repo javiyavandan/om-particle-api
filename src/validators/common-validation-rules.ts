@@ -225,6 +225,16 @@ export const fieldFloatChain = (name: string, field: string) =>
       ])
     );
 
+export const fieldFloatNotReqChain = (name: string, field: string) =>
+  body(field)
+    .optional()
+    .isFloat()
+    .withMessage(
+      prepareMessageFromParams(TYPE_MIN_MAX_FLOAT_ERROR_MESSAGE, [
+        ["field_name", name],
+      ])
+    );
+
 export const fieldArrayChain = (name: string, field: string) =>
   body(field)
     .exists()
