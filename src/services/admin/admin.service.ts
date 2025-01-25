@@ -161,7 +161,6 @@ export const userDetail = async (req: Request) => {
         "company_name",
         "company_website",
         "company_email",
-        "registration_number",
         "address",
         "city",
         "state",
@@ -188,11 +187,6 @@ export const userDetail = async (req: Request) => {
             "is_verified",
             "is_active",
             "remarks",
-            // Corrected file_path and image_path
-            [
-              Sequelize.literal(`CASE WHEN "user->file"."file_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->file"."file_path") ELSE NULL END`),
-              "file_path",
-            ],
             [
               Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
@@ -202,11 +196,6 @@ export const userDetail = async (req: Request) => {
             {
               model: Image,
               as: "image",
-              attributes: [],
-            },
-            {
-              model: File,
-              as: "file",
               attributes: [],
             },
           ],
@@ -367,7 +356,6 @@ export const updateUserDetail = async (req: Request) => {
       last_name,
       company_name,
       company_website,
-      registration_number,
       address,
       city,
       country,
@@ -427,26 +415,28 @@ export const updateUserDetail = async (req: Request) => {
 
       let pdfId;
       if (files["pdf"]) {
-        const fileData = await moveFileToS3ByType(
-          files["pdf"][0],
-          File_type.Customer
-        )
+        files["pdf"].forEach(async (file: Express.Multer.File) => {
+          const fileData = await moveFileToS3ByType(
+            file,
+            File_type.Customer
+          )
 
-        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-          return fileData;
-        }
-        const fileResult = await File.create(
-          {
-            file_path: fileData.data,
-            created_at: getLocalDate(),
-            created_by: req.body.session_res.id,
-            is_deleted: DeleteStatus.No,
-            is_active: ActiveStatus.Active,
-            file_type: FILE_TYPE.Customer,
-          },
-          { transaction: trn }
-        );
-        pdfId = fileResult.dataValues.id;
+          if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+            return fileData;
+          }
+          const fileResult = await File.create(
+            {
+              file_path: fileData.data,
+              created_at: getLocalDate(),
+              created_by: req.body.session_res.id,
+              is_deleted: DeleteStatus.No,
+              is_active: ActiveStatus.Active,
+              file_type: FILE_TYPE.Customer,
+            },
+            { transaction: trn }
+          );
+          pdfId.push(fileResult.dataValues.id);
+        })
       } else {
         pdfId = user.dataValues.id_pdf;
       }
@@ -475,7 +465,6 @@ export const updateUserDetail = async (req: Request) => {
         {
           company_name: company_name,
           company_website: company_website,
-          registration_number: registration_number,
           address: address,
           city: city,
           country: country,

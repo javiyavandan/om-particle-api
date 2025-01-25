@@ -2,7 +2,6 @@ import { fieldIntegerChain, fieldStringChain, fieldStringNotReqChain, phoneNumbe
 
 export const companyValidatorRule = [
     fieldStringChain("Name", "name"),
-    fieldStringChain("registration number", "registration_number"),
     fieldIntegerChain("country", "country_id"),
     fieldIntegerChain("account number", "ac_number"),
     fieldStringChain("account holder name", "ac_holder"),

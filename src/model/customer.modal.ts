@@ -20,9 +20,6 @@ const Customer = dbContext.define("customers", {
   company_email: {
     type: STRING,
   },
-  registration_number: {
-    type: STRING,
-  },
   address: {
     type: STRING,
   },

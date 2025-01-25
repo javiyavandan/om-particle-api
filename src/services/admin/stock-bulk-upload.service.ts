@@ -341,6 +341,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
     let currentGroupIndex = -1;
     try {
         let errors: {
+            stock_id: string;
             row_id: number;
             error_message: string;
         }[] = [];
@@ -410,6 +411,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
             if (row["stock #"]) {
                 if (row.shape == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "shape"],
@@ -418,6 +420,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.weight == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "Weight"],
@@ -426,6 +429,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.rate == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "rate"],
@@ -434,6 +438,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.color == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "color"],
@@ -442,6 +447,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.clarity == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "Clarity"],
@@ -450,6 +456,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.video == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "video"],
@@ -458,6 +465,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.image == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "image"],
@@ -466,6 +474,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.location == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "location"],
@@ -476,6 +485,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
                 if (shape && shape.error != undefined) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: shape.error,
                     });
@@ -494,6 +504,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let color: any = getIdFromName(row.color, colorList, "name", "color");
                 if (color && color.error != undefined) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: color.error,
                     });
@@ -508,6 +519,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     color_intensity = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
                     if (color_intensity && color_intensity.error != undefined) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: color_intensity.error,
                         });
@@ -526,6 +538,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 );
                 if (clarity && clarity.error != undefined) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: clarity.error,
                     });
@@ -544,6 +557,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     lab = getIdFromName(row.lab, labList, "name", "lab");
                     if (lab && lab.error != undefined) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: lab.error,
                         });
@@ -566,6 +580,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     );
                     if (polish && polish.error != undefined) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: polish.error,
                         });
@@ -586,6 +601,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     );
                     if (symmetry && symmetry.error != undefined) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: symmetry.error,
                         });
@@ -616,6 +632,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         fluorescence.error != undefined
                     ) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: fluorescence.error,
                         });
@@ -639,6 +656,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     company.error != undefined
                 ) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: company.error,
                     });
