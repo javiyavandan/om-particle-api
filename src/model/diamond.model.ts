@@ -39,6 +39,9 @@ const Diamonds = dbContext.define('diamonds', {
     color_intensity: {
         type: BIGINT,
     },
+    color_over_tone: {
+        type: STRING,
+    },
     clarity: {
         type: BIGINT,
     },
@@ -94,6 +97,9 @@ const Diamonds = dbContext.define('diamonds', {
         type: STRING,
     },
     admin_comments: {
+        type: STRING,
+    },
+    loose_diamond: {
         type: STRING,
     },
     created_by: {

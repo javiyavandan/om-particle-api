@@ -3,7 +3,7 @@ import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
-import { ActiveStatus, DeleteStatus, Master_type, StockStatus } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
@@ -19,6 +19,7 @@ export const addStock = async (req: Request) => {
             rate,
             color,
             color_intensity,
+            color_over_tone,
             clarity,
             lab,
             report,
@@ -38,7 +39,8 @@ export const addStock = async (req: Request) => {
             user_comments,
             admin_comments,
             local_location,
-            session_res
+            session_res,
+            loose_diamond
         } = req.body
 
         const findDiamond = await Diamonds.findOne({
@@ -107,6 +109,7 @@ export const addStock = async (req: Request) => {
             rate: rate,
             color: color,
             color_intensity: color_intensity,
+            color_over_tone,
             clarity: clarity,
             lab: lab,
             report: report,
@@ -126,6 +129,7 @@ export const addStock = async (req: Request) => {
             company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             user_comments,
             admin_comments,
+            loose_diamond: loose_diamond ?? Is_loose_diamond.No,
             created_by: session_res.id,
             created_at: getLocalDate(),
         })
@@ -170,6 +174,8 @@ export const updateStock = async (req: Request) => {
             user_comments,
             admin_comments,
             local_location,
+            loose_diamond,
+            color_over_tone,
             session_res
         } = req.body
         const { diamond_id } = req.params
@@ -257,6 +263,7 @@ export const updateStock = async (req: Request) => {
             rate: rate,
             color: color,
             color_intensity: color_intensity,
+            color_over_tone,
             clarity: clarity,
             lab: lab,
             report: report,
@@ -276,6 +283,7 @@ export const updateStock = async (req: Request) => {
             company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
             user_comments,
             admin_comments,
+            loose_diamond: loose_diamond ?? Is_loose_diamond.No,
             modified_by: session_res.id,
             modified_at: getLocalDate(),
         }, {
@@ -431,14 +439,14 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
                             ${query.start_date && query.end_date
-                                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                                : ""}
+                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+                : ""}
                               ${query.start_date && !query.end_date
-                                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
-                                : ""}
+                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
+                : ""}
                               ${!query.start_date && query.end_date
-                                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                                : ""}
+                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+                : ""}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -517,14 +525,14 @@ export const getAllStock = async (req: Request) => {
                             ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
                             ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
                             ${query.start_date && query.end_date
-                                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                                : ""}
+                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+                : ""}
                               ${query.start_date && !query.end_date
-                                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
-                                : ""}
+                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
+                : ""}
                               ${!query.start_date && query.end_date
-                                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                                : ""}
+                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+                : ""}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
