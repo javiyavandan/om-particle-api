@@ -57,7 +57,6 @@ export const getUserDetail = async (req: Request) => {
         "company_name",
         "company_website",
         "company_email",
-        "registration_number",
         "address",
         "city",
         "state",
@@ -77,10 +76,7 @@ export const getUserDetail = async (req: Request) => {
             "phone_number",
             "is_verified",
             "remarks",
-            [
-              Sequelize.literal(`CASE WHEN "user->file"."file_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->file"."file_path") ELSE NULL END`),
-              "file_path",
-            ],
+            "id_pdf",
             [
               Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
@@ -92,15 +88,29 @@ export const getUserDetail = async (req: Request) => {
               as: "image",
               attributes: [],
             },
-            {
-              model: File,
-              as: "file",
-              attributes: [],
-            },
           ],
         },
       ],
     });
+
+    if (companyDetail?.dataValues.user.id_pdf) {
+      const files = await File.findAll({
+        where: {
+          file_type: FILE_TYPE.Customer,
+          is_deleted: DeleteStatus.No,
+        },
+        attributes: ["id","file_path"],
+      })
+      let pdf: any = [];
+      companyDetail.dataValues.user.id_pdf.map((value: number) => {
+        pdf.push({
+          id: value,
+          file_path: IMAGE_URL + files.find((file) => file.dataValues.id === value)?.dataValues.file_path
+        })
+      })
+      companyDetail.dataValues.user.id_pdf = pdf;
+    }
+
 
     return resSuccess({ data: companyDetail });
   } catch (error) {
@@ -116,7 +126,6 @@ export const updateUserDetail = async (req: Request) => {
       phone_number,
       company_name,
       company_website,
-      registration_number,
       address,
       city,
       country,
@@ -173,28 +182,34 @@ export const updateUserDetail = async (req: Request) => {
         imageId = user.dataValues.id_image;
       }
 
-      let pdfId;
+      let pdfId: any = [];
       if (files["pdf"]) {
-        const fileData = await moveFileToS3ByType(
-          files["pdf"][0],
-          File_type.Customer
-        )
+        const pdf: any = [];
+        for (let index = 0; index < files["pdf"].length; index++) {
+          const file: Express.Multer.File = files["pdf"][index];
+          const fileData = await moveFileToS3ByType(
+            file,
+            File_type.Customer
+          )
+          if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+            return fileData;
+          }
 
-        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-          return fileData;
-        }
-        const fileResult = await File.create(
-          {
+          pdf.push({
             file_path: fileData.data,
             created_at: getLocalDate(),
             created_by: req.body.session_res.id,
             is_deleted: DeleteStatus.No,
             is_active: ActiveStatus.Active,
             file_type: FILE_TYPE.Customer,
-          },
+          })
+        }
+
+        const fileResult = await File.bulkCreate(
+          pdf,
           { transaction: trn }
         );
-        pdfId = fileResult.dataValues.id;
+        pdfId = fileResult.map((item) => item.dataValues.id);
       } else {
         pdfId = user.dataValues.id_pdf;
       }
@@ -224,7 +239,6 @@ export const updateUserDetail = async (req: Request) => {
         {
           company_name: company_name,
           company_website: company_website,
-          registration_number: registration_number,
           address: address,
           city: city,
           country: country,

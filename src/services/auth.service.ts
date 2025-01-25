@@ -57,6 +57,7 @@ import {
   DEFAULT_STATUS_CODE_SUCCESS,
   INVALID_OLD_PASSWORD,
   NOT_VERIFIED,
+  ERROR_NOT_FOUND,
 } from "../utils/app-messages";
 import {
   createResetToken,
@@ -100,7 +101,6 @@ export const registerUser = async (req: Request, res: Response) => {
       confirm_password,
       company_name,
       company_website,
-      registration_number,
       address,
       city,
       country,
@@ -156,31 +156,42 @@ export const registerUser = async (req: Request, res: Response) => {
           { transaction: trn }
         );
         imageId = imageResult.dataValues.id;
+      } else {
+        return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Image is required"]]) })
       }
 
-      let pdfId;
+      let pdfId: any = [];
       if (files["pdf"]) {
-        const fileData = await moveFileToS3ByType(
-          files["pdf"][0],
-          File_type.Customer
-        )
+        const pdf: any = [];
+        for (let index = 0; index < files["pdf"].length; index++) {
+          const file: Express.Multer.File = files["pdf"][index];
+          const fileData = await moveFileToS3ByType(
+            file,
+            File_type.Customer
+          )
+          if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
+            return fileData;
+          }
 
-        if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-          return fileData;
-        }
-        const fileResult = await File.create(
-          {
+          pdf.push({
             file_path: fileData.data,
             created_at: getLocalDate(),
             created_by: req.body.session_res.id,
             is_deleted: DeleteStatus.No,
             is_active: ActiveStatus.Active,
             file_type: FILE_TYPE.Customer,
-          },
+          })
+        }
+
+        const fileResult = await File.bulkCreate(
+          pdf,
           { transaction: trn }
         );
-        pdfId = fileResult.dataValues.id;
+        pdfId = fileResult.map((item) => item.dataValues.id);
+      } else {
+        return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Document is required"]]) })
       }
+
 
       const createUser = await AppUser.create(
         {
@@ -208,7 +219,6 @@ export const registerUser = async (req: Request, res: Response) => {
             user_id: createUser.dataValues.id,
             company_name: company_name,
             company_website: company_website,
-            registration_number: registration_number,
             address: address,
             city: city,
             state: state,
@@ -285,12 +295,10 @@ export const registerUser = async (req: Request, res: Response) => {
         message: OTP_SENT + " " + email,
       });
     } catch (error) {
-      console.log(error)
       await trn.rollback();
       return resUnknownError({ data: error });
     }
   } catch (e) {
-    console.log(e)
     throw e;
   }
 };
@@ -627,7 +635,7 @@ export const resetPassword = async (req: Request) => {
 export const customerList = async () => {
   try {
     const customer = await Customer.findAll({
-      attributes: ["id", "company_name", "company_website", "company_email", "registration_number", "address", "city", "state", "country", "postcode"],
+      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode"],
       include: [{
         model: AppUser,
         as: "user",

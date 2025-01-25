@@ -187,6 +187,7 @@ export const userDetail = async (req: Request) => {
             "is_verified",
             "is_active",
             "remarks",
+            "id_pdf",
             [
               Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
@@ -202,6 +203,24 @@ export const userDetail = async (req: Request) => {
         },
       ],
     });
+
+    if (companyDetail?.dataValues.user.id_pdf) {
+      const files = await File.findAll({
+        where: {
+          file_type: FILE_TYPE.Customer,
+          is_deleted: DeleteStatus.No,
+        },
+        attributes: ["id", "file_path"],
+      })
+      let pdf: any = [];
+      companyDetail.dataValues.user.id_pdf.map((value: number) => {
+        pdf.push({
+          id: value,
+          file_path: IMAGE_URL + files.find((file) => file.dataValues.id === value)?.dataValues.file_path
+        })
+      })
+      companyDetail.dataValues.user.id_pdf = pdf;
+    }
 
     return resSuccess({ data: companyDetail });
   } catch (e) {
@@ -415,28 +434,32 @@ export const updateUserDetail = async (req: Request) => {
 
       let pdfId;
       if (files["pdf"]) {
-        files["pdf"].forEach(async (file: Express.Multer.File) => {
+        const pdf: any = [];
+        for (let index = 0; index < files["pdf"].length; index++) {
+          const file: Express.Multer.File = files["pdf"][index];
           const fileData = await moveFileToS3ByType(
             file,
             File_type.Customer
           )
-
           if (fileData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
             return fileData;
           }
-          const fileResult = await File.create(
-            {
-              file_path: fileData.data,
-              created_at: getLocalDate(),
-              created_by: req.body.session_res.id,
-              is_deleted: DeleteStatus.No,
-              is_active: ActiveStatus.Active,
-              file_type: FILE_TYPE.Customer,
-            },
-            { transaction: trn }
-          );
-          pdfId.push(fileResult.dataValues.id);
-        })
+
+          pdf.push({
+            file_path: fileData.data,
+            created_at: getLocalDate(),
+            created_by: req.body.session_res.id,
+            is_deleted: DeleteStatus.No,
+            is_active: ActiveStatus.Active,
+            file_type: FILE_TYPE.Customer,
+          })
+        }
+
+        const fileResult = await File.bulkCreate(
+          pdf,
+          { transaction: trn }
+        );
+        pdfId = fileResult.map((item) => item.dataValues.id);
       } else {
         pdfId = user.dataValues.id_pdf;
       }
