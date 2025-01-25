@@ -32,6 +32,7 @@ import {
     DeleteStatus,
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
+    Is_loose_diamond,
     Master_type,
     StockStatus,
 } from "../../utils/app-enumeration";
@@ -160,7 +161,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
             return resRows;
         }
 
-        if (resRows.data.headers.length !== 26) {
+        if (resRows.data.headers.length !== 28) {
             return resUnprocessableEntity()
         }
 
@@ -221,25 +222,27 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
                             rate: row[4],
                             color: row[5],
                             "color intensity": row[6],
-                            clarity: row[7],
-                            video: row[8],
-                            image: row[9],
-                            certificate: row[10],
-                            lab: row[11],
-                            report: row[12],
-                            polish: row[13],
-                            symmetry: row[14],
-                            "measurement height": row[15],
-                            "measurement width": row[16],
-                            "measurement depth": row[17],
-                            "table %": row[18],
-                            "depth %": row[19],
-                            ratio: row[20],
-                            fluorescence: row[21],
-                            location: row[22],
-                            "local location": row[23],
-                            "user comment": row[24],
-                            "admin comment": row[25],
+                            "color over tone": row[7],
+                            clarity: row[8],
+                            video: row[9],
+                            image: row[10],
+                            certificate: row[11],
+                            lab: row[12],
+                            report: row[13],
+                            polish: row[14],
+                            symmetry: row[15],
+                            "measurement height": row[16],
+                            "measurement width": row[17],
+                            "measurement depth": row[18],
+                            "table %": row[19],
+                            "depth %": row[20],
+                            ratio: row[21],
+                            fluorescence: row[22],
+                            location: row[23],
+                            "local location": row[24],
+                            "user comment": row[25],
+                            "admin comment": row[26],
+                            "loose diamond": row[27],
                         };
 
                         batchSize++;
@@ -292,6 +295,7 @@ const validateHeaders = async (headers: string[]) => {
         "rate",
         "color",
         "color intensity",
+        "color over tone",
         "clarity",
         "video",
         "image",
@@ -311,6 +315,7 @@ const validateHeaders = async (headers: string[]) => {
         "local location",
         "user comment",
         "admin comment",
+        "loose diamond"
     ];
 
     let errors: {
@@ -481,6 +486,9 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
+                if (row["loose diamond"] == null) {
+                    row["loose diamond"] = Is_loose_diamond.No
+                }
 
                 let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
                 if (shape && shape.error != undefined) {
@@ -529,6 +537,8 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         color_intensity = null;
                     }
                 }
+
+                let color_over_tone: any = row["color over tone"];
 
                 let clarity: any = getIdFromName(
                     row.clarity,
@@ -669,6 +679,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let local_location: any = row["local location"];
                 let user_comments: any = row["user comment"];
                 let admin_comments: any = row["admin comment"];
+                let loose_diamond: any = row["loose diamond"];
 
                 const findStock = await stockList.find(
                     (t: any) => t.dataValues.stock_id == row["stock #"]
@@ -685,6 +696,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         rate,
                         color,
                         color_intensity,
+                        color_over_tone,
                         clarity,
                         video,
                         image,
@@ -704,6 +716,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
+                        loose_diamond,
                         status: StockStatus.AVAILABLE,
                         modified_by: idAppUser,
                         modified_at: getLocalDate(),
@@ -719,6 +732,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         rate,
                         color,
                         color_intensity,
+                        color_over_tone,
                         clarity,
                         video,
                         image,
@@ -738,6 +752,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
+                        loose_diamond,
                         status: StockStatus.AVAILABLE,
                         is_active: ActiveStatus.Active,
                         is_deleted: DeleteStatus.No,
@@ -780,6 +795,7 @@ const addGroupToDB = async (list: any) => {
                     "rate",
                     "color",
                     "color_intensity",
+                    "color_over_tone",
                     "clarity",
                     "video",
                     "image",
@@ -799,6 +815,7 @@ const addGroupToDB = async (list: any) => {
                     "local_location",
                     "user_comments",
                     "admin_comments",
+                    "loose_diamond",
                     "status",
                     "modified_by",
                     "modified_at",

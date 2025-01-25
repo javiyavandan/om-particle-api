@@ -260,3 +260,8 @@ export enum Home_page_sections {
   Counter = 'counter_section',
   Info = 'info_section',
 }
+
+export enum Is_loose_diamond {
+  Yes = 'Yes',
+  No = 'No',
+}
