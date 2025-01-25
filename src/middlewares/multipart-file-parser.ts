@@ -86,7 +86,7 @@ export const reqProductBulkUploadFileParser =
       const session_res = req.body.session_res;
       createFolderIfNot(STORE_TEMP_IMAGE_PATH);
       upload(STORE_TEMP_IMAGE_PATH).fields(
-        fieldArray.map((name) => ({ name, maxCount: 1 }))
+        fieldArray.map((name) => ({ name }))
       )(req, res, (err) => {
         if (err) {
           return res
