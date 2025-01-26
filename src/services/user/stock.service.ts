@@ -43,7 +43,7 @@ export const getStockList = async (req: Request) => {
                     LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
-                loose_diamond = '${Is_loose_diamond.Yes}' AND
+                loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
@@ -141,6 +141,7 @@ export const getStockList = async (req: Request) => {
                     LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'

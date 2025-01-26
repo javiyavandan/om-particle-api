@@ -679,7 +679,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let local_location: any = row["local location"];
                 let user_comments: any = row["user comment"];
                 let admin_comments: any = row["admin comment"];
-                let loose_diamond: any = row["loose diamond"];
+                let loose_diamond: any = row["loose diamond"].charAt(0).toUpperCase() + row["loose diamond"].slice(1).toLowerCase();
+                if (!(Object.values(Is_loose_diamond).includes(loose_diamond))) {
+                    errors.push({
+                        stock_id: row["stock #"],
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: `Loose Diamond value ${loose_diamond} is not valid. Valid values are ${Object.values(Is_loose_diamond).join("and ")}.`,
+                    });
+                }
 
                 const findStock = await stockList.find(
                     (t: any) => t.dataValues.stock_id == row["stock #"]
@@ -827,6 +834,7 @@ const addGroupToDB = async (list: any) => {
 
         return resSuccess({ data: list });
     } catch (e) {
+        console.log(e)
         await trn.rollback();
         throw e;
     }
