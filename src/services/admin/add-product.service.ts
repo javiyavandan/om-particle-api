@@ -40,7 +40,7 @@ export const addStock = async (req: Request) => {
             admin_comments,
             local_location,
             session_res,
-            loose_diamond
+            loose_diamond = Is_loose_diamond.No
         } = req.body
 
         const findDiamond = await Diamonds.findOne({
@@ -174,7 +174,7 @@ export const updateStock = async (req: Request) => {
             user_comments,
             admin_comments,
             local_location,
-            loose_diamond,
+            loose_diamond = Is_loose_diamond.No,
             color_over_tone,
             session_res
         } = req.body
