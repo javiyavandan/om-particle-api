@@ -243,6 +243,7 @@ export const getStockDetail = async (req: Request) => {
                     color_name,
                     color_intensity,
                     color_intensity_name,
+                    color_over_tone,
                     lab,
                     lab_name,
                     polish,
@@ -270,14 +271,16 @@ export const getStockDetail = async (req: Request) => {
                     rate * ${currency} as rate,
                     company_id,
                     company_name,
-                    diamond_list.is_active,
                     companys.email AS company_email,
                     companys.phone_number AS company_phone_number,
-                    companys.name AS company_name
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
                     LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                     WHERE diamond_list.stock_id = '${stock_id}' AND diamond_list.status != '${StockStatus.SOLD}'`, { type: QueryTypes.SELECT }
         )
