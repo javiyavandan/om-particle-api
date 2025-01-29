@@ -6,7 +6,7 @@ import { comparedDiamondsValidator } from "../../validators/diamond/diamond.vali
 export default (app: Router) => {
     app.post(
         "/compared-diamonds",
-        [comparedDiamondsValidator, customerAuthorization],
+        [comparedDiamondsValidator],
         compareDiamondsFn
     );
 
