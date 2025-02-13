@@ -81,20 +81,21 @@ const HomePage = dbContext.define("home_sections", {
   hash_tag: {
     type: STRING,
   },
+  alignment: {
+    type: STRING,
+  }
 });
-HomePage.hasOne(Image, {
+
+HomePage.belongsTo(Image, {
+  foreignKey: "id_image",
   as: "image",
-  foreignKey: "id",
-  sourceKey: "id_image",
-});
-HomePage.hasOne(Image, {
+})
+HomePage.belongsTo(Image, {
+  foreignKey: "id_hover_image",
   as: "hover_image",
-  foreignKey: "id",
-  sourceKey: "id_hover_image",
-});
-HomePage.hasOne(Master, {
+})
+HomePage.belongsTo(Master, {
   as: "diamond_shape",
-  foreignKey: "id",
-  sourceKey: "id_diamond_shape",
+  foreignKey: "id_diamond_shape",
 });
 export default HomePage;

@@ -265,3 +265,17 @@ export enum Is_loose_diamond {
   Yes = 'Yes',
   No = 'No',
 }
+
+export enum Alignment_Enum {
+  Center = 'center',
+  Top = 'top',
+  Bottom = 'bottom',
+  Left = 'left',
+  Left_Center = 'left-center',
+  Left_bottom = 'left-bottom',
+  Left_top = 'left-top',
+  Right = 'right',
+  Right_Center = 'right-center',
+  Right_bottom = 'right-bottom',
+  Right_top = 'right-top',
+}
