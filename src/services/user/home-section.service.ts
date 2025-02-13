@@ -13,6 +13,7 @@ import {
 import StaticPage from "../../model/static-page.model";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import HomePage from "../../model/home-page.model";
+import { IMAGE_URL } from "../../config/env.var";
 
 export const getAllStaticPages = async (req: Request) => {
   try {
@@ -79,8 +80,22 @@ export const getHomePageData = async () => {
         "sort_order",
         "hash_tag",
         "alignment",
-        [Sequelize.literal(`image.image_path`), "image_path"],
-        [Sequelize.literal(`hover_image.image_path`), "hover_image_path"],
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"hover_image"."image_path"`)
+          ),
+          "hover_image_path",
+        ],
         "id_diamond_shape"
       ],
       include: [
