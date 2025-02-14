@@ -69,8 +69,6 @@ import Wishlist from "../model/wishlist.model";
 import CartProducts from "../model/cart-product.model";
 import Image from "../model/image.model";
 import { QueryTypes, Sequelize } from "sequelize";
-import Role from "../model/role.model";
-import Company from "../model/companys.model";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
 
@@ -411,17 +409,6 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    let company;
-
-    if (appUser.dataValues.id_role != 0) {
-      const roleData = await Role.findOne({
-        where: { id: appUser.dataValues.id_role },
-      })
-      if (roleData && roleData.dataValues) {
-        company = roleData.dataValues.company_id
-      }
-    }
-
     const jwtPayload = {
       id:
         appUser && appUser.dataValues
@@ -429,7 +416,7 @@ export const login = async (req: Request, res: Response) => {
           : appUser.dataValues.id,
       user_type: appUser.dataValues.user_type,
       id_role: appUser.dataValues.id_role,
-      company_id: company,
+      company_id: appUser.dataValues.company_id,
       is_verified: appUser.dataValues.is_verified,
     };
 

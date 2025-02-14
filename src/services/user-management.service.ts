@@ -5,17 +5,19 @@ import {
   columnValueLowerCase,
   getInitialPaginationFromQuery,
   getLocalDate,
+  prepareMessageFromParams,
   resBadRequest,
   resNotFound,
   resSuccess,
 } from "../utils/shared-functions";
 import bcrypt from "bcrypt";
 import { PASSWORD_SOLT } from "../utils/app-constants";
-import { ActiveStatus, Image_type, IMAGE_TYPE, UserType } from "../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Image_type, IMAGE_TYPE, UserType } from "../utils/app-enumeration";
 import Role from "../model/role.model";
 import {
   DEFAULT_STATUS_CODE_SUCCESS,
   EMAIL_ALL_READY_EXIST,
+  ERROR_NOT_FOUND,
   INVALID_ID,
   ROLE_NOT_FOUND,
   USER_NOT_FOUND,
@@ -25,6 +27,7 @@ import AppUser from "../model/app_user.model";
 import dbContext from "../config/dbContext";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import { IMAGE_URL } from "../config/env.var";
+import Company from "../model/companys.model";
 
 const checkBURoleAndEmailAvailability = async (
   idRole: number,
@@ -95,7 +98,13 @@ export const getAllBusinessUsers = async (req: Request) => {
       offset: (pagination.current_page - 1) * pagination.per_page_rows,
       order: [[pagination.sort_by, pagination.order_by]],
       include: [
-        { model: AppUser, as: "app_user", attributes: [] },
+        {
+          model: AppUser, as: "app_user", attributes: [], include: [{
+            model: Company,
+            as: "company",
+            attributes: [],
+          }]
+        },
         { model: Image, as: "image", attributes: [] },
       ],
       attributes: [
@@ -106,6 +115,8 @@ export const getAllBusinessUsers = async (req: Request) => {
         "is_active",
         [Sequelize.literal("app_user.id_role"), "id_role"],
         [Sequelize.literal("app_user.id"), "user_id"],
+        [Sequelize.literal(`"app_user->company"."id"`), "company_id"],
+        [Sequelize.literal(`"app_user->company"."name"`), "company_name"],
         [
           Sequelize.fn(
             "CONCAT",
@@ -130,7 +141,13 @@ export const getBusinessUserById = async (req: Request) => {
 
     const result = await BusinessUser.findOne({
       where: { id: idBusinessUser, is_deleted: "0" },
-      include: { model: AppUser, as: "app_user", attributes: [] },
+      include: {
+        model: AppUser, as: "app_user", attributes: [], include: [{
+          model: Company,
+          as: "company",
+          attributes: [],
+        }]
+      },
       attributes: [
         "id",
         "name",
@@ -138,6 +155,8 @@ export const getBusinessUserById = async (req: Request) => {
         "phone_number",
         "is_active",
         [Sequelize.literal("app_user.id_role"), "id_role"],
+        [Sequelize.literal(`"app_user->company"."id"`), "company_id"],
+        [Sequelize.literal(`"app_user->company"."name"`), "company_name"],
       ],
     });
 
@@ -154,9 +173,19 @@ export const getBusinessUserById = async (req: Request) => {
 export const addBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { email, password, name, phone_number, id_role } =
+    const { email, password, name, phone_number, id_role, company_id } =
       req.body;
     let idImage = null;
+
+    const findCompany = await Company.findOne({
+      where: { id: company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({
+        message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]),
+      })
+    }
 
     const roleEmailChecker = await checkBURoleAndEmailAvailability(
       id_role,
@@ -205,6 +234,7 @@ export const addBusinessUser = async (req: Request) => {
         id_image: idImage,
         user_type: UserType.Admin,
         is_active: ActiveStatus.Active,
+        company_id: findCompany.dataValues.id,
         created_by: req.body.session_res.id_app_user,
         created_at: getLocalDate(),
       },
@@ -236,8 +266,18 @@ export const addBusinessUser = async (req: Request) => {
 export const updateBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { name, phone_number, id_role } = req.body;
+    const { name, phone_number, id_role, company_id } = req.body;
     let idImage = null;
+
+    const findCompany = await Company.findOne({
+      where: { id: company_id, is_deleted: DeleteStatus.No },
+    })
+
+    if (!(findCompany && findCompany.dataValues)) {
+      return resNotFound({
+        message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]),
+      })
+    }
 
     let idBusinessUser: any = req.params.id;
     if (!idBusinessUser) return resBadRequest({ message: INVALID_ID });
@@ -333,6 +373,7 @@ export const updateBusinessUser = async (req: Request) => {
         is_active: ActiveStatus.Active,
         id_role,
         id_image: idImage,
+        company_id: findCompany.dataValues.id,
         modified_by: req.body.session_res.id_app_user,
         modified_date: getLocalDate(),
       },
