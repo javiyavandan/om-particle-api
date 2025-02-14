@@ -114,20 +114,17 @@ const rolePermissionAccessChain = [
 
 export const addRoleValidationRule = [
   roleNameChain(false),
-  fieldIntegerChain("company", "company_id"),
   roleIsOnlyAIChain,
   roleIsActiveChain,
 ];
 
 export const updateRoleValidationRule = [
   roleNameChain(true),
-  fieldIntegerChain("company", "company_id"),
   roleIsOnlyAIChain,
   roleIsActiveChain,
 ];
 
 export const addUpdateRoleConfigurationRule = [
   roleNameChain(false),
-  fieldIntegerChain("company", "company_id"),
   ...rolePermissionAccessChain,
 ];

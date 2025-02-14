@@ -3,6 +3,7 @@ import dbContext from "../config/dbContext";
 import Image from "./image.model";
 import Role from "./role.model";
 import File from "./files.model";
+import Company from "./companys.model";
 
 const AppUser = dbContext.define("app_users", {
   id: {
@@ -79,8 +80,12 @@ const AppUser = dbContext.define("app_users", {
   remarks: {
     type: BIGINT,
   },
+  company_id: {
+    type: BIGINT,
+  }
 });
 
+AppUser.belongsTo(Company, { foreignKey: "company_id", as: "company" });
 AppUser.belongsTo(Image, { foreignKey: "id_image", as: "image" });
 AppUser.belongsTo(Role, { foreignKey: "id_role", as: "role" });
 Role.hasMany(AppUser, { foreignKey: "id_role", as: "app_user" });
