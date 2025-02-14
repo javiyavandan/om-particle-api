@@ -5,6 +5,8 @@ import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import { Op, Sequelize } from "sequelize";
 import Company from "../../model/companys.model";
 import Country from "../../model/country.model";
+import dbContext from "../../config/dbContext";
+import Diamonds from "../../model/diamond.model";
 
 export const addCompany = async (req: Request) => {
     try {
@@ -176,19 +178,40 @@ export const deleteCompany = async (req: Request) => {
             })
         }
 
-        await Company.update({
-            is_deleted: DeleteStatus.Yes,
-            deleted_at: getLocalDate(),
-            deleted_by: req.body.session_res.id,
-        }, {
-            where: {
-                id: company.dataValues.id
-            }
-        });
+        const trn = await dbContext.transaction()
 
-        await refreshMaterializedDiamondListView()
+        try {
+            await Company.update({
+                is_deleted: DeleteStatus.Yes,
+                deleted_at: getLocalDate(),
+                deleted_by: req.body.session_res.id,
+            }, {
+                where: {
+                    id: company.dataValues.id
+                },
+                transaction: trn
+            });
 
-        return resSuccess({ message: RECORD_DELETED });
+            await Diamonds.update({
+                is_deleted: DeleteStatus.Yes,
+                deleted_at: getLocalDate(),
+                deleted_by: req.body.session_res.id,
+            }, {
+                where: {
+                    company_id: company.dataValues.id
+                },
+                transaction: trn
+            })
+
+            await trn.commit();
+            await refreshMaterializedDiamondListView()
+            return resSuccess({ message: RECORD_DELETED });
+
+        } catch (error) {
+            await trn.rollback();
+            throw error
+        }
+
     } catch (error) {
         throw error;
     }
@@ -363,16 +386,37 @@ export const updateCompanyStatus = async (req: Request) => {
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Company']])
             })
         }
-        await Company.update(
-            {
-                is_active: company.dataValues.is_active === ActiveStatus.Active ? ActiveStatus.InActive : ActiveStatus.Active,
+
+        const trn = await dbContext.transaction()
+
+        const status = company.dataValues.is_active === ActiveStatus.Active ? ActiveStatus.InActive : ActiveStatus.Active
+
+        try {
+            await Company.update(
+                {
+                    is_active: status,
+                    modified_at: getLocalDate(),
+                    modified_by: session_res.id
+                },
+                { where: { id: company.dataValues.id }, transaction: trn }
+            );
+
+            await Diamonds.update({
+                is_active: status,
                 modified_at: getLocalDate(),
                 modified_by: session_res.id
-            },
-            { where: { id: company.dataValues.id } }
-        );
-        await refreshMaterializedDiamondListView()
-        return resSuccess({ message: RECORD_UPDATE });
+            }, {
+                where: { company_id: company.dataValues.id },
+                transaction: trn
+            })
+
+            trn.commit();
+            await refreshMaterializedDiamondListView()
+            return resSuccess({ message: RECORD_UPDATE });
+        } catch (error) {
+            trn.rollback();
+            throw error
+        }
     } catch (error) {
         throw error;
     }

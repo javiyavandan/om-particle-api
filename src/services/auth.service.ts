@@ -69,8 +69,6 @@ import Wishlist from "../model/wishlist.model";
 import CartProducts from "../model/cart-product.model";
 import Image from "../model/image.model";
 import { QueryTypes, Sequelize } from "sequelize";
-import Role from "../model/role.model";
-import Company from "../model/companys.model";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
 
