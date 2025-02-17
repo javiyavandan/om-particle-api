@@ -16,13 +16,33 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date } = req.body
         const stockError = [];
         const stockList: any = [];
+
+        const inputDate = new Date(report_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (isNaN(inputDate.getTime())) {
+            return resBadRequest({
+                message: "Invalid report date"
+            });
+        }
+
+        if (inputDate <= today) {
+            return resBadRequest({ message: "Report Date must be a future date" });
+        }
 
         if (stock_list.length == 0) {
             return resBadRequest({
                 message: "Please select stock"
+            })
+        }
+
+        if (req.body.session_res.company_id === undefined && company_id === undefined) {
+            return resBadRequest({
+                message: "Please select company"
             })
         }
 
@@ -121,6 +141,10 @@ export const createMemo = async (req: Request) => {
                 total_weight: totalWeight,
                 total_diamond_count: stockList.length,
                 remarks,
+                contact,
+                salesperson,
+                ship_via,
+                report_date: new Date(report_date)
             };
 
             const memoData = await Memo.create(memoPayload, {

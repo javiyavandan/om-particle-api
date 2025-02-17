@@ -1,8 +1,7 @@
-import { BIGINT, DATE, DOUBLE, JSON, TEXT } from "sequelize";
+import { BIGINT, DATE, DOUBLE, JSON, STRING, TEXT } from "sequelize";
 import dbContext from "../config/dbContext";
 import Company from "./companys.model";
 import Customer from "./customer.modal";
-import Master from "./masters.model";
 
 const Invoice = dbContext.define('invoices', {
     id: {
@@ -45,6 +44,18 @@ const Invoice = dbContext.define('invoices', {
     },
     total_diamond_count: {
         type: DOUBLE,
+    },
+    contact: {
+        type: STRING,
+    },
+    salesperson: {
+        type: STRING,
+    },
+    ship_via: {
+        type: STRING,
+    },
+    report_date: {
+        type: DATE,
     }
 });
 

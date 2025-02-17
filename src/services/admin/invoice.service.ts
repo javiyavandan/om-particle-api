@@ -18,13 +18,28 @@ import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date } = req.body
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
         let totalTaxPrice = 0
         let totalWeight = 0
         let taxData = [];
+
+        const inputDate = new Date(report_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (isNaN(inputDate.getTime())) {
+            return resBadRequest({
+                message: "Invalid report date"
+            });
+        }
+
+        if (inputDate <= today) {
+            return resBadRequest({ message: "Report Date must be a future date" });
+        }
+
 
         if (stock_list.length == 0) {
             return resBadRequest({
@@ -143,6 +158,10 @@ export const createInvoice = async (req: Request) => {
                 total_diamond_count: stockList.length,
                 tax_data: taxData,
                 remarks,
+                contact,
+                salesperson,
+                ship_via,
+                report_date: new Date(report_date)
             };
 
             const invoiceData = await Invoice.create(invoicePayload, {
