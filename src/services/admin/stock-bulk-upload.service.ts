@@ -454,7 +454,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     row["loose diamond"] = Is_loose_diamond.No
                 }
 
-                let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
+                let shape: any;
+
+                if (row.shape?.includes("other")) {
+                    shape = getIdFromName("other", shapeList, "name", "shape");
+                } else {
+                    shape = getIdFromName(row.shape, shapeList, "name", "shape");
+                }
+
                 if (shape && shape.error != undefined) {
                     errors.push({
                         stock_id: row["stock #"],
