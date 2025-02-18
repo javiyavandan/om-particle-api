@@ -450,42 +450,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
-                if (row.clarity == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "Clarity"],
-                        ]),
-                    });
-                }
-                if (row.video == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "video"],
-                        ]),
-                    });
-                }
-                if (row.image == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "image"],
-                        ]),
-                    });
-                }
-                if (row.location == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "location"],
-                        ]),
-                    });
-                }
                 if (row["loose diamond"] == null) {
                     row["loose diamond"] = Is_loose_diamond.No
                 }
@@ -540,22 +504,25 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let color_over_tone: any = row["color over tone"];
 
-                let clarity: any = getIdFromName(
-                    row.clarity,
-                    clarityList,
-                    "name",
-                    "clarity"
-                );
-                if (clarity && clarity.error != undefined) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: clarity.error,
-                    });
-                } else if (clarity && clarity.data) {
-                    clarity = clarity?.data;
-                } else {
-                    clarity = null;
+                let clarity: any;
+                if (row.clarity) {
+                    clarity = getIdFromName(
+                        row.clarity,
+                        clarityList,
+                        "name",
+                        "clarity"
+                    );
+                    if (clarity && clarity.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: clarity.error,
+                        });
+                    } else if (clarity && clarity.data) {
+                        clarity = clarity?.data;
+                    } else {
+                        clarity = null;
+                    }
                 }
 
                 let video: any = row.video;
@@ -767,6 +734,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         created_at: getLocalDate(),
                     });
                 }
+            } else {
+                errors.push({
+                    stock_id: "",
+                    row_id: currentGroupIndex + 1 + 1,
+                    error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
+                        ["field_name", "Stock #"],
+                    ]),
+                });
             }
         }
 
