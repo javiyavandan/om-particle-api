@@ -155,7 +155,7 @@ export const createInvoice = async (req: Request) => {
                 contact,
                 salesperson,
                 ship_via,
-                report_date: new Date(report_date)
+                report_date: report_date ? new Date(report_date) : null
             };
 
             const invoiceData = await Invoice.create(invoicePayload, {
