@@ -411,9 +411,19 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
         let updatedStockList = [];
         let createdStockList = [];
+        const seenStockNumbers = new Set<string>();
         for (const row of rows) {
             currentGroupIndex++;
-            if (row["stock #"]) {
+            const stockNumber = row["stock #"];
+            if (stockNumber) {
+                if (seenStockNumbers.has(stockNumber)) {
+                    errors.push({
+                        stock_id: row["stock #"],
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: "Duplicate stock number",
+                    });
+                }
+                seenStockNumbers.add(stockNumber);
                 if (row.shape == null) {
                     errors.push({
                         stock_id: row["stock #"],
@@ -447,6 +457,15 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "color"],
+                        ]),
+                    });
+                }
+                if (row.location == null) {
+                    errors.push({
+                        stock_id: row["stock #"],
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
+                            ["field_name", "location"],
                         ]),
                     });
                 }
