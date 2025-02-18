@@ -20,13 +20,21 @@ export const createMemo = async (req: Request) => {
         const stockError = [];
         const stockList: any = [];
 
-        const inputDate = new Date(report_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        if (report_date) {
+            const inputDate = new Date(report_date);
 
-        console.log(inputDate, today)
-        if (!isNaN(inputDate.getTime()) && inputDate <= today) {
-            return resBadRequest({ message: "Report Date must be a future date" });
+            if (isNaN(inputDate.getTime())) {
+                return resBadRequest({ message: "Invalid date format" });
+            }
+
+            const inputUTC = Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+            const today = new Date();
+            const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+            if (inputUTC < todayUTC) {
+                return resBadRequest({ message: "Report date must be a future date" });
+            }
         }
 
         if (stock_list.length == 0) {
