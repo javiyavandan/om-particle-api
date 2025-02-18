@@ -16,13 +16,36 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date } = req.body
         const stockError = [];
         const stockList: any = [];
+
+        if (report_date) {
+            const inputDate = new Date(report_date);
+
+            if (isNaN(inputDate.getTime())) {
+                return resBadRequest({ message: "Invalid date format" });
+            }
+
+            const inputUTC = Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+            const today = new Date();
+            const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+            if (inputUTC < todayUTC) {
+                return resBadRequest({ message: "Report date must be a future date" });
+            }
+        }
 
         if (stock_list.length == 0) {
             return resBadRequest({
                 message: "Please select stock"
+            })
+        }
+
+        if (req.body.session_res.company_id === undefined && company_id === undefined) {
+            return resBadRequest({
+                message: "Please select company"
             })
         }
 
@@ -121,6 +144,10 @@ export const createMemo = async (req: Request) => {
                 total_weight: totalWeight,
                 total_diamond_count: stockList.length,
                 remarks,
+                contact,
+                salesperson,
+                ship_via,
+                report_date: report_date ? new Date(report_date) : null
             };
 
             const memoData = await Memo.create(memoPayload, {
@@ -323,7 +350,6 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.customer_name ILIKE '%${pagination.search_text}%'
                 OR memo_list.last_name ILIKE '%${pagination.search_text}%'
                 OR memo_list.first_name ILIKE '%${pagination.search_text}%'
-                OR memo_list.registration_number ILIKE '%${pagination.search_text}%'
                 OR memo_list.email ILIKE '%${pagination.search_text}%'
                 OR memo_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(memo_list.total_item_price as text) ILIKE '%${pagination.search_text}%'
@@ -412,7 +438,6 @@ export const getAllMemo = async (req: Request) => {
                 OR memo_list.customer_name ILIKE '%${pagination.search_text}%'
                 OR memo_list.last_name ILIKE '%${pagination.search_text}%'
                 OR memo_list.first_name ILIKE '%${pagination.search_text}%'
-                OR memo_list.registration_number ILIKE '%${pagination.search_text}%'
                 OR memo_list.email ILIKE '%${pagination.search_text}%'
                 OR memo_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(memo_list.total_item_price as text) ILIKE '%${pagination.search_text}%'

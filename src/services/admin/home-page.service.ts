@@ -1,13 +1,14 @@
 import { Request } from "express";
 import { ActiveStatus, DeleteStatus, Home_page_sections, IMAGE_TYPE, Image_type, Master_type } from "../../utils/app-enumeration";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE, STATUS_UPDATED } from "../../utils/app-messages";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { DATA_ALREADY_EXITS, DEFAULT_STATUS_CODE_SUCCESS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE, STATUS_UPDATED } from "../../utils/app-messages";
 import HomePage from "../../model/home-page.model";
 import Master from "../../model/masters.model";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
 import dbContext from "../../config/dbContext";
 import Image from "../../model/image.model";
 import { Op, Sequelize } from "sequelize";
+import { IMAGE_URL } from "../../config/env.var";
 
 export const addSection = async (req: Request) => {
     try {
@@ -26,6 +27,7 @@ export const addSection = async (req: Request) => {
             sort_order,
             hash_tag,
             id_shape,
+            alignment,
             session_res,
         } = req.body
 
@@ -37,16 +39,20 @@ export const addSection = async (req: Request) => {
             })
         }
 
-        const isDuplicate = await HomePage.findOne({
+        const isDuplicate = section_type !== Home_page_sections.Banner ? await HomePage.findOne({
             where: {
                 title: title,
+                section_type: section_type,
                 is_deleted: DeleteStatus.No
             }
-        })
+        }) : null;
 
         if (isDuplicate && isDuplicate.dataValues) {
-            return resNotFound({
-                message: `Duplicate title is not allowed`
+            return resBadRequest({
+                code: DUPLICATE_ERROR_CODE,
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
+                    ["field_name", "Section"],
+                ]),
             })
         }
 
@@ -137,7 +143,8 @@ export const addSection = async (req: Request) => {
                     hash_tag: hash_tag,
                     id_image: id_image,
                     id_hover_image: id_hover_image,
-                    id_shape: id_diamond_shape,
+                    id_diamond_shape,
+                    alignment,
                     created_by: session_res.id,
                     created_date: getLocalDate(),
                     is_deleted: DeleteStatus.No,
@@ -176,10 +183,11 @@ export const updateSection = async (req: Request) => {
             sort_order,
             hash_tag,
             id_shape,
+            alignment,
             session_res,
         } = req.body
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
+        console.log(files, "filesfilesfilesfiles")
         const findSection = await HomePage.findOne({
             where: {
                 id: section_id,
@@ -199,17 +207,21 @@ export const updateSection = async (req: Request) => {
             })
         }
 
-        const isDuplicate = await HomePage.findOne({
+        const isDuplicate = section_type !== Home_page_sections.Banner ? await HomePage.findOne({
             where: {
                 id: { [Op.ne]: section_id },
                 title: title,
+                section_type: section_type,
                 is_deleted: DeleteStatus.No
             }
-        })
+        }) : null;
 
         if (isDuplicate && isDuplicate.dataValues) {
-            return resNotFound({
-                message: `Duplicate title is not allowed`
+            return resBadRequest({
+                code: DUPLICATE_ERROR_CODE,
+                message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
+                    ["field_name", "Section"],
+                ]),
             })
         }
 
@@ -283,7 +295,7 @@ export const updateSection = async (req: Request) => {
                 id_hover_image = imageResult.dataValues.id;
             }
 
-            await HomePage.create(
+            await HomePage.update(
                 {
                     section_type: section_type,
                     title: title,
@@ -300,13 +312,18 @@ export const updateSection = async (req: Request) => {
                     hash_tag: hash_tag,
                     id_image: id_image,
                     id_hover_image: id_hover_image,
-                    id_shape: id_diamond_shape,
+                    id_diamond_shape,
+                    alignment,
                     modified_by: session_res.id,
                     modified_date: getLocalDate(),
                     is_deleted: DeleteStatus.No,
                     is_active: ActiveStatus.Active
                 },
-                { transaction: trn }
+                {
+                    where: {
+                        id: findSection.dataValues.id
+                    }, transaction: trn
+                }
             );
 
             await trn.commit();
@@ -466,9 +483,24 @@ export const getHomePageData = async (req: Request) => {
                 "link",
                 "sort_order",
                 "hash_tag",
-                [Sequelize.literal(`image.image_path`), "image_path"],
-                [Sequelize.literal(`hover_image.image_path`), "image_path"],
-                "id_shape",
+                "alignment",
+                [
+                    Sequelize.fn(
+                        "CONCAT",
+                        IMAGE_URL,
+                        Sequelize.literal(`"image"."image_path"`)
+                    ),
+                    "image_path",
+                ],
+                [
+                    Sequelize.fn(
+                        "CONCAT",
+                        IMAGE_URL,
+                        Sequelize.literal(`"hover_image"."image_path"`)
+                    ),
+                    "hover_image_path",
+                ],
+                "id_diamond_shape",
                 "is_active",
             ],
             include: [
@@ -514,9 +546,24 @@ export const getHomePageDataById = async (req: Request) => {
                 "link",
                 "sort_order",
                 "hash_tag",
-                [Sequelize.literal(`image.image_path`), "image_path"],
-                [Sequelize.literal(`hover_image.image_path`), "image_path"],
-                "id_shape",
+                "alignment",
+                [
+                    Sequelize.fn(
+                        "CONCAT",
+                        IMAGE_URL,
+                        Sequelize.literal(`"image"."image_path"`)
+                    ),
+                    "image_path",
+                ],
+                [
+                    Sequelize.fn(
+                        "CONCAT",
+                        IMAGE_URL,
+                        Sequelize.literal(`"hover_image"."image_path"`)
+                    ),
+                    "hover_image_path",
+                ],
+                "id_diamond_shape",
                 "is_active",
             ],
             include: [

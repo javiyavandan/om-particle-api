@@ -32,7 +32,6 @@ import AppUser from "../model/app_user.model";
 import BusinessUser from "../model/business-user.model";
 import dbContext from "../config/dbContext";
 import RoleApiPermission from "../model/role-api-permission.model";
-import Company from "../model/companys.model";
 
 export const getAllRoles = async (req: Request) => {
   try {
@@ -76,8 +75,6 @@ export const getAllRoles = async (req: Request) => {
           ),
           "user_count",
         ],
-        [Sequelize.literal(`company_master.name`), 'companyName'],
-        [Sequelize.literal(`company_master.id`), 'companyId']
       ],
       include: [
         {
@@ -104,11 +101,6 @@ export const getAllRoles = async (req: Request) => {
               ],
             },
           ],
-        },
-        {
-          model: Company,
-          as: "company_master",
-          attributes: [],
         }
       ],
     });
@@ -147,17 +139,8 @@ export const addRole = async (req: Request) => {
       return nameValidaton;
     }
 
-    const findCompany = await Company.findOne({
-      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
-    })
-
-    if (!(findCompany && findCompany.dataValues)) {
-      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
-    }
-
     await Role.create({
       role_name: req.body.role_name,
-      company_id: req.body.company_id,
       is_active: ActiveStatus.Active,
       created_by: req.body.session_res.id,
       created_date: getLocalDate(),
@@ -201,18 +184,9 @@ export const updateRole = async (req: Request) => {
       return nameValidaton;
     }
 
-    const findCompany = await Company.findOne({
-      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
-    })
-
-    if (!(findCompany && findCompany.dataValues)) {
-      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
-    }
-
     await Role.update(
       {
         role_name: req.body.role_name,
-        company_id: req.body.company_id,
         is_active: ActiveStatus.Active,
         modified_by: req.body.session_res.id,
         modified_date: getLocalDate(),
@@ -243,17 +217,8 @@ export const deleteRole = async (req: Request) => {
             `(SELECT COUNT(*) FROM app_users WHERE app_users.id_role = roles.id AND app_users.is_deleted = '0')`
           ),
           "user_count",
-        ],
-        [Sequelize.literal(`company_master.name`), 'companyName'],
-        [Sequelize.literal(`company_master.id`), 'companyId']
+        ]
       ],
-      include: [
-        {
-          model: Company,
-          as: "company_master",
-          attributes: [],
-        }
-      ]
     });
 
     if (!(roleToDelete && roleToDelete.dataValues)) {
@@ -462,7 +427,6 @@ const validateMenuItemAndAction = async (
 
 export const addRoleConfiguration = async (req: Request) => {
   try {
-    const { company_id } = req.body;
     const nameValidaton = await roleWithSameNameValidation(req.body.role_name);
     if (nameValidaton.code !== DEFAULT_STATUS_CODE_SUCCESS) {
       return nameValidaton;
@@ -482,20 +446,11 @@ export const addRoleConfiguration = async (req: Request) => {
       }
     }
 
-    const findCompany = await Company.findOne({
-      where: { id: company_id, is_deleted: DeleteStatus.No },
-    })
-
-    if (!(findCompany && findCompany.dataValues)) {
-      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
-    }
-
     const trn = await dbContext.transaction();
     try {
       const roleResult = await Role.create(
         {
           role_name: req.body.role_name,
-          company_id: findCompany.dataValues.id,
           is_active: "1",
           created_by: req.body.session_res.id,
           created_date: getLocalDate(),
@@ -572,17 +527,8 @@ export const updateRoleConfiguration = async (req: Request) => {
       return validateMenuAction;
     }
 
-    const findCompany = await Company.findOne({
-      where: { id: req.body.company_id, is_deleted: DeleteStatus.No },
-    })
-
-    if (!(findCompany && findCompany.dataValues)) {
-      return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]]) });
-    }
-
     await Role.update(
       {
-        company_id: req.body.company_id,
         role_name: req.body.role_name,
         is_active: "1",
         modified_by: req.body.session_res.id,

@@ -12,6 +12,8 @@ import {
 } from "../../utils/shared-functions";
 import StaticPage from "../../model/static-page.model";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
+import HomePage from "../../model/home-page.model";
+import { IMAGE_URL } from "../../config/env.var";
 
 export const getAllStaticPages = async (req: Request) => {
   try {
@@ -54,3 +56,64 @@ export const getStaticPageDetail = async (req: Request) => {
     throw error;
   }
 };
+
+export const getHomePageData = async () => {
+  try {
+    const result = await HomePage.findAll({
+      order: [["sort_order", "ASC"]],
+      where: {
+        is_deleted: DeleteStatus.No,
+        is_active: ActiveStatus.Active,
+      },
+      attributes: [
+        "id",
+        "section_type",
+        "title",
+        "sub_title",
+        "description",
+        "button_hover_color",
+        "button_color",
+        "button_text_color",
+        "button_text_hover_color",
+        "is_button_transparent",
+        "link",
+        "sort_order",
+        "hash_tag",
+        "alignment",
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"image"."image_path"`)
+          ),
+          "image_path",
+        ],
+        [
+          Sequelize.fn(
+            "CONCAT",
+            IMAGE_URL,
+            Sequelize.literal(`"hover_image"."image_path"`)
+          ),
+          "hover_image_path",
+        ],
+        "id_diamond_shape"
+      ],
+      include: [
+        {
+          model: Image,
+          as: "image",
+          attributes: [],
+        },
+        {
+          model: Image,
+          as: "hover_image",
+          attributes: [],
+        },
+      ],
+    });
+
+    return resSuccess({ data: result })
+  } catch (error) {
+    throw error;
+  }
+}

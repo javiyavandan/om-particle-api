@@ -2,7 +2,7 @@ import { Request } from "express";
 import { QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
 import { getCurrencyPrice, getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { StockStatus, UserType } from "../../utils/app-enumeration";
+import { Is_loose_diamond, StockStatus, UserType } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 
 export const getStockList = async (req: Request) => {
@@ -30,12 +30,20 @@ export const getStockList = async (req: Request) => {
             `
                 SELECT
                     *,
-                    rate * ${currency} as rate
+                    rate * ${currency} as rate,
+                    companys.email AS company_email,
+                    companys.phone_number AS company_phone_number,
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
@@ -120,12 +128,20 @@ export const getStockList = async (req: Request) => {
                 SELECT
                     *,
                     diamond_list.id as id,
-                    rate * ${currency} as rate
+                    rate * ${currency} as rate,
+                    companys.email AS company_email,
+                    companys.phone_number AS company_phone_number,
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
+                    LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
@@ -227,6 +243,7 @@ export const getStockDetail = async (req: Request) => {
                     color_name,
                     color_intensity,
                     color_intensity_name,
+                    color_over_tone,
                     lab,
                     lab_name,
                     polish,
@@ -254,14 +271,16 @@ export const getStockDetail = async (req: Request) => {
                     rate * ${currency} as rate,
                     company_id,
                     company_name,
-                    diamond_list.is_active,
                     companys.email AS company_email,
                     companys.phone_number AS company_phone_number,
-                    companys.name AS company_name
+                    companys.name AS company_name,
+                    companys.contact_person AS company_contact_person,
+                    countrys.name AS country
                     ${id ? ',wishlist_products.id AS wishlist_id' : ''}
                 FROM
                     diamond_list
                     LEFT JOIN companys ON diamond_list.company_id = companys.id
+                    LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                     WHERE diamond_list.stock_id = '${stock_id}' AND diamond_list.status != '${StockStatus.SOLD}'`, { type: QueryTypes.SELECT }
         )

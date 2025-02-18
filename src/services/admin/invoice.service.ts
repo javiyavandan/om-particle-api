@@ -18,13 +18,31 @@ import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date } = req.body
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
         let totalTaxPrice = 0
         let totalWeight = 0
         let taxData = [];
+
+        if (report_date) {
+            const inputDate = new Date(report_date);
+
+            if (isNaN(inputDate.getTime())) {
+                return resBadRequest({ message: "Invalid date format" });
+            }
+
+            const inputUTC = Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+            const today = new Date();
+            const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+            if (inputUTC < todayUTC) {
+                return resBadRequest({ message: "Report date must be a future date" });
+            }
+        }
+
 
         if (stock_list.length == 0) {
             return resBadRequest({
@@ -143,6 +161,10 @@ export const createInvoice = async (req: Request) => {
                 total_diamond_count: stockList.length,
                 tax_data: taxData,
                 remarks,
+                contact,
+                salesperson,
+                ship_via,
+                report_date: report_date ? new Date(report_date) : null
             };
 
             const invoiceData = await Invoice.create(invoicePayload, {
@@ -363,7 +385,6 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.customer_name ILIKE '%${pagination.search_text}%'
                 OR invoice_list.last_name ILIKE '%${pagination.search_text}%'
                 OR invoice_list.first_name ILIKE '%${pagination.search_text}%'
-                OR invoice_list.registration_number ILIKE '%${pagination.search_text}%'
                 OR invoice_list.email ILIKE '%${pagination.search_text}%'
                 OR invoice_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'
@@ -473,7 +494,6 @@ export const getAllInvoice = async (req: Request) => {
                 OR invoice_list.customer_name ILIKE '%${pagination.search_text}%'
                 OR invoice_list.last_name ILIKE '%${pagination.search_text}%'
                 OR invoice_list.first_name ILIKE '%${pagination.search_text}%'
-                OR invoice_list.registration_number ILIKE '%${pagination.search_text}%'
                 OR invoice_list.email ILIKE '%${pagination.search_text}%'
                 OR invoice_list.phone_number ILIKE '%${pagination.search_text}%'
                 OR CAST(invoice_list.total_price AS text) ILIKE '%${pagination.search_text}%'

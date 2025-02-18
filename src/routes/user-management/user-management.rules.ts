@@ -22,6 +22,7 @@ import {
 } from "../../utils/app-constants";
 import {
   confirmPasswordChain,
+  fieldIntegerChain,
   isActiveChain,
   isOnlyAIChain,
   passwordChain,
@@ -102,6 +103,7 @@ export const addBusinessUserValidationRule = [
   emailChain,
   passwordChain,
   confirmPasswordChain,
+  fieldIntegerChain("company", "company_id")
 ];
 
 export const updateBusinessUserValidationRule = [
@@ -110,6 +112,7 @@ export const updateBusinessUserValidationRule = [
   idRoleChain(true),
   isOnlyAIChain,
   isActiveChain,
+  fieldIntegerChain("company", "company_id")
 ];
 
 // export const addBusinessUserValidationRule = [

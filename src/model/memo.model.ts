@@ -59,6 +59,18 @@ const Memo = dbContext.define('memos', {
     },
     total_diamond_count:{
         type: BIGINT,
+    },
+    contact: {
+        type: STRING,
+    },
+    salesperson: {
+        type: STRING,
+    },
+    ship_via: {
+        type: STRING,
+    },
+    report_date:{
+        type: DATE,
     }
 })
 

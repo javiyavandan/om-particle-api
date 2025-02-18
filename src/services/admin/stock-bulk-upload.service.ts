@@ -32,6 +32,7 @@ import {
     DeleteStatus,
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
+    Is_loose_diamond,
     Master_type,
     StockStatus,
 } from "../../utils/app-enumeration";
@@ -160,7 +161,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
             return resRows;
         }
 
-        if (resRows.data.headers.length !== 26) {
+        if (resRows.data.headers.length !== 28) {
             return resUnprocessableEntity()
         }
 
@@ -221,25 +222,27 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
                             rate: row[4],
                             color: row[5],
                             "color intensity": row[6],
-                            clarity: row[7],
-                            video: row[8],
-                            image: row[9],
-                            certificate: row[10],
-                            lab: row[11],
-                            report: row[12],
-                            polish: row[13],
-                            symmetry: row[14],
-                            "measurement height": row[15],
-                            "measurement width": row[16],
-                            "measurement depth": row[17],
-                            "table %": row[18],
-                            "depth %": row[19],
-                            ratio: row[20],
-                            fluorescence: row[21],
-                            location: row[22],
-                            "local location": row[23],
-                            "user comment": row[24],
-                            "admin comment": row[25],
+                            "color over tone": row[7],
+                            clarity: row[8],
+                            video: row[9],
+                            image: row[10],
+                            certificate: row[11],
+                            lab: row[12],
+                            report: row[13],
+                            polish: row[14],
+                            symmetry: row[15],
+                            "measurement height": row[16],
+                            "measurement width": row[17],
+                            "measurement depth": row[18],
+                            "table %": row[19],
+                            "depth %": row[20],
+                            ratio: row[21],
+                            fluorescence: row[22],
+                            location: row[23],
+                            "local location": row[24],
+                            "user comment": row[25],
+                            "admin comment": row[26],
+                            "loose diamond": row[27],
                         };
 
                         batchSize++;
@@ -292,6 +295,7 @@ const validateHeaders = async (headers: string[]) => {
         "rate",
         "color",
         "color intensity",
+        "color over tone",
         "clarity",
         "video",
         "image",
@@ -311,6 +315,7 @@ const validateHeaders = async (headers: string[]) => {
         "local location",
         "user comment",
         "admin comment",
+        "loose diamond"
     ];
 
     let errors: {
@@ -341,6 +346,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
     let currentGroupIndex = -1;
     try {
         let errors: {
+            stock_id: string;
             row_id: number;
             error_message: string;
         }[] = [];
@@ -410,22 +416,16 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
             if (row["stock #"]) {
                 if (row.shape == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "shape"],
                         ]),
                     });
                 }
-                if (row.quantity == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "quantity"],
-                        ]),
-                    });
-                }
                 if (row.weight == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "Weight"],
@@ -434,6 +434,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.rate == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "rate"],
@@ -442,144 +443,28 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.color == null) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "color"],
                         ]),
                     });
                 }
-                if (row["color intensity"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "color intensity"],
-                        ]),
-                    });
-                }
-                if (row.clarity == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "Clarity"],
-                        ]),
-                    });
-                }
-                if (row.video == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "video"],
-                        ]),
-                    });
-                }
-                if (row.image == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "image"],
-                        ]),
-                    });
-                }
-                if (row.certificate == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "igi"],
-                        ]),
-                    });
-                }
-                if (row.lab == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "lab"],
-                        ]),
-                    });
-                }
-                if (row.report == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "report"],
-                        ]),
-                    });
-                }
-                if (row.polish == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "polish"],
-                        ]),
-                    });
-                }
-                if (row.symmetry == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "symmetry"],
-                        ]),
-                    });
-                }
-                if (row["measurement height"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement height"],
-                        ]),
-                    });
-                }
-                if (row["measurement width"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement width"],
-                        ]),
-                    });
-                }
-                if (row["measurement depth"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "measurement depth"],
-                        ]),
-                    });
-                }
-                if (row["table %"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "table %"],
-                        ]),
-                    });
-                }
-                if (row["depth %"] == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "depth %"],
-                        ]),
-                    });
-                }
-                if (row.ratio == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "ratio"],
-                        ]),
-                    });
-                }
-                if (row.location == null) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "location"],
-                        ]),
-                    });
+                if (row["loose diamond"] == null) {
+                    row["loose diamond"] = Is_loose_diamond.No
                 }
 
-                let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
+                let shape: any;
+
+                if (row.shape?.includes("other")) {
+                    shape = getIdFromName("other", shapeList, "name", "shape");
+                } else {
+                    shape = getIdFromName(row.shape, shapeList, "name", "shape");
+                }
+
                 if (shape && shape.error != undefined) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: shape.error,
                     });
@@ -589,7 +474,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     shape = null;
                 }
 
-                let quantity: any = row.quantity;
+                let quantity: any = row.quantity ?? 1;
 
                 let weight: any = row["weight"];
 
@@ -598,6 +483,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let color: any = getIdFromName(row.color, colorList, "name", "color");
                 if (color && color.error != undefined) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: color.error,
                     });
@@ -607,86 +493,107 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     color = null;
                 }
 
-                let color_intensity: any = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
-                if (color_intensity && color_intensity.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: color_intensity.error,
-                    });
-                } else if (color_intensity && color_intensity.data) {
-                    color_intensity = color_intensity?.data;
-                } else {
-                    color_intensity = null;
+                let color_intensity: any;
+                if (row["color intensity"]) {
+                    color_intensity = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
+                    if (color_intensity && color_intensity.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: color_intensity.error,
+                        });
+                    } else if (color_intensity && color_intensity.data) {
+                        color_intensity = color_intensity?.data;
+                    } else {
+                        color_intensity = null;
+                    }
                 }
 
-                let clarity: any = getIdFromName(
-                    row.clarity,
-                    clarityList,
-                    "name",
-                    "clarity"
-                );
-                if (clarity && clarity.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: clarity.error,
-                    });
-                } else if (clarity && clarity.data) {
-                    clarity = clarity?.data;
-                } else {
-                    clarity = null;
+                let color_over_tone: any = row["color over tone"];
+
+                let clarity: any;
+                if (row.clarity) {
+                    clarity = getIdFromName(
+                        row.clarity,
+                        clarityList,
+                        "name",
+                        "clarity"
+                    );
+                    if (clarity && clarity.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: clarity.error,
+                        });
+                    } else if (clarity && clarity.data) {
+                        clarity = clarity?.data;
+                    } else {
+                        clarity = null;
+                    }
                 }
 
                 let video: any = row.video;
                 let image: any = row.image;
                 let certificate: any = row.certificate;
 
-                let lab: any = getIdFromName(row.lab, labList, "name", "lab");
-                if (lab && lab.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: lab.error,
-                    });
-                } else if (lab && lab.data) {
-                    lab = lab?.data;
-                } else {
-                    lab = null;
+                let lab: any;
+                if (row.lab) {
+                    lab = getIdFromName(row.lab, labList, "name", "lab");
+                    if (lab && lab.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: lab.error,
+                        });
+                    } else if (lab && lab.data) {
+                        lab = lab?.data;
+                    } else {
+                        lab = null;
+                    }
                 }
 
                 let report: any = row.report;
 
-                let polish: any = getIdFromName(
-                    row["polish"],
-                    polishList,
-                    "name",
-                    "polish"
-                );
-                if (polish && polish.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: polish.error,
-                    });
-                } else if (polish && polish.data) {
-                    polish = polish?.data;
-                } else {
-                    polish = null;
+                let polish: any;
+                if (row.polish) {
+                    polish = getIdFromName(
+                        row["polish"],
+                        polishList,
+                        "name",
+                        "polish"
+                    );
+                    if (polish && polish.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: polish.error,
+                        });
+                    } else if (polish && polish.data) {
+                        polish = polish?.data;
+                    } else {
+                        polish = null;
+                    }
                 }
 
-                let symmetry: any = getIdFromName(
-                    row["symmetry"],
-                    SymmetryList,
-                    "name",
-                    "Symmetry"
-                );
-
-                if (symmetry && symmetry.error != undefined) {
-                    errors.push({
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: symmetry.error,
-                    });
-                } else if (symmetry && symmetry.data) {
-                    symmetry = symmetry?.data;
-                } else {
-                    symmetry = null;
+                let symmetry: any;
+                if (row.symmetry) {
+                    symmetry = getIdFromName(
+                        row["symmetry"],
+                        SymmetryList,
+                        "name",
+                        "Symmetry"
+                    );
+                    if (symmetry && symmetry.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: symmetry.error,
+                        });
+                    } else if (symmetry && symmetry.data) {
+                        symmetry = symmetry?.data;
+                    } else {
+                        symmetry = null;
+                    }
                 }
 
                 let measurement_height: any = row["measurement height"];
@@ -709,6 +616,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         fluorescence.error != undefined
                     ) {
                         errors.push({
+                            stock_id: row["stock #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: fluorescence.error,
                         });
@@ -732,6 +640,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     company.error != undefined
                 ) {
                     errors.push({
+                        stock_id: row["stock #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: company.error,
                     });
@@ -744,6 +653,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let local_location: any = row["local location"];
                 let user_comments: any = row["user comment"];
                 let admin_comments: any = row["admin comment"];
+                let loose_diamond: any = row["loose diamond"].charAt(0).toUpperCase() + row["loose diamond"].slice(1).toLowerCase();
+                if (!(Object.values(Is_loose_diamond).includes(loose_diamond))) {
+                    errors.push({
+                        stock_id: row["stock #"],
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: `Loose Diamond value ${loose_diamond} is not valid. Valid values are ${Object.values(Is_loose_diamond).join("and ")}.`,
+                    });
+                }
 
                 const findStock = await stockList.find(
                     (t: any) => t.dataValues.stock_id == row["stock #"]
@@ -760,6 +677,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         rate,
                         color,
                         color_intensity,
+                        color_over_tone,
                         clarity,
                         video,
                         image,
@@ -779,6 +697,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
+                        loose_diamond,
                         status: StockStatus.AVAILABLE,
                         modified_by: idAppUser,
                         modified_at: getLocalDate(),
@@ -794,6 +713,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         rate,
                         color,
                         color_intensity,
+                        color_over_tone,
                         clarity,
                         video,
                         image,
@@ -813,6 +733,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
+                        loose_diamond,
                         status: StockStatus.AVAILABLE,
                         is_active: ActiveStatus.Active,
                         is_deleted: DeleteStatus.No,
@@ -820,6 +741,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         created_at: getLocalDate(),
                     });
                 }
+            } else {
+                errors.push({
+                    stock_id: "",
+                    row_id: currentGroupIndex + 1 + 1,
+                    error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
+                        ["field_name", "Stock #"],
+                    ]),
+                });
             }
         }
 
@@ -855,6 +784,7 @@ const addGroupToDB = async (list: any) => {
                     "rate",
                     "color",
                     "color_intensity",
+                    "color_over_tone",
                     "clarity",
                     "video",
                     "image",
@@ -874,6 +804,7 @@ const addGroupToDB = async (list: any) => {
                     "local_location",
                     "user_comments",
                     "admin_comments",
+                    "loose_diamond",
                     "status",
                     "modified_by",
                     "modified_at",
@@ -885,6 +816,7 @@ const addGroupToDB = async (list: any) => {
 
         return resSuccess({ data: list });
     } catch (e) {
+        console.log(e)
         await trn.rollback();
         throw e;
     }

@@ -1,4 +1,4 @@
-import { fieldArrayChain, fieldIntegerChain } from "../common-validation-rules";
+import { fieldArrayChain, fieldIntegerChain, fieldStringChain } from "../common-validation-rules";
 
 export const invoiceRules = [
     fieldIntegerChain("Customer", "customer_id"),
