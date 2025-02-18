@@ -23,14 +23,8 @@ export const createMemo = async (req: Request) => {
         const inputDate = new Date(report_date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        if (isNaN(inputDate.getTime())) {
-            return resBadRequest({
-                message: "Invalid report date"
-            });
-        }
-
-        if (inputDate <= today) {
+        
+        if (!isNaN(inputDate.getTime()) && inputDate <= today) {
             return resBadRequest({ message: "Report Date must be a future date" });
         }
 
