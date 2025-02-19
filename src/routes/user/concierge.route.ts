@@ -5,5 +5,5 @@ import { customerAuthorization } from "../../middlewares/authenticate";
 import { reqSingleImageParser } from "../../middlewares/multipart-file-parser";
 
 export default (app: Router) => {
-  app.post("/diamond-concierge", [customerAuthorization, reqSingleImageParser("image"), diamondConciergeValidator], addDiamondConciergeFn);
+  app.post("/diamond-concierge", [reqSingleImageParser("image"), diamondConciergeValidator], addDiamondConciergeFn);
 };
