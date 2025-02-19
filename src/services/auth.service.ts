@@ -368,6 +368,7 @@ export const login = async (req: Request, res: Response) => {
         "user_type",
         "id_role",
         "is_active",
+        "company_id",
         [
           Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
           "image_path",
