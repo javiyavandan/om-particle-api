@@ -12,7 +12,7 @@ export const addStock = async (req: Request) => {
     try {
         const {
             stock_id,
-            status,
+            status = StockStatus.AVAILABLE,
             shape,
             quantity = 1,
             weight,
@@ -77,12 +77,12 @@ export const addStock = async (req: Request) => {
         const missingFields = [];
         if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
         if (!(colorData && colorData.dataValues)) missingFields.push("Color Data");
-        if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
-        if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
-        if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
-        if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
-        if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
         if (!(companyData && companyData.dataValues)) missingFields.push("Location Data");
+        if (clarityData) if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
+        if (labData) if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
+        if (polishData) if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
+        if (symmetryData) if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
+        if (colorIntensityData) if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
         if (fluorescence) if (!(fluorescenceData && fluorescenceData.dataValues)) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response
@@ -150,7 +150,7 @@ export const updateStock = async (req: Request) => {
             is_active,
             is_deleted,
             shape,
-            quantity,
+            quantity = 1,
             weight,
             rate,
             color,
@@ -237,12 +237,12 @@ export const updateStock = async (req: Request) => {
         const missingFields = [];
         if (!(shapeData && shapeData.dataValues)) missingFields.push("Shape Data");
         if (!(colorData && colorData.dataValues)) missingFields.push("Color Data");
-        if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
-        if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
-        if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
-        if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
-        if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
         if (!(companyData && companyData.dataValues)) missingFields.push("Location Data");
+        if (clarityData) if (!(clarityData && clarityData.dataValues)) missingFields.push("Clarity Data");
+        if (labData) if (!(labData && labData.dataValues)) missingFields.push("Lab Data");
+        if (polishData) if (!(polishData && polishData.dataValues)) missingFields.push("Polish Data");
+        if (symmetryData) if (!(symmetryData && symmetryData.dataValues)) missingFields.push("Symmetry Data");
+        if (colorIntensityData) if (!(colorIntensityData && colorIntensityData.dataValues)) missingFields.push("Color Intensity Data");
         if (fluorescence) if (!(fluorescenceData && fluorescenceData.dataValues)) missingFields.push("fluorescence Data");
 
         // If there are missing fields, return an appropriate response

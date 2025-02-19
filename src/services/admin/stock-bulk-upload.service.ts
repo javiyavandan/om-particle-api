@@ -411,9 +411,19 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
         let updatedStockList = [];
         let createdStockList = [];
+        const seenStockNumbers = new Set<string>();
         for (const row of rows) {
             currentGroupIndex++;
-            if (row["stock #"]) {
+            const stockNumber = row["stock #"];
+            if (stockNumber) {
+                if (seenStockNumbers.has(stockNumber)) {
+                    errors.push({
+                        stock_id: row["stock #"],
+                        row_id: currentGroupIndex + 1 + 1,
+                        error_message: "Duplicate stock number",
+                    });
+                }
+                seenStockNumbers.add(stockNumber);
                 if (row.shape == null) {
                     errors.push({
                         stock_id: row["stock #"],
@@ -450,33 +460,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         ]),
                     });
                 }
-                if (row.clarity == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "Clarity"],
-                        ]),
-                    });
-                }
-                if (row.video == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "video"],
-                        ]),
-                    });
-                }
-                if (row.image == null) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "image"],
-                        ]),
-                    });
-                }
                 if (row.location == null) {
                     errors.push({
                         stock_id: row["stock #"],
@@ -490,7 +473,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     row["loose diamond"] = Is_loose_diamond.No
                 }
 
-                let shape: any = getIdFromName(row.shape, shapeList, "name", "shape");
+                let shape: any;
+
+                if (row.shape?.includes("other")) {
+                    shape = getIdFromName("other", shapeList, "name", "shape");
+                } else {
+                    shape = getIdFromName(row.shape, shapeList, "name", "shape");
+                }
+
                 if (shape && shape.error != undefined) {
                     errors.push({
                         stock_id: row["stock #"],
@@ -540,22 +530,25 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let color_over_tone: any = row["color over tone"];
 
-                let clarity: any = getIdFromName(
-                    row.clarity,
-                    clarityList,
-                    "name",
-                    "clarity"
-                );
-                if (clarity && clarity.error != undefined) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: clarity.error,
-                    });
-                } else if (clarity && clarity.data) {
-                    clarity = clarity?.data;
-                } else {
-                    clarity = null;
+                let clarity: any;
+                if (row.clarity) {
+                    clarity = getIdFromName(
+                        row.clarity,
+                        clarityList,
+                        "name",
+                        "clarity"
+                    );
+                    if (clarity && clarity.error != undefined) {
+                        errors.push({
+                            stock_id: row["stock #"],
+                            row_id: currentGroupIndex + 1 + 1,
+                            error_message: clarity.error,
+                        });
+                    } else if (clarity && clarity.data) {
+                        clarity = clarity?.data;
+                    } else {
+                        clarity = null;
+                    }
                 }
 
                 let video: any = row.video;
@@ -767,6 +760,14 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         created_at: getLocalDate(),
                     });
                 }
+            } else {
+                errors.push({
+                    stock_id: "",
+                    row_id: currentGroupIndex + 1 + 1,
+                    error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
+                        ["field_name", "Stock #"],
+                    ]),
+                });
             }
         }
 

@@ -118,13 +118,11 @@ export const getAllBusinessUsers = async (req: Request) => {
         [Sequelize.literal(`"app_user->company"."id"`), "company_id"],
         [Sequelize.literal(`"app_user->company"."name"`), "company_name"],
         [
-          Sequelize.fn(
-            "CONCAT",
-            IMAGE_URL,
-            Sequelize.literal(`"image"."image_path"`)
-          ),
+          Sequelize.literal(`
+            CASE WHEN image.image_path IS NOT NULL THEN CONCAT('${IMAGE_URL}', image.image_path) ELSE NULL END
+          `),
           "image_path",
-        ],
+        ]        
       ],
     });
     return resSuccess({ data: { pagination, result } });

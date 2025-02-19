@@ -26,18 +26,21 @@ export const createInvoice = async (req: Request) => {
         let totalWeight = 0
         let taxData = [];
 
-        const inputDate = new Date(report_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        if (report_date) {
+            const inputDate = new Date(report_date);
 
-        if (isNaN(inputDate.getTime())) {
-            return resBadRequest({
-                message: "Invalid report date"
-            });
-        }
+            if (isNaN(inputDate.getTime())) {
+                return resBadRequest({ message: "Invalid date format" });
+            }
 
-        if (inputDate <= today) {
-            return resBadRequest({ message: "Report Date must be a future date" });
+            const inputUTC = Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+            const today = new Date();
+            const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+            if (inputUTC < todayUTC) {
+                return resBadRequest({ message: "Report date must be a future date" });
+            }
         }
 
 
@@ -161,7 +164,7 @@ export const createInvoice = async (req: Request) => {
                 contact,
                 salesperson,
                 ship_via,
-                report_date: new Date(report_date)
+                report_date: report_date ? new Date(report_date) : null
             };
 
             const invoiceData = await Invoice.create(invoicePayload, {
