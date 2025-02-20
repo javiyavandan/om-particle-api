@@ -1,0 +1,150 @@
+name: OML-API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up SSH for Development
+      if: github.ref == 'refs/heads/development'
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.OML_DEV_SSH_KEY }}
+
+    - name: Set up SSH for Staging
+      if: github.ref == 'refs/heads/staging'
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.OML_STAG_SSH_KEY }}
+
+    - name: Set up SSH for Production
+      if: github.ref == 'refs/heads/main'
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.OML_PROD_SSH_KEY }}
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: npm install --force
+    
+    - name: Build Node app
+      run: npm run build
+
+    - name: Add EC2 to known hosts
+      run: echo "${{ github.ref == 'refs/heads/main' && secrets.OML_PROD_KNOWN_HOSTS || github.ref == 'refs/heads/staging' && secrets.OML_STAG_KNOWN_HOSTS || github.ref == 'refs/heads/development' && secrets.OML_DEV_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+    
+    - name: Create .env Development
+      if: github.ref == 'refs/heads/development'
+      env:
+        ENV_FILE: ${{ secrets.OML_DEV_ENV_FILE }}
+      run: |
+        ssh root@${{ secrets.OML_DEV_HOST }} "
+          echo '${ENV_FILE}' | sudo tee /var/www/om-particle-api/.env > /dev/null"
+
+    - name: Create .env Staging
+      if: github.ref == 'refs/heads/staging'
+      env:
+        ENV_FILE: ${{ secrets.OML_STAG_ENV_FILE }}
+      run: |
+        ssh ubuntu@${{ secrets.OML_STAG_HOST }} "
+          echo '${ENV_FILE}' | sudo tee /home/ubuntu/oml-stag/om-particle-api/.env > /dev/null"
+
+    - name: Create .env Production
+      if: github.ref == 'refs/heads/main'
+      env:
+        ENV_FILE: ${{ secrets.OML_PROD_ENV_FILE }}
+      run: |
+        ssh ubuntu@${{ secrets.OML_PROD_HOST }} "
+          echo '${ENV_FILE}' | sudo tee /home/ubuntu/om-particle-api/.env > /dev/null"
+    
+    - name: Deploy using rsync on development
+      if: github.ref == 'refs/heads/development'
+      env:
+        EC2_HOST: ${{ secrets.OML_DEV_HOST }}
+      run: |
+        rsync -chrlvzi --checksum --delete \
+          -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
+          --exclude '.git' \
+          --exclude '.env' \
+          ./ root@${EC2_HOST}:/var/www/om-particle-api/
+    
+    - name: Deploy using rsync on staging
+      if: github.ref == 'refs/heads/staging'
+      env:
+        EC2_HOST: ${{ secrets.OML_STAG_HOST }}
+      run: |
+        rsync -chrlvzi --checksum --delete \
+          -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
+          --exclude '.git' \
+          --exclude '.env' \
+          ./ ubuntu@${EC2_HOST}:/home/ubuntu/oml-stag/om-particle-api/
+    
+    - name: Deploy using rsync on production
+      if: github.ref == 'refs/heads/main'
+      env:
+        EC2_HOST: ${{ secrets.OML_PROD_HOST }}
+      run: |
+        rsync -chrlvzi --checksum --delete \
+          -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
+          --exclude '.git' \
+          --exclude '.env' \
+          ./ ubuntu@${EC2_HOST}:/home/ubuntu/om-particle-api/
+
+    - name: Deploy to Devlopment
+      if: github.ref == 'refs/heads/development'
+      env:
+        EC2_HOST: ${{ secrets.OML_DEV_HOST }}
+      run: |
+        ssh -t root@${EC2_HOST} << 'EOF'
+        export NVM_DIR="$HOME/.nvm"
+        source $NVM_DIR/nvm.sh
+        source $NVM_DIR/bash_completion
+        nvm use default
+        export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
+        cd /var/www/om-particle-api/
+        pm2 restart "OMP"
+        EOF
+    
+    - name: Deploy to staging
+      if: github.ref == 'refs/heads/staging'
+      env:
+        EC2_HOST: ${{ secrets.OML_STAG_HOST }}
+      run: |
+        ssh ubuntu@${EC2_HOST} << 'EOF'
+        export NVM_DIR="$HOME/.nvm"
+        source $NVM_DIR/nvm.sh
+        source $NVM_DIR/bash_completion
+        nvm use default
+        export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
+        cd /home/ubuntu/oml-stag/om-particle-api/
+        pm2 restart "oml-stag"
+        EOF
+
+    - name: Deploy to Production
+      if: github.ref == 'refs/heads/main'
+      env:
+        EC2_HOST: ${{ secrets.OML_PROD_HOST }}
+      run: |
+        ssh ubuntu@${EC2_HOST} << 'EOF'
+        export NVM_DIR="$HOME/.nvm"
+        source $NVM_DIR/nvm.sh
+        source $NVM_DIR/bash_completion
+        nvm use default
+        export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
+        cd /home/ubuntu/om-particle-api/
+        pm2 restart "OML"
+        EOF
