@@ -60,16 +60,16 @@ jobs:
       env:
         ENV_FILE: ${{ secrets.OML_STAG_ENV_FILE }}
       run: |
-        ssh ubuntu@${{ secrets.OML_STAG_HOST }} "
-          echo '${ENV_FILE}' | sudo tee /home/ubuntu/oml-stag/om-particle-api/.env > /dev/null"
+        ssh root@${{ secrets.OML_STAG_HOST }} "
+          echo '${ENV_FILE}' | sudo tee /root/oml-stag/om-particle-api/.env > /dev/null"
 
     - name: Create .env Production
       if: github.ref == 'refs/heads/main'
       env:
         ENV_FILE: ${{ secrets.OML_PROD_ENV_FILE }}
       run: |
-        ssh ubuntu@${{ secrets.OML_PROD_HOST }} "
-          echo '${ENV_FILE}' | sudo tee /home/ubuntu/om-particle-api/.env > /dev/null"
+        ssh root@${{ secrets.OML_PROD_HOST }} "
+          echo '${ENV_FILE}' | sudo tee /root/om-particle-api/.env > /dev/null"
     
     - name: Deploy using rsync on development
       if: github.ref == 'refs/heads/development'
@@ -91,7 +91,7 @@ jobs:
           -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
           --exclude '.git' \
           --exclude '.env' \
-          ./ ubuntu@${EC2_HOST}:/home/ubuntu/oml-stag/om-particle-api/
+          ./ root@${EC2_HOST}:/root/oml-stag/om-particle-api/
     
     - name: Deploy using rsync on production
       if: github.ref == 'refs/heads/main'
@@ -102,7 +102,7 @@ jobs:
           -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
           --exclude '.git' \
           --exclude '.env' \
-          ./ ubuntu@${EC2_HOST}:/home/ubuntu/om-particle-api/
+          ./ root@${EC2_HOST}:/root/om-particle-api/
 
     - name: Deploy to Devlopment
       if: github.ref == 'refs/heads/development'
@@ -124,13 +124,13 @@ jobs:
       env:
         EC2_HOST: ${{ secrets.OML_STAG_HOST }}
       run: |
-        ssh ubuntu@${EC2_HOST} << 'EOF'
+        ssh -t root@${EC2_HOST} << 'EOF'
         export NVM_DIR="$HOME/.nvm"
         source $NVM_DIR/nvm.sh
         source $NVM_DIR/bash_completion
         nvm use default
         export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
-        cd /home/ubuntu/oml-stag/om-particle-api/
+        cd /root/oml-stag/om-particle-api/
         pm2 restart "oml-stag"
         EOF
 
@@ -139,12 +139,12 @@ jobs:
       env:
         EC2_HOST: ${{ secrets.OML_PROD_HOST }}
       run: |
-        ssh ubuntu@${EC2_HOST} << 'EOF'
+        ssh -t root@${EC2_HOST} << 'EOF'
         export NVM_DIR="$HOME/.nvm"
         source $NVM_DIR/nvm.sh
         source $NVM_DIR/bash_completion
         nvm use default
         export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
-        cd /home/ubuntu/om-particle-api/
+        cd /root/om-particle-api/
         pm2 restart "OML"
         EOF
