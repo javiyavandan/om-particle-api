@@ -56,6 +56,9 @@ const Invoice = dbContext.define('invoices', {
     },
     report_date: {
         type: DATE,
+    },
+    status: {
+        type: STRING
     }
 });
 
