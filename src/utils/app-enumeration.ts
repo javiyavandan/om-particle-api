@@ -52,6 +52,7 @@ export enum Image_type {
   About = 5,
   Preference = 6,
   Popup = 7,
+  Blog = 9,
 }
 
 export enum HUBSPOT_ASSOCIATION {
@@ -216,7 +217,8 @@ export enum IMAGE_TYPE {
   HandA = "H&A_master",
   growthType = "growth_type_master",
   Profile = "user_profile",
-  Concierge = 'concierge'
+  Concierge = 'concierge',
+  Blog = "blog_image"
 }
 
 export enum HTTP_METHODS {
@@ -241,6 +243,11 @@ export enum FILE_BULK_UPLOAD_TYPE {
 }
 
 export enum MEMO_STATUS {
+  Active = 'active',
+  Close = 'close',
+}
+
+export enum INVOICE_STATUS {
   Active = 'active',
   Close = 'close',
 }

@@ -18,6 +18,9 @@ const InvoiceDetail = dbContext.define("invoice_details", {
     stock_price: {
         type: BIGINT
     },
+    is_return: {
+        type: STRING,
+    }
 })
 
 InvoiceDetail.belongsTo(Invoice, {foreignKey: 'invoice_id', as: "invoice"})
