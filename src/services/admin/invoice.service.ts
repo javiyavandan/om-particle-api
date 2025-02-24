@@ -439,34 +439,14 @@ export const closeInvoice = async (req: Request) => {
                 transaction: trn
             });
 
-            const invoiceDetail = await InvoiceDetail.findAll({
+            await Invoice.update({
+                status: INVOICE_STATUS.Close,
+            }, {
                 where: {
-                    invoice_id: invoice.dataValues.id,
-                    is_return: ActiveStatus.InActive,
+                    id: invoice.dataValues.id
                 },
-                include: [
-                    {
-                        model: Diamonds,
-                        as: 'stocks',
-                        attributes: ["status"],
-                        where: {
-                            status: StockStatus.SOLD
-                        }
-                    }
-                ],
                 transaction: trn
             })
-
-            if (invoiceDetail.length === 0) {
-                await Invoice.update({
-                    status: INVOICE_STATUS.Close,
-                }, {
-                    where: {
-                        id: invoice.dataValues.id
-                    },
-                    transaction: trn
-                })
-            }
 
             await trn.commit();
             await refreshMaterializedDiamondListView()
