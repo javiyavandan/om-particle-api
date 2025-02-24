@@ -167,7 +167,8 @@ export const IMAGE_TYPE_LOCATION = {
   [Image_type.User]: "images/user",
   [Image_type.Concierge]: "images/concierge",
   [Image_type.Popup]: "images/popup",
-  [File_type.Customer]: 'files/customer'
+  [File_type.Customer]: 'files/customer',
+  [Image_type.Blog]: 'files/blog'
 };
 // Product Bulk Upload File
 export const PRODUCT_BULK_UPLOAD_FILE_MIMETYPE =

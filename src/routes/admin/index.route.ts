@@ -13,6 +13,7 @@ import cartAdminRoute from "./cart-admin.route";
 import inquiryRoute from "./inquiry.route";
 import currencyRoute from "./currency.route";
 import homePageRoute from "./home-page.route";
+import blogRoute from "./blog.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -30,5 +31,6 @@ export default function adminRouter() {
   inquiryRoute(app);
   currencyRoute(app);
   homePageRoute(app);
+  blogRoute(app);
   return app;
 }
