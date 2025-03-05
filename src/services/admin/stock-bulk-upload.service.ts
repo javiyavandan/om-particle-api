@@ -623,7 +623,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let ratio: any = row.ratio;
 
                 let fluorescence: any;
-                if (row.fluorescence != null && row.fluorescence !== "NONE") {
+                if (row.fluorescence != null) {
                     fluorescence = getIdFromName(
                         row.fluorescence,
                         fluorescenceList,
