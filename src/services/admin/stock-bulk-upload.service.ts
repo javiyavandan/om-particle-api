@@ -623,7 +623,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let ratio: any = row.ratio;
 
                 let fluorescence: any;
-                if (row.fluorescence != null && row.fluorescence !== "NONE") {
+                if (row.fluorescence != null) {
                     fluorescence = getIdFromName(
                         row.fluorescence,
                         fluorescenceList,
@@ -717,7 +717,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         user_comments,
                         admin_comments,
                         loose_diamond,
-                        status: StockStatus.AVAILABLE,
+                        status: findStock.dataValues.status,
                         modified_by: idAppUser,
                         modified_at: getLocalDate(),
                         created_at: getLocalDate(),
@@ -824,7 +824,6 @@ const addGroupToDB = async (list: any) => {
                     "user_comments",
                     "admin_comments",
                     "loose_diamond",
-                    "status",
                     "modified_by",
                     "modified_at",
                 ],

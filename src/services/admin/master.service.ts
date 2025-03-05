@@ -368,10 +368,12 @@ export const masterList = async (req: Request) => {
   try {
     const { master_type } = req.params;
     const { query } = req;
+    let paginationProps = {};
     let pagination = {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
+    let noPagination = req.query.no_pagination === "1";
 
     let where = [
       { is_deleted: DeleteStatus.No },
@@ -387,22 +389,28 @@ export const masterList = async (req: Request) => {
         : {},
     ];
 
-    const totalItems = await Master.count({
-      where,
-    });
+    if (!noPagination) {
+      const totalItems = await Master.count({
+        where,
+      });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
 
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
-
     const MasterData = await Master.findAll({
-      where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
       order: [[pagination.sort_by, pagination.order_by]],
+      ...paginationProps,
+      where,
       attributes: [
         "id",
         "name",
@@ -442,7 +450,7 @@ export const masterList = async (req: Request) => {
         }
       ],
     });
-    return resSuccess({ data: { pagination, result: MasterData } });
+    return resSuccess({ data: noPagination ? MasterData : { pagination, result: MasterData } });
   } catch (error) {
     throw error;
   }
