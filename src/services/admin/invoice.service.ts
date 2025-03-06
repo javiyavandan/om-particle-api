@@ -6,7 +6,7 @@ import Customer from "../../model/customer.modal";
 import Diamonds from "../../model/diamond.model";
 import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
-import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type } from "../../utils/app-enumeration";
+import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
@@ -18,7 +18,7 @@ import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
@@ -96,20 +96,82 @@ export const createInvoice = async (req: Request) => {
             })
         }
 
-        const allStock = await dbContext.query(
-            `SELECT * FROM diamond_list WHERE status != '${StockStatus.SOLD}' ${req.body.session_res.company_id ? `and company_id = ${req.body.session_res.company_id}` : ""}`, { type: QueryTypes.SELECT }
-        )
+        const allStock = await Diamonds.findAll({
+            where: {
+                status: { [Op.ne]: StockStatus.SOLD },
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+            },
+            attributes: [
+                "id",
+                "stock_id",
+                "status",
+                "is_active",
+                "is_deleted",
+                "shape",
+                "quantity",
+                "weight",
+                "rate",
+                "color",
+                "color_intensity",
+                "color_over_tone",
+                "clarity",
+                "lab",
+                "report",
+                "polish",
+                "symmetry",
+                "video",
+                "image",
+                "certificate",
+                "local_location",
+                "measurement_height",
+                "measurement_width",
+                "measurement_depth",
+                "table_value",
+                "depth_value",
+                "ratio",
+                "fluorescence",
+                "company_id",
+                "user_comments",
+                "admin_comments",
+                "loose_diamond",
+                "created_by",
+                "created_at",
+                "modified_by",
+                "modified_at",
+                "deleted_by",
+                "deleted_at",
+                [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']],
+            include: [
+                {
+                    model: Master,
+                    as: 'shape_master',
+                    attributes: []
+                },
+                {
+                    model: Master,
+                    as: 'color_master',
+                    attributes: []
+                },
+                {
+                    model: Master,
+                    as: 'clarity_master',
+                    attributes: []
+                }
+            ]
+        })
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock: any = allStock.find((stock: any) => stock.stock_id === stockId)
-            if (!(findStock && findStock)) {
+            const findStock = allStock.find((stock) => stock.dataValues.stock_id === stockId)
+            if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
-                totalItemPrice += (stock_list[index].rate * findStock.weight * findStock.quantity),
-                    totalWeight += (findStock.weight * findStock.quantity),
+                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity),
+                    totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity),
                     stockList.push({
-                        stock_id: findStock.id,
+                        stock_id: findStock.dataValues.id,
                         stock_price: stock_list[index].rate,
                     })
             }
@@ -163,7 +225,10 @@ export const createInvoice = async (req: Request) => {
                 remarks,
                 contact,
                 salesperson,
+                status: INVOICE_STATUS.Active,
                 ship_via,
+                cust_order,
+                tracking,
                 report_date: report_date ? new Date(report_date) : null
             };
 
@@ -182,8 +247,8 @@ export const createInvoice = async (req: Request) => {
                 transaction: trn,
             })
 
-            const stockUpdate: any = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.id)).map(stock => ({
-                ...stock,
+            const stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
+                ...stock.dataValues,
                 status: StockStatus.SOLD
             }))
 
@@ -256,7 +321,7 @@ export const createInvoice = async (req: Request) => {
                     total_diamond: invoiceData.dataValues.total_diamond_count,
                     total_tax: Number(invoiceData.dataValues.total_tax_price).toFixed(2),
                     created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                    data: stockUpdate.map((diamond: any) => ({
+                    data: stockUpdate.map((diamond) => ({
                         shape: diamond.shape_name,
                         weight: diamond.weight,
                         color: diamond.color_name,
@@ -306,6 +371,95 @@ export const createInvoice = async (req: Request) => {
             await trn.rollback();
             throw error
         }
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const closeInvoice = async (req: Request) => {
+    try {
+        const { invoice_id } = req.params
+        const stockError = [];
+        const stockList = [];
+
+        const invoice = await Invoice.findOne({
+            where: {
+                id: invoice_id,
+                status: INVOICE_STATUS.Active
+            },
+            include: [
+                {
+                    model: InvoiceDetail,
+                    as: 'invoice_details',
+                }
+            ]
+        })
+
+        if (!(invoice && invoice.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Invoice"]])
+            })
+        }
+
+        const allStock = await Diamonds.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                status: StockStatus.SOLD
+            }
+        })
+
+        const stockData = invoice.dataValues.invoice_details.map((data: any) => data.dataValues.stock_id)
+
+        for (let index = 0; index < stockData.length; index++) {
+            const stockId = stockData[index];
+            const findStock = allStock.find(stock => stock.dataValues.id == stockId)
+            if (!(findStock && findStock.dataValues)) {
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
+            } else {
+                stockList.push({
+                    ...findStock.dataValues,
+                    modified_at: getLocalDate(),
+                    modified_by: req.body.session_res.id,
+                    status: StockStatus.AVAILABLE,
+                })
+            }
+        }
+
+        if (stockError.length > 0) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
+                data: stockError.map(err => err)
+            })
+        }
+
+        const trn = await dbContext.transaction();
+
+        try {
+            await Diamonds.bulkCreate(stockList, {
+                updateOnDuplicate: ["modified_at", "modified_by", "status"],
+                transaction: trn
+            });
+
+            await Invoice.update({
+                status: INVOICE_STATUS.Close,
+            }, {
+                where: {
+                    id: invoice.dataValues.id
+                },
+                transaction: trn
+            })
+
+            await trn.commit();
+            await refreshMaterializedDiamondListView()
+
+            return resSuccess()
+
+        } catch (error) {
+            trn.rollback();
+            throw error
+        }
+
 
     } catch (error) {
         throw error

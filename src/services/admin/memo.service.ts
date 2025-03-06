@@ -16,7 +16,7 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -86,26 +86,89 @@ export const createMemo = async (req: Request) => {
             })
         }
 
-        const allStock = await dbContext.query(
-            `SELECT * FROM diamond_list WHERE status != '${StockStatus.SOLD}' ${req.body.session_res.company_id ? `and company_id = ${req.body.session_res.company_id}` : ""}`, { type: QueryTypes.SELECT }
-        )
+        const allStock = await Diamonds.findAll({
+            where: {
+                status: StockStatus.AVAILABLE,
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+            },
+            attributes: [
+                "id",
+                "stock_id",
+                "status",
+                "is_active",
+                "is_deleted",
+                "shape",
+                "quantity",
+                "weight",
+                "rate",
+                "color",
+                "color_intensity",
+                "color_over_tone",
+                "clarity",
+                "lab",
+                "report",
+                "polish",
+                "symmetry",
+                "video",
+                "image",
+                "certificate",
+                "local_location",
+                "measurement_height",
+                "measurement_width",
+                "measurement_depth",
+                "table_value",
+                "depth_value",
+                "ratio",
+                "fluorescence",
+                "company_id",
+                "user_comments",
+                "admin_comments",
+                "loose_diamond",
+                "created_by",
+                "created_at",
+                "modified_by",
+                "modified_at",
+                "deleted_by",
+                "deleted_at",
+                [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
+            ],
+            include: [
+                {
+                    model: Master,
+                    as: 'shape_master',
+                    attributes: []
+                },
+                {
+                    model: Master,
+                    as: 'color_master',
+                    attributes: []
+                },
+                {
+                    model: Master,
+                    as: 'clarity_master',
+                    attributes: []
+                }
+            ]
+        })
 
         let totalItemPrice = 0;
         let totalWeight = 0;
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock: any = allStock.find((stock: any) => stock.stock_id === stockId)
-            if (!(findStock && findStock)) {
+            const findStock = allStock.find((stock) => stock.dataValues.stock_id === stockId)
+            if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
 
-                totalItemPrice += (stock_list[index].rate * findStock.weight * findStock.quantity);
-                totalWeight += (findStock.weight * findStock.quantity);
+                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity);
+                totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity);
 
                 stockList.push({
-                    stock_id: findStock.id,
-                    stock_original_price: findStock.rate,
+                    stock_id: findStock.dataValues.id,
+                    stock_original_price: findStock.dataValues.rate,
                     stock_price: stock_list[index].rate,
                     created_at: getLocalDate(),
                     created_by: req.body.session_res.id,
@@ -147,6 +210,8 @@ export const createMemo = async (req: Request) => {
                 contact,
                 salesperson,
                 ship_via,
+                cust_order,
+                tracking,
                 report_date: report_date ? new Date(report_date) : null
             };
 
@@ -165,8 +230,8 @@ export const createMemo = async (req: Request) => {
                 transaction: trn,
             })
 
-            const stockUpdate: any = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.id)).map(stock => ({
-                ...stock,
+            const stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
+                ...stock.dataValues,
                 status: StockStatus.MEMO
             }))
 
@@ -281,8 +346,7 @@ export const createMemo = async (req: Request) => {
                     }
                 }
             }
-
-            console.log(adminMail, customerMail);
+            console.log(adminMail, customerMail)
 
             await mailAdminMemo(adminMail);
             await mailCustomerMemo(customerMail);
