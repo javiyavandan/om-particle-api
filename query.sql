@@ -118,4 +118,13 @@ AS
           WHERE d.is_deleted = '0'::"bit"
           GROUP BY md.invoice_id) aggregated ON aggregated.invoice_id = ins.id
 
+CREATE TYPE public.invoice_status AS ENUM
+    ('close', 'active');
+
+ALTER TYPE public.invoice_status
+    OWNER TO postgres;
+
+ALTER TABLE IF EXISTS invoices
+    ADD COLUMN status invoice_status DEFAULT 'active'::invoice_status;
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
