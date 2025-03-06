@@ -18,7 +18,7 @@ import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
@@ -227,6 +227,8 @@ export const createInvoice = async (req: Request) => {
                 salesperson,
                 status: INVOICE_STATUS.Active,
                 ship_via,
+                cust_order,
+                tracking,
                 report_date: report_date ? new Date(report_date) : null
             };
 
