@@ -59,6 +59,12 @@ const Invoice = dbContext.define('invoices', {
     },
     status: {
         type: STRING
+    },
+    cust_order: {
+        type: STRING,
+    },
+    tracking: {
+        type: STRING,
     }
 });
 

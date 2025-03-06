@@ -51,13 +51,13 @@ const Memo = dbContext.define('memos', {
     remarks: {
         type: TEXT,
     },
-    total_item_price:{
+    total_item_price: {
         type: DOUBLE,
     },
-    total_weight:{
+    total_weight: {
         type: DOUBLE,
     },
-    total_diamond_count:{
+    total_diamond_count: {
         type: BIGINT,
     },
     contact: {
@@ -69,8 +69,14 @@ const Memo = dbContext.define('memos', {
     ship_via: {
         type: STRING,
     },
-    report_date:{
+    report_date: {
         type: DATE,
+    },
+    cust_order: {
+        type: STRING,
+    },
+    tracking: {
+        type: STRING,
     }
 })
 

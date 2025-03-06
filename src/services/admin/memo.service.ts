@@ -16,7 +16,7 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -210,6 +210,8 @@ export const createMemo = async (req: Request) => {
                 contact,
                 salesperson,
                 ship_via,
+                cust_order,
+                tracking,
                 report_date: report_date ? new Date(report_date) : null
             };
 
