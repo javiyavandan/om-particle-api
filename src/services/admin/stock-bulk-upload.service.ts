@@ -475,7 +475,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let shape: any;
 
-                if (row.shape?.includes("other")) {
+                if (row.shape?.trim().toLocaleLowerCase()?.includes("other")) {
                     shape = getIdFromName("other", shapeList, "name", "shape");
                 } else {
                     shape = getIdFromName(row.shape, shapeList, "name", "shape");
@@ -499,7 +499,15 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let rate: any = row.rate;
 
-                let color: any = getIdFromName(row.color, colorList, "name", "color");
+
+                let color: any;
+
+                if (row.color?.trim().toLocaleLowerCase()?.includes("other")) {
+                    color = getIdFromName("other", colorList, "name", "color");
+                } else {
+                    color = getIdFromName(row.color, colorList, "name", "color");
+                }
+
                 if (color && color.error != undefined) {
                     errors.push({
                         stock_id: row["stock #"],
