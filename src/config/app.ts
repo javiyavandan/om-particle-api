@@ -10,7 +10,8 @@ import userRouter from "../routes/user/index.route";
 const cors = require("cors");
 
 export default ({ app }: { app: express.Application }) => {
-  app.use(express.json());
+  app.use(express.json({ limit: "200mb", }));
+  app.use(express.urlencoded({ limit: "200mb", extended: true }));
   app.use(
     cors({
       origin: "*",
@@ -18,7 +19,7 @@ export default ({ app }: { app: express.Application }) => {
   );
   app.use(express.static("public"));
 
-  app.use("/api/v1", [bodyDecipher,tokenVerification], routes());
+  app.use("/api/v1", [bodyDecipher, tokenVerification], routes());
   app.use("/api/v1/admin", [bodyDecipher, tokenVerification], adminRouter());
   app.use("/api/v1/user", [bodyDecipher, tokenVerification], userRouter());
 
