@@ -99,7 +99,7 @@ export const getUserDetail = async (req: Request) => {
           file_type: FILE_TYPE.Customer,
           is_deleted: DeleteStatus.No,
         },
-        attributes: ["id","file_path"],
+        attributes: ["id", "file_path"],
       })
       let pdf: any = [];
       companyDetail.dataValues.user.id_pdf.map((value: number) => {
@@ -133,6 +133,7 @@ export const updateUserDetail = async (req: Request) => {
       postcode,
       remarks,
       session_res,
+      id_pdf
     } = req.body;
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -182,7 +183,7 @@ export const updateUserDetail = async (req: Request) => {
         imageId = user.dataValues.id_image;
       }
 
-      let pdfId: any = [];
+      let pdfId;
       if (files["pdf"]) {
         const pdf: any = [];
         for (let index = 0; index < files["pdf"].length; index++) {
@@ -209,9 +210,14 @@ export const updateUserDetail = async (req: Request) => {
           pdf,
           { transaction: trn }
         );
-        pdfId = fileResult.map((item) => item.dataValues.id);
+
+        if (id_pdf) {
+          pdfId = (typeof id_pdf === "string" ? [id_pdf] : id_pdf.map((item: any) => item)).concat(fileResult.map((item) => item.dataValues.id));
+        } else {
+          pdfId = fileResult.map((item) => item.dataValues.id);
+        }
       } else {
-        pdfId = user.dataValues.id_pdf;
+        pdfId = (typeof id_pdf === "string" ? [id_pdf] : id_pdf)?.map((item: any) => item);
       }
 
       await AppUser.update(
