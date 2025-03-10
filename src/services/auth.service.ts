@@ -104,7 +104,7 @@ export const registerUser = async (req: Request, res: Response) => {
       country,
       state,
       postcode,
-      verification,
+      verification = UserVerification.NotVerified,
       remarks,
     } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -133,31 +133,6 @@ export const registerUser = async (req: Request, res: Response) => {
     const trn = await dbContext.transaction();
     try {
       let imageId;
-      if (files["image"]) {
-        const imageData = await moveFileToS3ByType(
-          files["image"][0],
-          Image_type.User
-        )
-
-        if (imageData.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-          return imageData;
-        }
-        const imageResult = await Image.create(
-          {
-            image_path: imageData.data,
-            created_at: getLocalDate(),
-            created_by: req.body.session_res.id,
-            is_deleted: DeleteStatus.No,
-            is_active: ActiveStatus.Active,
-            image_type: IMAGE_TYPE.User,
-          },
-          { transaction: trn }
-        );
-        imageId = imageResult.dataValues.id;
-      } else {
-        return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Image is required"]]) })
-      }
-
       let pdfId: any = [];
       if (files["pdf"]) {
         const pdf: any = [];
