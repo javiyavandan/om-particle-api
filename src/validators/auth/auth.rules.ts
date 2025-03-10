@@ -19,12 +19,11 @@ import {
 } from "../../utils/app-messages";
 
 export const registerUserValidationRule = [
-  fieldStringMinMaxChain("Name", "name", 1, 60),
-  urlChain("Website link", "website"),
+  fieldStringChain("First Name", "first_name"),
+  fieldStringChain("Last Name", "last_name"),
+  emailChain("Email", "email"),
   passwordChain,
   confirmPasswordChain,
-  phoneNumberChain("phone_number"),
-  emailChain("Email", "email"),
 ];
 
 export const signupValidatorRules = [
@@ -104,11 +103,10 @@ export const resetPasswordValidatorRules = [
 export const updateUserAdminRules = [
   fieldStringChain("first name", "first_name"),
   fieldStringChain("last name", "last_name"),
-  fieldStringChain("company name", "company_name"),
-  urlChain("company website", "company_website"),
-  fieldStringChain("address", "address"),
-  fieldStringChain("city", "city"),
-  fieldStringChain("state", "state"),
-  fieldStringChain("country", "country"),
-  fieldStringChain("postcode", "postcode"),
+  fieldStringNotReqChain("company name", "company_name"),
+  fieldStringNotReqChain("address", "address"),
+  fieldStringNotReqChain("city", "city"),
+  fieldStringNotReqChain("state", "state"),
+  fieldStringNotReqChain("country", "country"),
+  fieldStringNotReqChain("postcode", "postcode"),
 ];

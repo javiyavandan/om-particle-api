@@ -381,6 +381,7 @@ export const updateUserDetail = async (req: Request) => {
       state,
       postcode,
       remarks,
+      id_pdf,
       session_res
     } = req.body;
     const { user_id } = req.params;
@@ -459,9 +460,14 @@ export const updateUserDetail = async (req: Request) => {
           pdf,
           { transaction: trn }
         );
-        pdfId = fileResult.map((item) => item.dataValues.id);
+
+        if (id_pdf) {
+          pdfId = (typeof id_pdf === "string" ? [id_pdf] : id_pdf.map((item: any) => item)).concat(fileResult.map((item) => item.dataValues.id));
+        } else {
+          pdfId = fileResult.map((item) => item.dataValues.id);
+        }
       } else {
-        pdfId = user.dataValues.id_pdf;
+        pdfId = (typeof id_pdf === "string" ? [id_pdf] : id_pdf)?.map((item: any) => item);
       }
 
       await AppUser.update(

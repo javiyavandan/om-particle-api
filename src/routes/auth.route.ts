@@ -14,7 +14,7 @@ import {
   changePasswordValidator,
   forgotPasswordValidator,
   loginCustomerValidator,
-  registerCustomerValidator,
+  registerUserValidator,
   resetPasswordValidator,
   verifyOtpValidator,
 } from "../validators/auth/auth.validator";
@@ -23,7 +23,7 @@ import { reqMultiImageParser } from "../middlewares/multipart-file-parser";
 
 export default (app: Router) => {
   app.get("/test", testFn);
-  app.post("/signup", [reqMultiImageParser(["image", "pdf"])], registerUserFn);
+  app.post("/signup", [reqMultiImageParser(["image", "pdf"]), registerUserValidator], registerUserFn);
   app.post("/signin", [loginCustomerValidator], loginFn);
   app.post("/verifyOtp/:user_id", [verifyOtpValidator], otpVerification);
   app.get("/resendOtp/:user_id", resendOtpFn);
