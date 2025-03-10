@@ -373,6 +373,7 @@ export const updateUserDetail = async (req: Request) => {
     const {
       first_name,
       last_name,
+      phone_number,
       company_name,
       company_website,
       address,
@@ -474,6 +475,7 @@ export const updateUserDetail = async (req: Request) => {
         {
           first_name: first_name,
           last_name: last_name,
+          phone_number,
           remarks,
           modified_at: getLocalDate(),
           modified_by: session_res.id,
