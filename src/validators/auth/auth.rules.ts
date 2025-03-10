@@ -24,7 +24,6 @@ export const registerUserValidationRule = [
   emailChain("Email", "email"),
   passwordChain,
   confirmPasswordChain,
-  phoneNumberChain("phone_number"),
 ];
 
 export const signupValidatorRules = [
