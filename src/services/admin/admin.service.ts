@@ -13,7 +13,6 @@ import {
   DEFAULT_STATUS_CODE_SUCCESS,
   ERROR_NOT_FOUND,
   RECORD_UPDATE,
-  STATUS_UPDATED,
   UPDATE,
   USER_NOT_FOUND,
   USER_NOT_VERIFIED,
@@ -73,6 +72,7 @@ export const userList = async (req: Request) => {
             { '$customer.company_name$': { [Op.iLike]: `%${pagination.search_text}%` } },
             { '$customer.country$': { [Op.iLike]: `%${pagination.search_text}%` } },
             { '$customer.state$': { [Op.iLike]: `%${pagination.search_text}%` } },
+            { '$customer.registration_number$': { [Op.iLike]: `%${pagination.search_text}%` } },
           ],
         }
         : {},
@@ -117,6 +117,7 @@ export const userList = async (req: Request) => {
         [Sequelize.literal(`customer.company_name`), "company_name"],
         [Sequelize.literal(`customer.country`), "country"],
         [Sequelize.literal(`customer.state`), "state"],
+        [Sequelize.literal(`customer.registration_number`), "registration_number"]
       ],
       include: [
         {
@@ -166,6 +167,7 @@ export const userDetail = async (req: Request) => {
         "state",
         "country",
         "postcode",
+        "registration_number",
         [Sequelize.literal(`(SELECT COUNT(*) FROM memo_list WHERE memo_list.customer_id = customers.id)`), "total_memo"],
         [Sequelize.literal(`(SELECT COUNT(*) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_invoice"],
         [Sequelize.literal(`(SELECT SUM(invoice_list.total_price) FROM invoice_list WHERE invoice_list.customer_id = customers.id)`), "total_invoice_price"],
@@ -383,7 +385,8 @@ export const updateUserDetail = async (req: Request) => {
       postcode,
       remarks,
       id_pdf,
-      session_res
+      session_res,
+      registration_number
     } = req.body;
     const { user_id } = req.params;
 
@@ -501,6 +504,7 @@ export const updateUserDetail = async (req: Request) => {
           country: country,
           state: state,
           postcode: postcode,
+          registration_number,
           modified_at: getLocalDate(),
           modified_by: session_res.id,
         },

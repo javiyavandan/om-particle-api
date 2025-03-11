@@ -219,6 +219,7 @@ export const getAllCartList = async (req: Request) => {
         [Sequelize.literal(`"user->customer"."state"`), "state"],
         [Sequelize.literal(`"user->customer"."country"`), "country"],
         [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
+        [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
       ],
       include: include,
     });
@@ -267,6 +268,7 @@ export const getCartDetail = async (req: Request) => {
         [Sequelize.literal(`"user->customer"."state"`), "state"],
         [Sequelize.literal(`"user->customer"."country"`), "country"],
         [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
+        [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
       ],
       include: [
         {
