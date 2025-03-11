@@ -96,6 +96,7 @@ export const getDiamondConciergeList = async (req: Request) => {
             [Sequelize.literal(`"user->customer"."state"`), "state"],
             [Sequelize.literal(`"user->customer"."country"`), "country"],
             [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
+            [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
           ],
           include: [
             {
@@ -172,6 +173,7 @@ export const getDiamondConciergeDetail = async (req: Request) => {
             [Sequelize.literal(`"user->customer"."state"`), "state"],
             [Sequelize.literal(`"user->customer"."country"`), "country"],
             [Sequelize.literal(`"user->customer"."postcode"`), "postcode"],
+            [Sequelize.literal(`"user->customer"."registration_number"`), "registration_number"],
           ],
           include: [
             {

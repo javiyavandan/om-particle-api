@@ -62,6 +62,7 @@ export const getUserDetail = async (req: Request) => {
         "state",
         "country",
         "postcode",
+        "registration_number",
       ],
       include: [
         {
@@ -133,6 +134,7 @@ export const updateUserDetail = async (req: Request) => {
       postcode,
       remarks,
       session_res,
+      registration_number,
       id_pdf
     } = req.body;
 
@@ -250,6 +252,7 @@ export const updateUserDetail = async (req: Request) => {
           country: country,
           state: state,
           postcode: postcode,
+          registration_number,
           modified_at: getLocalDate(),
           modified_by: session_res.user_id,
         },

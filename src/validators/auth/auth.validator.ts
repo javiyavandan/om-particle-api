@@ -1,8 +1,6 @@
 import { RequestHandler } from "express";
 import modelValidator from "../model.validator";
 import {
-
-  signupValidatorRules,
   registerUserValidationRule,
   signinValidatorRules,
   otpVerifyValidatorRules,
@@ -16,10 +14,6 @@ import {
 export const registerUserValidator: RequestHandler = async (req, res, next) => {
   return await modelValidator(req, res, next, registerUserValidationRule);
 };
-
-export const registerCustomerValidator: RequestHandler = async (req, res, next) => {
-  return await modelValidator(req, res, next, signupValidatorRules);
-}
 
 export const loginCustomerValidator: RequestHandler = async (req, res, next) => {
   return await modelValidator(req, res, next, signinValidatorRules);
