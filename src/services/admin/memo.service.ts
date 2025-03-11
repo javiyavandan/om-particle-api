@@ -187,6 +187,9 @@ export const createMemo = async (req: Request) => {
         const trn = await dbContext.transaction();
 
         const lastMemo = await Memo.findOne({
+            where: {
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+            },
             order: [["memo_number", "DESC"]],
             transaction: trn,
             attributes: [
