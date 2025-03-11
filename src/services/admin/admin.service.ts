@@ -8,7 +8,7 @@ import {
   resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
 import {
   DEFAULT_STATUS_CODE_SUCCESS,
   ERROR_NOT_FOUND,
@@ -37,6 +37,7 @@ import Customer from "../../model/customer.modal";
 import File from "../../model/files.model";
 import dbContext from "../../config/dbContext";
 import { moveFileToS3ByType } from "../../helpers/file-helper";
+import Company from "../../model/companys.model";
 
 export const userList = async (req: Request) => {
   try {
@@ -529,3 +530,92 @@ export const updateUserDetail = async (req: Request) => {
   }
 };
 
+
+export const dashboard = async (req: Request) => {
+  try {
+    const company_id = req.body.session_res?.company_id ?? req.query?.company_id;
+    const { start_date, end_date } = req.query
+
+    if (company_id) {
+      const findCompany = await Company.findOne({
+        where: {
+          id: company_id,
+          is_deleted: DeleteStatus.No,
+        },
+      })
+
+      if (!(findCompany && findCompany.dataValues)) {
+        return resNotFound({
+          message: prepareMessageFromParams(ERROR_NOT_FOUND, [
+            ["field_name", "Company"],
+          ]),
+        })
+      }
+    }
+
+    const dateFilter = (table: string) => {
+      return `
+            ${start_date && end_date
+          ? `AND ${table}.created_at BETWEEN '${new Date(new Date(start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+          : ""}
+              ${start_date && !end_date
+          ? `AND ${table}.created_at >= '${new Date(new Date(start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
+          : ""}
+              ${!start_date && end_date
+          ? `AND ${table}.created_at <= '${new Date(new Date(end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
+          : ""}`
+    }
+
+    const totalMemo: any = await dbContext.query(
+      `SELECT COUNT(*) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    const totalInvoice: any = await dbContext.query(
+      `SELECT COUNT(*) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    const totalCaratMemo: any = await dbContext.query(
+      `SELECT SUM(memo_list.total_weight) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    const totalCaratInvoice: any = await dbContext.query(
+      `SELECT SUM(invoice_list.total_weight) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    const totalInvoicePrice: any = await dbContext.query(
+      `SELECT SUM(invoice_list.total_item_price) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    const totalMemoPrice: any = await dbContext.query(
+      `SELECT SUM(memo_list.total_item_price) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+
+    return resSuccess({
+      data: {
+        totalMemo: totalMemo[0]?.count,
+        totalInvoice: totalInvoice[0]?.count,
+        totalCaratMemo: totalCaratMemo[0]?.sum?.toFixed(2) ?? "",
+        totalCaratInvoice: totalCaratInvoice[0]?.sum?.toFixed(2) ?? "",
+        totalInvoicePrice: totalInvoicePrice[0]?.sum?.toFixed(2) ?? "",
+        totalMemoPrice: totalMemoPrice[0]?.sum?.toFixed(2) ?? "",
+      }
+    })
+
+  } catch (error) {
+    throw error
+  }
+}

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   contactUsListFn,
+  dashboardFn,
   // dashboardFn,
   getAllUser,
   updateUserFn,
@@ -17,7 +18,7 @@ export default (app: Router) => {
   app.get("/user/:id", [adminAuthorization], userDetailFn);
   app.patch("/user-verified/:user_id", [adminAuthorization], userVerifyFn);
   app.patch("/user-status/:user_id", [adminAuthorization], updateUserStatusFn);
-  // app.get("/dashboard", [adminAuthorization], dashboardFn);
+  app.get("/dashboard", [adminAuthorization], dashboardFn);
   app.get("/contact-us", [adminAuthorization], contactUsListFn);
   app.put("/user/:user_id", [adminAuthorization, reqMultiImageParser(["image", "pdf"]), updateCustomerFromAdminValidator], updateUserFn);
 };
