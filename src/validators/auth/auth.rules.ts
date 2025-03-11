@@ -3,13 +3,9 @@ import { PASSWORD_REGEX } from "../../utils/app-constants";
 import {
   confirmPasswordChain,
   emailChain,
-  fieldIntegerChain,
   fieldStringChain,
-  fieldStringMinMaxChain,
   fieldStringNotReqChain,
   passwordChain,
-  phoneNumberChain,
-  urlChain,
 } from "../common-validation-rules";
 import {
   INVALID_PASSWORD,
@@ -24,29 +20,19 @@ export const registerUserValidationRule = [
   emailChain("Email", "email"),
   passwordChain,
   confirmPasswordChain,
-];
-
-export const signupValidatorRules = [
-  fieldStringChain("first name", "first_name"),
-  fieldStringChain("last name", "last_name"),
-  emailChain("email", "email"),
-  phoneNumberChain("phone_number"),
-  fieldStringChain("company name", "company_name"),
-  confirmPasswordChain,
-  urlChain("company website", "company_website"),
-  fieldStringChain("address", "address"),
-  fieldStringChain("city", "city"),
-  fieldStringChain("state", "state"),
-  fieldStringChain("country", "country"),
-  fieldIntegerChain("postcode", "postcode"),
-  passwordChain,
+  fieldStringNotReqChain("registration_number", "registration_number"),
 ];
 
 export const updateCustomerValidatorRules = [
   fieldStringChain("first name", "first_name"),
   fieldStringChain("last name", "last_name"),
-  phoneNumberChain("phone number"),
-  fieldStringChain("address", "address"),
+  fieldStringNotReqChain("company name", "company_name"),
+  fieldStringNotReqChain("address", "address"),
+  fieldStringNotReqChain("city", "city"),
+  fieldStringNotReqChain("state", "state"),
+  fieldStringNotReqChain("country", "country"),
+  fieldStringNotReqChain("postcode", "postcode"),
+  fieldStringNotReqChain("registration_number", "registration_number"),
 ];
 
 export const signinValidatorRules = [
@@ -109,4 +95,5 @@ export const updateUserAdminRules = [
   fieldStringNotReqChain("state", "state"),
   fieldStringNotReqChain("country", "country"),
   fieldStringNotReqChain("postcode", "postcode"),
+  fieldStringNotReqChain("registration_number", "registration_number"),
 ];

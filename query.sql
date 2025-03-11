@@ -128,3 +128,400 @@ ALTER TABLE IF EXISTS invoices
     ADD COLUMN status invoice_status DEFAULT 'active'::invoice_status;
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+ALTER TABLE IF EXISTS public.customers
+    ADD COLUMN registration_number character varying;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.invoice_list
+TABLESPACE pg_default
+AS
+SELECT
+	INS.ID,
+	INS.COMPANY_ID,
+	INS.CUSTOMER_ID,
+	INS.CREATED_AT,
+	INS.INVOICE_NUMBER,
+	INS.REMARKS,
+	INS.CONTACT,
+	INS.SALESPERSON,
+	INS.SHIP_VIA,
+	INS.REPORT_DATE,
+	INS.CUST_ORDER,
+	INS.TRACKING,
+	INS.TOTAL_TAX_PRICE,
+	INS.TOTAL_PRICE,
+	INS.TOTAL_ITEM_PRICE,
+	INS.TOTAL_WEIGHT,
+	INS.TOTAL_DIAMOND_COUNT,
+	INS.TAX_DATA,
+	CS.COMPANY_NAME AS CUSTOMER_NAME,
+	CS.COUNTRY,
+	CS.CITY,
+	CS.STATE,
+	CS.POSTCODE,
+	CS.ADDRESS,
+	JSONB_BUILD_OBJECT(
+		'customer_name',
+		CS.COMPANY_NAME,
+		'customer_email',
+		CS.COMPANY_EMAIL,
+		'country',
+		CS.COUNTRY,
+		'city',
+		CS.CITY,
+		'state',
+		CS.STATE,
+		'postcode',
+		CS.POSTCODE,
+		'address',
+		CS.ADDRESS,
+		'registration_number',
+		CS.registration_number,
+		'contact_person',
+		(AU.FIRST_NAME::TEXT || ' '::TEXT) || AU.LAST_NAME::TEXT,
+		'contact_email',
+		AU.EMAIL,
+		'contact_phone',
+		AU.PHONE_NUMBER
+	) AS CUSTOMER_DETAILS,
+	JSONB_BUILD_OBJECT(
+		'company_name',
+		CP.NAME,
+		'company_email',
+		CP.EMAIL,
+		'company_phone',
+		CP.PHONE_NUMBER,
+		'company_state',
+		CP.STATE,
+		'company_city',
+		CP.CITY,
+		'company_address',
+		CP.COMPANY_ADDRESS,
+		'pincode',
+		CP.PINCODE,
+		'map_link',
+		CP.MAP_LINK,
+		'contact_person',
+		CP.CONTACT_PERSON,
+		'registration_number',
+		CP.REGISTRATION_NUMBER,
+		'bank_details',
+		JSONB_BUILD_OBJECT(
+			'ac_holder',
+			CP.AC_HOLDER,
+			'ac_number',
+			CP.AC_NUMBER,
+			'bank_name',
+			CP.BANK_NAME,
+			'bank_branch',
+			CP.BANK_BRANCH,
+			'bank_branch_code',
+			CP.BANK_BRANCH_CODE
+		)
+	) AS COMPANY_DETAILS,
+	AU.FIRST_NAME,
+	AU.LAST_NAME,
+	AU.EMAIL,
+	AU.PHONE_NUMBER,
+	CP.NAME AS COMPANY_NAME,
+	AGGREGATED.INVOICE_DETAILS
+FROM
+	INVOICES INS
+	JOIN CUSTOMERS CS ON CS.ID = INS.CUSTOMER_ID
+	JOIN APP_USERS AU ON CS.USER_ID = AU.ID
+	JOIN COMPANYS CP ON CP.ID = INS.COMPANY_ID
+	LEFT JOIN (
+		SELECT
+			MD.INVOICE_ID,
+			JSONB_AGG(
+				DISTINCT JSONB_BUILD_OBJECT(
+					'stock_price',
+					MD.STOCK_PRICE,
+					'stock',
+					D.ID,
+					'stock_id',
+					D.STOCK_ID,
+					'status',
+					D.STATUS,
+					'quantity',
+					D.QUANTITY,
+					'weight',
+					D.WEIGHT,
+					'report',
+					D.REPORT,
+					'video',
+					D.VIDEO,
+					'image',
+					D.IMAGE,
+					'certificate',
+					D.CERTIFICATE,
+					'measurement_height',
+					D.MEASUREMENT_HEIGHT,
+					'measurement_width',
+					D.MEASUREMENT_WIDTH,
+					'measurement_depth',
+					D.MEASUREMENT_DEPTH,
+					'table_value',
+					D.TABLE_VALUE,
+					'depth_value',
+					D.DEPTH_VALUE,
+					'ratio',
+					D.RATIO,
+					'user_comments',
+					D.USER_COMMENTS,
+					'admin_comments',
+					D.ADMIN_COMMENTS,
+					'local_location',
+					D.LOCAL_LOCATION,
+					'color_over_tone',
+					D.COLOR_OVER_TONE,
+					'loose_diamond',
+					D.LOOSE_DIAMOND,
+					'shape',
+					SM.NAME,
+					'shape_id',
+					SM.ID,
+					'clarity',
+					CL.NAME,
+					'clarity_id',
+					CL.ID,
+					'color',
+					CM.NAME,
+					'color_id',
+					CM.ID,
+					'color_intensity',
+					CIM.NAME,
+					'color_intensity_id',
+					CIM.ID,
+					'lab',
+					LM.NAME,
+					'lab_id',
+					LM.ID,
+					'polish',
+					PM.NAME,
+					'polish_id',
+					PM.ID,
+					'symmetry',
+					SYMM.NAME,
+					'symmetry_id',
+					SYMM.ID,
+					'fluorescence',
+					FM.NAME,
+					'fluorescence_id',
+					FM.ID
+				)
+			) AS INVOICE_DETAILS
+		FROM
+			INVOICE_DETAILS MD
+			JOIN DIAMONDS D ON D.ID = MD.STOCK_ID
+			LEFT JOIN MASTERS SM ON SM.ID = D.SHAPE
+			LEFT JOIN MASTERS CM ON CM.ID = D.COLOR
+			LEFT JOIN MASTERS CL ON CL.ID = D.CLARITY
+			LEFT JOIN MASTERS CIM ON CIM.ID = D.COLOR_INTENSITY
+			LEFT JOIN MASTERS LM ON LM.ID = D.LAB
+			LEFT JOIN MASTERS PM ON PM.ID = D.POLISH
+			LEFT JOIN MASTERS SYMM ON SYMM.ID = D.SYMMETRY
+			LEFT JOIN MASTERS FM ON FM.ID = D.FLUORESCENCE
+		WHERE
+			D.IS_DELETED = '0'::"bit"
+		GROUP BY
+			MD.INVOICE_ID
+	) AGGREGATED ON AGGREGATED.INVOICE_ID = INS.ID
+
+  -- View: public.memo_list
+-- DROP MATERIALIZED VIEW IF EXISTS public.memo_list;
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.memo_list
+TABLESPACE pg_default
+AS
+SELECT
+	ME.ID,
+	ME.COMPANY_ID,
+	ME.CUSTOMER_ID,
+	ME.CREATED_AT,
+	ME.STATUS,
+	ME.MEMO_NUMBER,
+	ME.REMARKS,
+	ME.CONTACT,
+	ME.SALESPERSON,
+	ME.SHIP_VIA,
+	ME.REPORT_DATE,
+	ME.CUST_ORDER,
+	ME.TRACKING,
+	CS.COMPANY_NAME AS CUSTOMER_NAME,
+	CS.COUNTRY,
+	CS.CITY,
+	CS.STATE,
+	CS.POSTCODE,
+	CS.ADDRESS,
+	JSONB_BUILD_OBJECT(
+		'customer_name',
+		CS.COMPANY_NAME,
+		'customer_email',
+		CS.COMPANY_EMAIL,
+		'country',
+		CS.COUNTRY,
+		'city',
+		CS.CITY,
+		'state',
+		CS.STATE,
+		'postcode',
+		CS.POSTCODE,
+		'address',
+		CS.ADDRESS,
+		'registration_number',
+		CS.registration_number,
+		'contact_person',
+		(AU.FIRST_NAME::TEXT || ' '::TEXT) || AU.LAST_NAME::TEXT,
+		'contact_email',
+		AU.EMAIL,
+		'contact_phone',
+		AU.PHONE_NUMBER
+	) AS CUSTOMER_DETAILS,
+	JSONB_BUILD_OBJECT(
+		'company_name',
+		CP.NAME,
+		'company_email',
+		CP.EMAIL,
+		'company_phone',
+		CP.PHONE_NUMBER,
+		'company_state',
+		CP.STATE,
+		'company_city',
+		CP.CITY,
+		'company_address',
+		CP.COMPANY_ADDRESS,
+		'pincode',
+		CP.PINCODE,
+		'map_link',
+		CP.MAP_LINK,
+		'contact_person',
+		CP.CONTACT_PERSON,
+		'registration_number',
+		CP.REGISTRATION_NUMBER,
+		'bank_details',
+		JSONB_BUILD_OBJECT(
+			'ac_holder',
+			CP.AC_HOLDER,
+			'ac_number',
+			CP.AC_NUMBER,
+			'bank_name',
+			CP.BANK_NAME,
+			'bank_branch',
+			CP.BANK_BRANCH,
+			'bank_branch_code',
+			CP.BANK_BRANCH_CODE
+		)
+	) AS COMPANY_DETAILS,
+	AU.FIRST_NAME,
+	AU.LAST_NAME,
+	AU.EMAIL,
+	AU.PHONE_NUMBER,
+	CP.NAME AS COMPANY_NAME,
+	ME.TOTAL_ITEM_PRICE,
+	ME.TOTAL_WEIGHT,
+	ME.TOTAL_DIAMOND_COUNT,
+	AGGREGATED.MEMO_DETAILS
+FROM
+	MEMOS ME
+	JOIN CUSTOMERS CS ON CS.ID = ME.CUSTOMER_ID
+	JOIN APP_USERS AU ON CS.USER_ID = AU.ID
+	JOIN COMPANYS CP ON CP.ID = ME.COMPANY_ID
+	LEFT JOIN (
+		SELECT
+			MD.MEMO_ID,
+			JSONB_AGG(
+				DISTINCT JSONB_BUILD_OBJECT(
+					'stock_price',
+					MD.STOCK_PRICE,
+					'is_return',
+					MD.IS_RETURN,
+					'stock',
+					MD.STOCK_ID,
+					'stock_id',
+					D.STOCK_ID,
+					'status',
+					D.STATUS,
+					'quantity',
+					D.QUANTITY,
+					'weight',
+					D.WEIGHT,
+					'report',
+					D.REPORT,
+					'video',
+					D.VIDEO,
+					'image',
+					D.IMAGE,
+					'certificate',
+					D.CERTIFICATE,
+					'measurement_height',
+					D.MEASUREMENT_HEIGHT,
+					'measurement_width',
+					D.MEASUREMENT_WIDTH,
+					'measurement_depth',
+					D.MEASUREMENT_DEPTH,
+					'table_value',
+					D.TABLE_VALUE,
+					'depth_value',
+					D.DEPTH_VALUE,
+					'ratio',
+					D.RATIO,
+					'user_comments',
+					D.USER_COMMENTS,
+					'admin_comments',
+					D.ADMIN_COMMENTS,
+					'local_location',
+					D.LOCAL_LOCATION,
+					'color_over_tone',
+					D.COLOR_OVER_TONE,
+					'loose_diamond',
+					D.LOOSE_DIAMOND,
+					'shape',
+					SM.NAME,
+					'shape_id',
+					SM.ID,
+					'clarity',
+					CL.NAME,
+					'clarity_id',
+					CL.ID,
+					'color',
+					CM.NAME,
+					'color_id',
+					CM.ID,
+					'color_intensity',
+					CIM.NAME,
+					'color_intensity_id',
+					CIM.ID,
+					'lab',
+					LM.NAME,
+					'lab_id',
+					LM.ID,
+					'polish',
+					PM.NAME,
+					'polish_id',
+					PM.ID,
+					'symmetry',
+					SYMM.NAME,
+					'symmetry_id',
+					SYMM.ID,
+					'fluorescence',
+					FM.NAME,
+					'fluorescence_id',
+					FM.ID
+				)
+			) AS MEMO_DETAILS
+		FROM
+			MEMO_DETAILS MD
+			JOIN DIAMONDS D ON D.ID = MD.STOCK_ID
+			LEFT JOIN MASTERS SM ON SM.ID = D.SHAPE
+			LEFT JOIN MASTERS CM ON CM.ID = D.COLOR
+			LEFT JOIN MASTERS CL ON CL.ID = D.CLARITY
+			LEFT JOIN MASTERS CIM ON CIM.ID = D.COLOR_INTENSITY
+			LEFT JOIN MASTERS LM ON LM.ID = D.LAB
+			LEFT JOIN MASTERS PM ON PM.ID = D.POLISH
+			LEFT JOIN MASTERS SYMM ON SYMM.ID = D.SYMMETRY
+			LEFT JOIN MASTERS FM ON FM.ID = D.FLUORESCENCE
+		WHERE
+			D.IS_DELETED = '0'::"bit"
+		GROUP BY
+			MD.MEMO_ID
+	) AGGREGATED ON AGGREGATED.MEMO_ID = ME.ID

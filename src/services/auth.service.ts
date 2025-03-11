@@ -106,6 +106,7 @@ export const registerUser = async (req: Request, res: Response) => {
       postcode,
       verification = UserVerification.NotVerified,
       remarks,
+      registration_number,
     } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
@@ -198,6 +199,7 @@ export const registerUser = async (req: Request, res: Response) => {
             country: country,
             postcode: postcode,
             is_deleted: DeleteStatus.No,
+            registration_number,
             created_at: getLocalDate(),
           },
           { transaction: trn }
@@ -598,7 +600,7 @@ export const resetPassword = async (req: Request) => {
 export const customerList = async () => {
   try {
     const customer = await Customer.findAll({
-      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode"],
+      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode", "registration_number"],
       include: [{
         model: AppUser,
         as: "user",

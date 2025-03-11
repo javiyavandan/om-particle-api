@@ -35,6 +35,9 @@ const Customer = dbContext.define("customers", {
   postcode: {
     type: INTEGER,
   },
+  registration_number: {
+    type: STRING
+  },
   is_deleted: {
     type: STRING,
   },
