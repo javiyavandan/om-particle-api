@@ -201,6 +201,9 @@ export const createInvoice = async (req: Request) => {
         const trn = await dbContext.transaction();
 
         const lastInvoice = await Invoice.findOne({
+            where: {
+                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+            },
             order: [["invoice_number", "DESC"]],
             transaction: trn,
             attributes: [

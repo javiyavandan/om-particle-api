@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
 import {
   contactUsList,
+  dashboard,
   updateUserDetail,
   updateUserStatus,
   userDetail,
@@ -22,9 +23,9 @@ export const updateUserStatusFn: RequestHandler = (req, res) => {
   callServiceMethod(req, res, updateUserStatus(req), "updateUserStatusFn");
 };
 
-// export const dashboardFn: RequestHandler = (req, res) => {
-//   callServiceMethod(req, res, dashboard(req), "dashboardFn");
-// };
+export const dashboardFn: RequestHandler = (req, res) => {
+  callServiceMethod(req, res, dashboard(req), "dashboardFn");
+};
 
 export const contactUsListFn: RequestHandler = (req, res) => {
   callServiceMethod(req, res, contactUsList(req), "contactUsListFn");
