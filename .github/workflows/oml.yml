@@ -61,7 +61,7 @@ jobs:
         ENV_FILE: ${{ secrets.OML_DEV_ENV_FILE }}
       run: |
         ssh root@${{ secrets.OML_DEV_HOST }} "
-          echo '${ENV_FILE}' | sudo tee /var/www/om-particle-api/.env > /dev/null"
+          echo '${ENV_FILE}' | sudo tee /var/www/oml-dev/om-particle-api/.env > /dev/null"
 
     - name: Create .env Staging
       if: github.ref == 'refs/heads/staging'
@@ -88,7 +88,7 @@ jobs:
           -e 'ssh -o StrictHostKeyChecking=yes -p 22' \
           --exclude '.git' \
           --exclude '.env' \
-          ./ root@${EC2_HOST}:/var/www/om-particle-api/
+          ./ root@${EC2_HOST}:/var/www/oml-dev/om-particle-api/
     
     - name: Deploy using rsync on staging
       if: github.ref == 'refs/heads/staging'
@@ -123,8 +123,8 @@ jobs:
         source $NVM_DIR/bash_completion
         nvm use default
         export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
-        cd /var/www/om-particle-api/
-        pm2 restart "OMP"
+        cd /var/www/oml-dev/om-particle-api/
+        pm2 restart "OML-dev"
         EOF
     
     - name: Deploy to staging
