@@ -148,30 +148,39 @@ export const staticPageList = async (req: Request) => {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
+    let noPagination = req.query.no_pagination === "1";
+    let paginationProps = {};
 
     let where = [
       { is_deleted: DeleteStatus.No },
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
         ? {
-            [Op.or]: {
-              name: { [Op.iLike]: `%${pagination.search_text}%` },
-              slug: { [Op.iLike]: `%${pagination.search_text}%` },
-            },
-          }
+          [Op.or]: {
+            name: { [Op.iLike]: `%${pagination.search_text}%` },
+            slug: { [Op.iLike]: `%${pagination.search_text}%` },
+          },
+        }
         : {},
     ];
 
-    const totalItems = await StaticPage.count({
-      where,
-    });
+    if (!noPagination) {
+      const totalItems = await StaticPage.count({
+        where,
+      });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
-
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
     const pageData = await StaticPage.findAll({
       where,
@@ -181,7 +190,7 @@ export const staticPageList = async (req: Request) => {
       attributes: ["id", "name", "slug", "description", "is_active"],
     });
 
-    return resSuccess({ data: { pagination, result: pageData } });
+    return resSuccess({ data: noPagination ? pageData : { pagination, result: pageData } });
   } catch (error) {
     throw error;
   }
