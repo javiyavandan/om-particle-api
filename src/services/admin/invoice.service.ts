@@ -720,7 +720,7 @@ export const getAllInvoice = async (req: Request) => {
         `, { type: QueryTypes.SELECT });
 
         return resSuccess({
-            data: noPagination ? { result: totalItems } : { pagination, result: invoiceList }
+            data: noPagination ? totalItems : { pagination, result: invoiceList }
         });
 
     } catch (error) {
