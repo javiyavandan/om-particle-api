@@ -27,6 +27,8 @@ export const getAllCartList = async (req: Request) => {
       company_name: query.company_name,
     };
     const currency = await getCurrencyPrice(req.query.currency as string);
+    let paginationProps = {};
+    let noPagination = req.query.no_pagination === "1";
 
     let where = [
       pagination.is_active ? { is_active: pagination.is_active } : {},
@@ -176,17 +178,23 @@ export const getAllCartList = async (req: Request) => {
       include,
     });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
-    }
+    if (!noPagination) {
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
 
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
+    }
 
     const cartData = await CartProducts.findAll({
       where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      ...paginationProps,
       order: [[pagination.sort_by, pagination.order_by]],
       attributes: [
         "id",
@@ -224,7 +232,7 @@ export const getAllCartList = async (req: Request) => {
       include: include,
     });
 
-    return resSuccess({ data: { pagination, result: cartData } });
+    return resSuccess({ data: noPagination ? cartData : { pagination, result: cartData } });
   } catch (error) {
     throw error;
   }

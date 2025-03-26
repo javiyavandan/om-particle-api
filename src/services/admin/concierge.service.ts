@@ -20,6 +20,8 @@ export const getDiamondConciergeList = async (req: Request) => {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
+    let paginationProps = {};
+    let noPagination = req.query.no_pagination === "1";
 
     let where = [
       pagination.is_active ? { is_active: pagination.is_active } : {},
@@ -33,19 +35,26 @@ export const getDiamondConciergeList = async (req: Request) => {
         : {},
     ];
 
-    const totalItems = await DiamondConcierge.count({
-      where,
-    });
+    if (!noPagination) {
+      const totalItems = await DiamondConcierge.count({
+        where,
+      });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
     const diamondData = await DiamondConcierge.findAll({
       where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      ...paginationProps,
       order: [[pagination.sort_by, pagination.order_by]],
       attributes: [
         "id",
@@ -113,7 +122,7 @@ export const getDiamondConciergeList = async (req: Request) => {
         }
       ],
     });
-    return resSuccess({ data: { pagination, result: diamondData } });
+    return resSuccess({ data: noPagination ? diamondData : { pagination, result: diamondData } });
   } catch (error) {
     throw error;
   }

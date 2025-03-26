@@ -25,6 +25,8 @@ export const getWishlist = async (req: Request) => {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
+    let noPagination = req.query.no_pagination === "1";
+    let paginationProps = {};
 
     let where = [
       pagination.is_active ? { is_active: pagination.is_active } : {},
@@ -174,16 +176,24 @@ export const getWishlist = async (req: Request) => {
         attributes: [],
       },
     ];
-    const totalItems = await Wishlist.count({
-      where,
-      include,
-    });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+    if (!noPagination) {
+      const totalItems = await Wishlist.count({
+        where,
+        include,
+      });
+
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
 
     const wishlistData = await Wishlist.findAll({
       where,
@@ -227,7 +237,7 @@ export const getWishlist = async (req: Request) => {
       include: include,
     });
 
-    return resSuccess({ data: { pagination, result: wishlistData } });
+    return resSuccess({ data: noPagination? wishlistData : { pagination, result: wishlistData } });
   } catch (error) {
     throw error;
   }

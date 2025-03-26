@@ -128,7 +128,7 @@ export const userList = async (req: Request) => {
         }
       ],
     });
-    return resSuccess({ data: { pagination, result: user } });
+    return resSuccess({ data: noPagination ? user : { pagination, result: user } });
   } catch (e) {
     throw e;
   }
@@ -326,7 +326,7 @@ export const contactUsList = async (req: Request) => {
       ...getInitialPaginationFromQuery(query),
       search_text: query.search_text,
     };
-
+    let paginationProps = {};
     let where = [
       pagination.is_active ? { is_active: pagination.is_active } : {},
       pagination.search_text
@@ -339,21 +339,29 @@ export const contactUsList = async (req: Request) => {
         }
         : {},
     ];
+    let noPagination = req.query.no_pagination === "1";
 
     const totalItems = await ContactUs.count({
       where,
     });
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+    if (!noPagination) {
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
 
-    pagination.total_items = totalItems;
 
     const result = await ContactUs.findAll({
       where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      ...paginationProps,
       order: [[pagination.sort_by, pagination.order_by]],
       attributes: [
         "id",
@@ -365,7 +373,7 @@ export const contactUsList = async (req: Request) => {
       ],
     });
 
-    return resSuccess({ data: { pagination, result } });
+    return resSuccess({ data: noPagination ? result : { pagination, result } });
   } catch (error) {
     throw error;
   }
