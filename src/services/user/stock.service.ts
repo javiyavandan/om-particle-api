@@ -80,6 +80,7 @@ export const getStockList = async (req: Request) => {
                             ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
                             ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
+                            ${query.company ? `AND company_id = ${query.company}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
@@ -178,6 +179,7 @@ export const getStockList = async (req: Request) => {
                             ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
                             ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
+                            ${query.company ? `AND company_id = ${query.company}` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
                             ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
