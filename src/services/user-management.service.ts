@@ -272,7 +272,7 @@ export const addBusinessUser = async (req: Request) => {
 export const updateBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { name, phone_number, id_role, company_id } = req.body;
+    const { name, phone_number, id_role, company_id, is_active } = req.body;
     let idImage = null;
 
     const findCompany = await Company.findOne({
@@ -302,7 +302,7 @@ export const updateBusinessUser = async (req: Request) => {
     if (req.body.only_active_inactive === "1") {
       await AppUser.update(
         {
-          is_active: ActiveStatus.Active,
+          is_active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -311,7 +311,7 @@ export const updateBusinessUser = async (req: Request) => {
 
       await BusinessUser.update(
         {
-          is_active: ActiveStatus.Active,
+          is_active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -376,7 +376,7 @@ export const updateBusinessUser = async (req: Request) => {
 
     await AppUser.update(
       {
-        is_active: ActiveStatus.Active,
+        is_active,
         id_role,
         id_image: idImage,
         company_id: findCompany.dataValues.id,
@@ -390,7 +390,7 @@ export const updateBusinessUser = async (req: Request) => {
       {
         name,
         phone_number,
-        is_active: ActiveStatus.Active,
+        is_active,
         id_image: idImage,
         modified_by: req.body.session_res.id_app_user,
         modified_date: getLocalDate(),
