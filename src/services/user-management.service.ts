@@ -67,6 +67,8 @@ export const getAllBusinessUsers = async (req: Request) => {
       ...getInitialPaginationFromQuery(req.query),
       search_text: req.query.search_text,
     };
+    let noPagination = req.query.no_pagination === "1";
+    let paginationProps = {};
 
     let where = [
       { is_deleted: "0" },
@@ -82,20 +84,26 @@ export const getAllBusinessUsers = async (req: Request) => {
         : {},
     ];
 
-    const totalItems = await BusinessUser.count({
-      where,
-    });
+    if (!noPagination) {
 
-    if (totalItems === 0) {
-      return resSuccess({ data: { pagination, result: [] } });
+      const totalItems = await BusinessUser.count({
+        where,
+      });
+
+      if (totalItems === 0) {
+        return resSuccess({ data: { pagination, result: [] } });
+      }
+      pagination.total_items = totalItems;
+      pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
+
+      paginationProps = {
+        limit: pagination.per_page_rows,
+        offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      };
     }
-    pagination.total_items = totalItems;
-    pagination.total_pages = Math.ceil(totalItems / pagination.per_page_rows);
-
     const result = await BusinessUser.findAll({
       where,
-      limit: pagination.per_page_rows,
-      offset: (pagination.current_page - 1) * pagination.per_page_rows,
+      ...paginationProps,
       order: [[pagination.sort_by, pagination.order_by]],
       include: [
         {
@@ -122,10 +130,10 @@ export const getAllBusinessUsers = async (req: Request) => {
             CASE WHEN image.image_path IS NOT NULL THEN CONCAT('${IMAGE_URL}', image.image_path) ELSE NULL END
           `),
           "image_path",
-        ]        
+        ]
       ],
     });
-    return resSuccess({ data: { pagination, result } });
+    return resSuccess({ data: noPagination ? result : { pagination, result } });
   } catch (e) {
     throw e;
   }
@@ -264,7 +272,7 @@ export const addBusinessUser = async (req: Request) => {
 export const updateBusinessUser = async (req: Request) => {
   const trn = await dbContext.transaction();
   try {
-    const { name, phone_number, id_role, company_id } = req.body;
+    const { name, phone_number, id_role, company_id, is_active } = req.body;
     let idImage = null;
 
     const findCompany = await Company.findOne({
@@ -294,7 +302,7 @@ export const updateBusinessUser = async (req: Request) => {
     if (req.body.only_active_inactive === "1") {
       await AppUser.update(
         {
-          is_active: ActiveStatus.Active,
+          is_active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -303,7 +311,7 @@ export const updateBusinessUser = async (req: Request) => {
 
       await BusinessUser.update(
         {
-          is_active: ActiveStatus.Active,
+          is_active,
           modified_by: req.body.session_res.id_app_user,
           modified_date: getLocalDate(),
         },
@@ -368,7 +376,7 @@ export const updateBusinessUser = async (req: Request) => {
 
     await AppUser.update(
       {
-        is_active: ActiveStatus.Active,
+        is_active,
         id_role,
         id_image: idImage,
         company_id: findCompany.dataValues.id,
@@ -382,7 +390,7 @@ export const updateBusinessUser = async (req: Request) => {
       {
         name,
         phone_number,
-        is_active: ActiveStatus.Active,
+        is_active,
         id_image: idImage,
         modified_by: req.body.session_res.id_app_user,
         modified_date: getLocalDate(),
