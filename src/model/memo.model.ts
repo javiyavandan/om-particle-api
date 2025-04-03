@@ -54,6 +54,18 @@ const Memo = dbContext.define('memos', {
     total_item_price: {
         type: DOUBLE,
     },
+    discount_type: {
+        type: STRING,
+    },
+    discount: {
+        type: DOUBLE,
+    },
+    shipping_charge: {
+        type: DOUBLE,
+    },
+    total_price: {
+        type: DOUBLE,
+    },
     total_weight: {
         type: DOUBLE,
     },

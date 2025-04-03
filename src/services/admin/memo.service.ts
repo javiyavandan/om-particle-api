@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { ActiveStatus, DeleteStatus, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Discount_Type, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
 import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
@@ -16,7 +16,7 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -177,6 +177,26 @@ export const createMemo = async (req: Request) => {
             }
         }
 
+        if (discount) {
+            if (totalItemPrice <= discount) {
+                return resBadRequest({ message: "Discount amount should be less than total item price" });
+            } else {
+                switch (discount_type) {
+                    case Discount_Type.Amount:
+                        totalItemPrice -= discount;
+                        break;
+
+                    case Discount_Type.Percentage:
+                        totalItemPrice -= (totalItemPrice * discount) / 100;
+                        break;
+
+                    default:
+                        totalItemPrice -= discount;
+                        break;
+                }
+            }
+        }
+
         if (stockError.length > 0) {
             return resNotFound({
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
@@ -197,6 +217,8 @@ export const createMemo = async (req: Request) => {
             ]
         })
 
+        const totalPrice = totalItemPrice + shipping_charge
+
         try {
             const memoPayload = {
                 memo_number: isNaN(Number(lastMemo?.dataValues.memo_number)) ? 1 : Number(lastMemo?.dataValues.memo_number) + 1,
@@ -206,8 +228,12 @@ export const createMemo = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
-                total_item_price: totalItemPrice,
-                total_weight: totalWeight,
+                total_item_price: parseFloat(totalItemPrice.toFixed(2)),
+                total_price: parseFloat(totalPrice.toFixed(2)),
+                shipping_charge: parseFloat(shipping_charge.toFixed(2)),
+                discount: parseFloat(discount.toFixed(2)),
+                discount_type,
+                total_weight: parseFloat(totalWeight.toFixed(2)),
                 total_diamond_count: stockList.length,
                 remarks,
                 contact,
