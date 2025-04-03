@@ -217,7 +217,10 @@ export const createMemo = async (req: Request) => {
             ]
         })
 
-        const totalPrice = totalItemPrice + shipping_charge
+        const shipping_charge_value = Number(shipping_charge)
+        const discount_value = Number(discount)
+
+        const totalPrice = (totalItemPrice - discount) + Number(shipping_charge)
 
         try {
             const memoPayload = {
@@ -228,12 +231,12 @@ export const createMemo = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
-                total_item_price: parseFloat(totalItemPrice.toFixed(2)),
-                total_price: parseFloat(totalPrice.toFixed(2)),
-                shipping_charge: parseFloat(shipping_charge.toFixed(2)),
-                discount: parseFloat(discount.toFixed(2)),
+                total_item_price: Number(totalItemPrice.toFixed(2)),
+                total_price: Number(totalPrice.toFixed(2)),
+                shipping_charge: Number(shipping_charge_value.toFixed(2)),
+                discount: Number(discount_value.toFixed(2)),
                 discount_type,
-                total_weight: parseFloat(totalWeight.toFixed(2)),
+                total_weight: Number(totalWeight.toFixed(2)),
                 total_diamond_count: stockList.length,
                 remarks,
                 contact,

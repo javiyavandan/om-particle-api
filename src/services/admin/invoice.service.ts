@@ -180,20 +180,6 @@ export const createInvoice = async (req: Request) => {
         if (discount) {
             if (totalItemPrice <= parseFloat(discount)) {
                 return resBadRequest({ message: "Discount amount should be less than total item price" });
-            } else {
-                switch (discount_type) {
-                    case Discount_Type.Amount:
-                        totalItemPrice -= discount;
-                        break;
-
-                    case Discount_Type.Percentage:
-                        totalItemPrice -= (totalItemPrice * discount) / 100;
-                        break;
-
-                    default:
-                        totalItemPrice -= discount;
-                        break;
-                }
             }
         }
 
@@ -205,10 +191,10 @@ export const createInvoice = async (req: Request) => {
                     id: taxFind[index].dataValues.id,
                     value: taxFind[index].dataValues.value,
                     name: taxFind[index].dataValues.name,
-                    tax: (totalItemPrice * Number(taxFind[index].dataValues.value)) / 100
+                    tax: ((totalItemPrice - discount) * Number(taxFind[index].dataValues.value)) / 100
                 })
             }
-            totalTaxPrice = (totalItemPrice * totalTax) / 100;
+            totalTaxPrice = ((totalItemPrice - discount) * totalTax) / 100;
         }
 
         if (stockError.length > 0) {
@@ -231,7 +217,10 @@ export const createInvoice = async (req: Request) => {
             ]
         })
 
-        const totalPrice = totalItemPrice + totalTaxPrice + shipping_charge
+        const shipping_charge_value = Number(shipping_charge)
+        const discount_value = Number(discount)
+
+        const totalPrice = (totalItemPrice - discount) + totalTaxPrice + shipping_charge_value
 
         const invoiceNumber = isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
         try {
@@ -241,12 +230,12 @@ export const createInvoice = async (req: Request) => {
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
-                total_item_price: parseFloat(totalItemPrice.toFixed(2)),
-                total_tax_price: parseFloat(totalTaxPrice.toFixed(2)),
-                total_weight: parseFloat(totalWeight.toFixed(2)),
-                total_price: parseFloat(totalPrice.toFixed(2)),
-                shipping_charge: parseFloat(shipping_charge.toFixed(2)),
-                discount: parseFloat(discount.toFixed(2)),
+                total_item_price: Number(totalItemPrice.toFixed(2)),
+                total_tax_price: Number(totalTaxPrice.toFixed(2)),
+                total_weight: Number(totalWeight.toFixed(2)),
+                total_price: Number(totalPrice.toFixed(2)),
+                shipping_charge: Number(shipping_charge_value.toFixed(2)),
+                discount: Number(discount_value.toFixed(2)),
                 discount_type,
                 total_diamond_count: stockList.length,
                 tax_data: taxData,
