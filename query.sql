@@ -678,3 +678,26 @@ WHERE
 	D.IS_DELETED = '0'::BIT(1)
 ORDER BY
 	D.ID DESC
+
+CREATE TYPE discount_type AS ENUM ('percentage','amount')
+
+ALTER TABLE IF EXISTS invoices
+    ADD COLUMN discount_type discount_type DEFAULT 'amount'::discount_type;
+	
+ALTER TABLE IF EXISTS public.invoices
+    ADD COLUMN discount double precision;
+
+ALTER TABLE IF EXISTS public.invoices
+    ADD COLUMN shipping_charge double precision;
+	
+ALTER TABLE IF EXISTS memos
+    ADD COLUMN discount_type discount_type DEFAULT 'amount'::discount_type;
+
+ALTER TABLE IF EXISTS public.memos
+    ADD COLUMN discount double precision;
+
+ALTER TABLE IF EXISTS public.memos
+    ADD COLUMN shipping_charge double precision;
+
+ALTER TABLE IF EXISTS public.memos
+    ADD COLUMN total_price double precision;
