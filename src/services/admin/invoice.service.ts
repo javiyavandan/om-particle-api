@@ -6,7 +6,7 @@ import Customer from "../../model/customer.modal";
 import Diamonds from "../../model/diamond.model";
 import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
-import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS } from "../../utils/app-enumeration";
+import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
@@ -18,13 +18,16 @@ import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
+        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
         let totalTaxPrice = 0
         let totalWeight = 0
         let taxData = [];
+
+        const shipping_charge_value = Number(shipping_charge)
+        const discount_value = Number(discount)
 
         if (report_date) {
             const inputDate = new Date(report_date);
@@ -177,6 +180,12 @@ export const createInvoice = async (req: Request) => {
             }
         }
 
+        if (discount_value) {
+            if (totalItemPrice <= discount_value) {
+                return resBadRequest({ message: "Discount amount should be less than total item price" });
+            }
+        }
+
         if (taxFind.length > 0) {
             let totalTax = 0;
             for (let index = 0; index < taxFind.length; index++) {
@@ -185,10 +194,10 @@ export const createInvoice = async (req: Request) => {
                     id: taxFind[index].dataValues.id,
                     value: taxFind[index].dataValues.value,
                     name: taxFind[index].dataValues.name,
-                    tax: (totalItemPrice * Number(taxFind[index].dataValues.value)) / 100
+                    tax: ((totalItemPrice - discount_value) * Number(taxFind[index].dataValues.value)) / 100
                 })
             }
-            totalTaxPrice = (totalItemPrice * totalTax) / 100;
+            totalTaxPrice = ((totalItemPrice - discount_value) * totalTax) / 100;
         }
 
         if (stockError.length > 0) {
@@ -211,6 +220,8 @@ export const createInvoice = async (req: Request) => {
             ]
         })
 
+        const totalPrice = (totalItemPrice - discount_value) + totalTaxPrice + shipping_charge_value
+
         const invoiceNumber = isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
         try {
             const invoicePayload = {
@@ -219,10 +230,13 @@ export const createInvoice = async (req: Request) => {
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
-                total_item_price: totalItemPrice,
-                total_tax_price: totalTaxPrice,
-                total_weight: totalWeight,
-                total_price: totalItemPrice + totalTaxPrice,
+                total_item_price: Number(totalItemPrice.toFixed(2)),
+                total_tax_price: Number(totalTaxPrice.toFixed(2)),
+                total_weight: Number(totalWeight.toFixed(2)),
+                total_price: Number(totalPrice.toFixed(2)),
+                shipping_charge: Number(shipping_charge_value.toFixed(2)),
+                discount: Number(discount_value.toFixed(2)),
+                discount_type,
                 total_diamond_count: stockList.length,
                 tax_data: taxData,
                 remarks,

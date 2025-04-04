@@ -45,6 +45,15 @@ const Invoice = dbContext.define('invoices', {
     total_diamond_count: {
         type: DOUBLE,
     },
+    discount_type: {
+        type: STRING,
+    },
+    discount: {
+        type: DOUBLE,
+    },
+    shipping_charge: {
+        type: DOUBLE,
+    },
     contact: {
         type: STRING,
     },

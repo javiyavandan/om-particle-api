@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { ActiveStatus, DeleteStatus, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Discount_Type, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
 import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
@@ -16,7 +16,7 @@ import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking } = req.body
+        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
         const stockError = [];
         const stockList: any = [];
 
@@ -177,6 +177,12 @@ export const createMemo = async (req: Request) => {
             }
         }
 
+        if (discount) {
+            if (totalItemPrice <= discount) {
+                return resBadRequest({ message: "Discount amount should be less than total item price" });
+            }
+        }
+
         if (stockError.length > 0) {
             return resNotFound({
                 message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
@@ -197,6 +203,11 @@ export const createMemo = async (req: Request) => {
             ]
         })
 
+        const shipping_charge_value = Number(shipping_charge)
+        const discount_value = Number(discount)
+
+        const totalPrice = (totalItemPrice - discount_value) + Number(shipping_charge)
+
         try {
             const memoPayload = {
                 memo_number: isNaN(Number(lastMemo?.dataValues.memo_number)) ? 1 : Number(lastMemo?.dataValues.memo_number) + 1,
@@ -206,8 +217,12 @@ export const createMemo = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
                 created_by: req.body.session_res.id,
-                total_item_price: totalItemPrice,
-                total_weight: totalWeight,
+                total_item_price: Number(totalItemPrice.toFixed(2)),
+                total_price: Number(totalPrice.toFixed(2)),
+                shipping_charge: Number(shipping_charge_value.toFixed(2)),
+                discount: Number(discount_value.toFixed(2)),
+                discount_type,
+                total_weight: Number(totalWeight.toFixed(2)),
                 total_diamond_count: stockList.length,
                 remarks,
                 contact,
