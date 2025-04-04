@@ -286,3 +286,8 @@ export enum Alignment_Enum {
   Right_bottom = 'right-bottom',
   Right_top = 'right-top',
 }
+
+export enum Discount_Type {
+  Percentage = 'percentage',
+  Amount = 'amount',
+}
