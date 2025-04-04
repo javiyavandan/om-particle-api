@@ -180,20 +180,6 @@ export const createMemo = async (req: Request) => {
         if (discount) {
             if (totalItemPrice <= discount) {
                 return resBadRequest({ message: "Discount amount should be less than total item price" });
-            } else {
-                switch (discount_type) {
-                    case Discount_Type.Amount:
-                        totalItemPrice -= discount;
-                        break;
-
-                    case Discount_Type.Percentage:
-                        totalItemPrice -= (totalItemPrice * discount) / 100;
-                        break;
-
-                    default:
-                        totalItemPrice -= discount;
-                        break;
-                }
             }
         }
 
@@ -220,7 +206,7 @@ export const createMemo = async (req: Request) => {
         const shipping_charge_value = Number(shipping_charge)
         const discount_value = Number(discount)
 
-        const totalPrice = (totalItemPrice - discount) + Number(shipping_charge)
+        const totalPrice = (totalItemPrice - discount_value) + Number(shipping_charge)
 
         try {
             const memoPayload = {
