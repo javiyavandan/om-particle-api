@@ -26,6 +26,9 @@ export const createInvoice = async (req: Request) => {
         let totalWeight = 0
         let taxData = [];
 
+        const shipping_charge_value = Number(shipping_charge)
+        const discount_value = Number(discount)
+
         if (report_date) {
             const inputDate = new Date(report_date);
 
@@ -177,8 +180,8 @@ export const createInvoice = async (req: Request) => {
             }
         }
 
-        if (discount) {
-            if (totalItemPrice <= parseFloat(discount)) {
+        if (discount_value) {
+            if (totalItemPrice <= discount_value) {
                 return resBadRequest({ message: "Discount amount should be less than total item price" });
             }
         }
@@ -191,10 +194,10 @@ export const createInvoice = async (req: Request) => {
                     id: taxFind[index].dataValues.id,
                     value: taxFind[index].dataValues.value,
                     name: taxFind[index].dataValues.name,
-                    tax: ((totalItemPrice - discount) * Number(taxFind[index].dataValues.value)) / 100
+                    tax: ((totalItemPrice - discount_value) * Number(taxFind[index].dataValues.value)) / 100
                 })
             }
-            totalTaxPrice = ((totalItemPrice - discount) * totalTax) / 100;
+            totalTaxPrice = ((totalItemPrice - discount_value) * totalTax) / 100;
         }
 
         if (stockError.length > 0) {
@@ -217,10 +220,7 @@ export const createInvoice = async (req: Request) => {
             ]
         })
 
-        const shipping_charge_value = Number(shipping_charge)
-        const discount_value = Number(discount)
-
-        const totalPrice = (totalItemPrice - discount) + totalTaxPrice + shipping_charge_value
+        const totalPrice = (totalItemPrice - discount_value) + totalTaxPrice + shipping_charge_value
 
         const invoiceNumber = isNaN(Number(lastInvoice?.dataValues.invoice_number)) ? 1 : Number(lastInvoice?.dataValues.invoice_number) + 1;
         try {
