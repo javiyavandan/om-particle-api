@@ -415,7 +415,7 @@ export const getAllStock = async (req: Request) => {
                             ${labs ? `AND lab IN (${labs})` : ""}
                             ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
                             ${customer ? `AND customer_id IN (${customer})` : ""}
-                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
+                            ${req.body.session_res.id_role != 0 && query.stock_search !== "1" ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
@@ -501,7 +501,7 @@ export const getAllStock = async (req: Request) => {
                             ${labs ? `AND lab IN (${labs})` : ""}
                             ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
                             ${customer ? `AND customer_id IN (${customer})` : ""}
-                            ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
+                            ${req.body.session_res.id_role != 0 && query.stock_search !== "1" ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
                             ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
                             ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
