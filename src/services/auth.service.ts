@@ -76,11 +76,7 @@ export const test = async (req: Request) => {
 
   try {
 
-    const allStock = await dbContext.query(
-      `SELECT * FROM diamond_list WHERE status != '${StockStatus.SOLD}' ${req.body.session_res.company_id ? `and company_id = ${req.body.session_res.company_id}` : ""}`, { type: QueryTypes.SELECT }
-    )
-
-    return resSuccess({ data: allStock });
+    return resSuccess({ data: `<meta name="copyright" content="TCC Technologies" />` });
   } catch (error) {
     console.log(error)
     throw error;
@@ -459,8 +455,7 @@ export const resendOtp = async (req: Request) => {
     if (verifyUser) {
       await AppUser.update(
         {
-          // one_time_pass: OTP,
-          one_time_pass: STATIC_OTP,
+          one_time_pass: OTP,
           modified_at: getLocalDate(),
         },
         {

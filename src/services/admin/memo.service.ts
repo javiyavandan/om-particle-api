@@ -590,7 +590,7 @@ export const getAllMemo = async (req: Request) => {
         `, { type: QueryTypes.SELECT });
 
         return resSuccess({
-            data: noPagination ? { result: totalItems } : { pagination, result: memoList }
+            data: noPagination ? totalItems : { pagination, result: memoList }
         });
 
     } catch (error) {
