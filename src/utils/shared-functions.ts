@@ -18,12 +18,13 @@ import {
   UNPROCESSABLE_ENTITY_MESSAGE,
 } from "./app-messages";
 import { HUBSPOT_SYNC_URL, HUBSPOT_TOKEN } from "../config/env.var";
-import { Sequelize } from "sequelize";
+import { QueryTypes, Sequelize } from "sequelize";
 import { IQueryPagination } from "../data/interfaces/common/common.interface";
 import { BIT_FIELD_VALUES, GET_HTTP_METHODS_LABEL, PER_PAGE_ROWS } from "./app-constants";
 import { ActiveStatus, HTTP_METHODS } from "./app-enumeration";
 import dbContext from "../config/dbContext";
-import Currency from "../model/currency-master.model";
+import cron from "node-cron";
+import CurrencyJson from "../model/currency-json.model";
 
 export const parseData = (data: Object) => {
   try {
@@ -236,28 +237,66 @@ export const refreshMaterializedDiamondListView = async () => {
   }
 };
 
+const getDateString = (date: Date) => date.toISOString().slice(0, 10);
+
+const fetchCurrency = async (date: Date) => {
+  const formattedDate = getDateString(date);
+  try {
+    const response = await axios.get(`https://${formattedDate}.currency-api.pages.dev/v1/currencies/usd.json`);
+    return response.data.usd;
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      return null;
+    } else {
+      throw error;
+    }
+  }
+};
+
+export const scheduleCurrencyFetch = () => {
+  const scheduler = cron.schedule("0 0 */12 * * *", async () => {
+    try {
+      let currentDate = new Date();
+
+      for (let i = 0; i < 30; i++) {
+        const data = await fetchCurrency(currentDate);
+        if (data) {
+          const currencyData = {
+            json: data,
+            date: currentDate,
+            created_at: getLocalDate(),
+          };
+          await CurrencyJson.create(currencyData);
+          break;
+        }
+        currentDate.setDate(currentDate.getDate() - 1);
+      }
+    } catch (error) {
+      console.error("Error fetching currency data:", error);
+    }
+  });
+  scheduler.start();
+};
+
 export const getCurrencyPrice = async (code: string) => {
   try {
     let apiCurrencyData;
 
-    const todayDate = new Date().toISOString().slice(0, 10);
-
     let defaultCode;
 
-    const currency = await Currency.findOne({
-      where: { is_default: ActiveStatus.Active },
+    const currency: any = await dbContext.query(
+      `SELECT * FROM currency_masters WHERE is_default = '${ActiveStatus.Active}'`, {
+      type: QueryTypes.SELECT,
     })
 
-    defaultCode = currency?.dataValues.code
+    defaultCode = currency?.[0].code;
 
-    await axios
-      .get(`https://${todayDate}.currency-api.pages.dev/v1/currencies/usd.json`)
-      .then((response) => {
-        apiCurrencyData = response.data.usd;
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    const currencyJson: any = await dbContext.query(
+      `SELECT * FROM currency_jsons ORDER BY date DESC LIMIT 1`, {
+      type: QueryTypes.SELECT,
+    })
+
+    apiCurrencyData = currencyJson?.[0].json;
 
     if (apiCurrencyData) {
       if (code) {
@@ -280,14 +319,14 @@ export const getCurrencyCode = async () => {
   try {
 
     let code;
-    
+
     await axios.get('https://ipapi.co/currency/')
-      .then((response) => {code = response.data} )
+      .then((response) => { code = response.data })
       .catch((error) => {
         throw error
       });
 
-      return code;
+    return code;
   } catch (error) {
     throw error;
   }
