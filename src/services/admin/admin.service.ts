@@ -599,13 +599,13 @@ export const dashboard = async (req: Request) => {
       }
     );
     const totalInvoicePrice: any = await dbContext.query(
-      `SELECT SUM(invoice_list.total_item_price) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
+      `SELECT SUM(invoice_list.total_price) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
       {
         type: QueryTypes.SELECT,
       }
     );
     const totalMemoPrice: any = await dbContext.query(
-      `SELECT SUM(memo_list.total_item_price) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
+      `SELECT SUM(memo_list.total_price) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
       {
         type: QueryTypes.SELECT,
       }
