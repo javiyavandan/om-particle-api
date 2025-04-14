@@ -701,3 +701,21 @@ ALTER TABLE IF EXISTS public.memos
 
 ALTER TABLE IF EXISTS public.memos
     ADD COLUMN total_price double precision;
+
+	-- Table: public.currency_jsons
+
+-- DROP TABLE IF EXISTS public.currency_jsons;
+
+CREATE TABLE IF NOT EXISTS public.currency_jsons
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    json json NOT NULL,
+    date timestamp with time zone NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    CONSTRAINT currency_json_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.currency_jsons
+    OWNER to postgres;
