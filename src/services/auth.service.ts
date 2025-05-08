@@ -71,6 +71,8 @@ import Image from "../model/image.model";
 import { QueryTypes, Sequelize } from "sequelize";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
+import Company from "../model/companys.model";
+import Country from "../model/country.model";
 
 export const test = async (req: Request) => {
 
@@ -322,7 +324,7 @@ export const login = async (req: Request, res: Response) => {
     const { user_type = UserType.Customer } = req.query
     const appUser = await AppUser.findOne({
       where: {
-        email: columnValueLowerCase("email", email),
+        email: columnValueLowerCase("app_users.email", email),
         is_deleted: DeleteStatus.No,
         is_active: ActiveStatus.Active,
         user_type
@@ -335,7 +337,7 @@ export const login = async (req: Request, res: Response) => {
         "first_name",
         "last_name",
         "id",
-        "email",
+        [Sequelize.literal("app_users.email"), "email"],
         "id_image",
         "phone_number",
         "user_type",
@@ -346,6 +348,8 @@ export const login = async (req: Request, res: Response) => {
           Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
           "image_path",
         ],
+        [Sequelize.literal(`"company->country"."name"`), "country_name"],
+        [Sequelize.literal(`"company->country"."id"`), "country_id"],
       ],
       include: [
         {
@@ -354,6 +358,20 @@ export const login = async (req: Request, res: Response) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Company,
+          attributes: [],
+          as: "company",
+          include: [
+            {
+              required: false,
+              model: Country,
+              attributes: [],
+              as: "country",
+            }
+          ]
+        }
       ],
     });
 
