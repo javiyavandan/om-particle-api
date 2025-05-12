@@ -89,6 +89,9 @@ const Memo = dbContext.define('memos', {
     },
     tracking: {
         type: STRING,
+    },
+    creation_type: {
+        type: STRING,
     }
 })
 
