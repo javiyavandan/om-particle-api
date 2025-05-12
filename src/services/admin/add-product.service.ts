@@ -105,6 +105,7 @@ export const addStock = async (req: Request) => {
             is_deleted: DeleteStatus.No,
             shape: shape,
             quantity: quantity,
+            remain_quantity: quantity,
             weight: weight,
             rate: rate,
             color: color,
@@ -258,7 +259,12 @@ export const updateStock = async (req: Request) => {
             is_active: is_active,
             is_deleted: is_deleted,
             shape: shape,
-            quantity: quantity,
+            quantity: quantity != diamond.dataValues.remain_quantity
+                ? Number(diamond.dataValues.quantity) +
+                Number(quantity) -
+                Number(diamond.dataValues.remain_quantity)
+                : diamond.dataValues.quantity,
+            remain_quantity: quantity,
             weight: weight,
             rate: rate,
             color: color,

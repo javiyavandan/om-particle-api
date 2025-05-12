@@ -129,6 +129,8 @@ export const addPacket = async (req: Request) => {
             company_id: req.body.session_res.company_id ? req.body.session_res.company_id : companyData.dataValues.id,
             user_comments,
             admin_comments,
+            remain_quantity: quantity,
+            remain_weight: weight,
             created_by: session_res.id,
             created_at: getLocalDate(),
         })
@@ -257,8 +259,18 @@ export const updatePacket = async (req: Request) => {
             is_active: is_active,
             is_deleted: is_deleted,
             shape: shapeData?.dataValues.id,
-            quantity: quantity,
-            weight: weight,
+            quantity: quantity != diamond.dataValues.remain_quantity
+                ? Number(diamond.dataValues.quantity) +
+                Number(quantity) -
+                Number(diamond.dataValues.remain_quantity)
+                : diamond.dataValues.quantity,
+            remain_quantity: quantity,
+            weight: weight != diamond.dataValues.remain_weight
+                ? Number(diamond.dataValues.weight) +
+                Number(weight) -
+                Number(diamond.dataValues.remain_weight)
+                : diamond.dataValues.weight,
+            remain_weight: weight,
             carat_rate,
             rate: rate ?? carat_rate * weight * quantity,
             color: colorData?.dataValues.id,

@@ -38,6 +38,8 @@ import {
   HUBSPOT_ASSOCIATION,
   IMAGE_TYPE,
   Image_type,
+  Memo_Invoice_Type,
+  Menu_Invoice_creation,
   StockStatus,
   UserType,
   UserVerification,
@@ -73,12 +75,17 @@ import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
 import Company from "../model/companys.model";
 import Country from "../model/country.model";
+import Memo from "../model/memo.model";
+import MemoDetail from "../model/memo-detail.model";
 
 export const test = async (req: Request) => {
 
   try {
-
-    return resSuccess({ data: `<meta name="copyright" content="TCC Technologies" />` });
+    const findMemoExist = await Memo.count({
+      where: { creation_type: Menu_Invoice_creation.Packet },
+      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: Memo_Invoice_Type.carat} }],
+    });
+    return resSuccess({ data: findMemoExist });
   } catch (error) {
     console.log(error)
     throw error;

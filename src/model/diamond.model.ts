@@ -120,6 +120,9 @@ const Diamonds = dbContext.define('diamonds', {
     deleted_at: {
         type: DATE,
     },
+    remain_quantity: {
+        type: BIGINT,
+    },
 })
 
 Diamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });

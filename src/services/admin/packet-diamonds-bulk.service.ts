@@ -596,8 +596,20 @@ const getPacketFromRows = async (rows: any, idAppUser: any) => {
                         id: findPacket.dataValues.id,
                         packet_id: row["packet #"],
                         shape,
-                        quantity,
-                        weight,
+                        quantity: quantity !=
+                        findPacket.dataValues.remain_quantity
+                        ? Number(findPacket.dataValues.quantity) +
+                        Number(quantity) -
+                        Number(findPacket.dataValues.remain_quantity)
+                            : findPacket.dataValues.quantity,
+                        remain_quantity: quantity,
+                        weight: weight !=
+                        findPacket.dataValues.remain_weight
+                        ? Number(findPacket.dataValues.weight) +
+                        Number(weight) -
+                        Number(findPacket.dataValues.remain_weight)
+                            : findPacket.dataValues.weight,
+                        remain_weight: weight,
                         carat_rate,
                         rate,
                         color,
@@ -633,7 +645,9 @@ const getPacketFromRows = async (rows: any, idAppUser: any) => {
                         packet_id: row["packet #"],
                         shape,
                         quantity,
+                        remain_quantity: quantity,
                         weight,
+                        remain_weight: weight,
                         carat_rate,
                         rate,
                         color,
@@ -704,7 +718,9 @@ const addGroupToDB = async (list: any) => {
                     "packet_id",
                     "shape",
                     "quantity",
+                    "remain_quantity",
                     "weight",
+                    "remain_weight",
                     "carat_rate",
                     "rate",
                     "color",

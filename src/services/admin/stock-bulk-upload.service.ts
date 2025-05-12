@@ -169,13 +169,6 @@ const processCSVFile = async (path: string, idAppUser: number) => {
         if (resVH.code !== DEFAULT_STATUS_CODE_SUCCESS) {
             return resVH;
         }
-
-        //   if (resRows.data.batchSize > PRODUCT_BULK_UPLOAD_BATCH_SIZE) {
-        //     return resUnprocessableEntity({
-        //       message: PRODCUT_BULK_UPLOAD_BATCH_SIZE_ERROR_MESSAGE,
-        //     });
-        //   }
-
         const resProducts = await getStockFromRows(
             resRows.data.results,
             idAppUser
@@ -196,68 +189,22 @@ const processCSVFile = async (path: string, idAppUser: number) => {
 };
 
 const getArrayOfRowsFromCSVFile = async (path: string) => {
-    return await new Promise<TResponseReturn>((resolve, reject) => {
-        try {
-            let results: any = [];
-            let headerList: any = [];
-            let batchSize = 0;
+    try {
+        const rows = await readXlsxFile(path);
+        const headers = rows.shift();
+        const results = rows.map((row: { [x: string]: any; }) => {
+            const acc: { [x: string]: any; } = {};
+            for (let index = 0; index < headers.length; index++) {
+                const header = headers[index];
+                acc[header] = row[index];
+            }
+            return acc;
+        });
 
-            readXlsxFile(path)
-                .then((rows: any[]) => {
-                    const row = rows[0];
-                    const headers: string[] = [];
-                    row.forEach((header: any) => {
-                        headers.push(header);
-                    });
-                    headerList = headers;
-                    rows.shift();
-
-                    //Data
-                    rows.forEach((row: any) => {
-                        let data = {
-                            "stock #": row[0],
-                            shape: row[1],
-                            quantity: row[2],
-                            weight: row[3],
-                            rate: row[4],
-                            color: row[5],
-                            "color intensity": row[6],
-                            "color over tone": row[7],
-                            clarity: row[8],
-                            video: row[9],
-                            image: row[10],
-                            certificate: row[11],
-                            lab: row[12],
-                            report: row[13],
-                            polish: row[14],
-                            symmetry: row[15],
-                            "measurement height": row[16],
-                            "measurement width": row[17],
-                            "measurement depth": row[18],
-                            "table %": row[19],
-                            "depth %": row[20],
-                            ratio: row[21],
-                            fluorescence: row[22],
-                            location: row[23],
-                            "local location": row[24],
-                            "user comment": row[25],
-                            "admin comment": row[26],
-                            "loose diamond": row[27],
-                        };
-
-                        batchSize++;
-                        results.push(data);
-                    });
-                })
-                .then(() => {
-                    return resolve(
-                        resSuccess({ data: { results, batchSize, headers: headerList } })
-                    );
-                });
-        } catch (e) {
-            return reject(e);
-        }
-    });
+        return resSuccess({ data: { headers, results } });
+    } catch (e) {
+        return resUnknownError({ data: e });
+    }
 };
 
 const getIdFromName = (
@@ -495,6 +442,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let quantity: any = row.quantity ?? 1;
 
+                
                 let weight: any = row["weight"];
 
                 let rate: any = row.rate;
@@ -699,7 +647,13 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         id: findStock.dataValues.id,
                         stock_id: row["stock #"],
                         shape,
-                        quantity,
+                        quantity: quantity !=
+                        findStock.dataValues.remain_quantity
+                        ? Number(findStock.dataValues.quantity) +
+                        Number(quantity) -
+                        Number(findStock.dataValues.remain_quantity)
+                            : findStock.dataValues.quantity,
+                        remain_quantity: quantity,
                         weight,
                         rate,
                         color,
@@ -761,6 +715,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         user_comments,
                         admin_comments,
                         loose_diamond,
+                        remain_quantity: quantity,
                         status: StockStatus.AVAILABLE,
                         is_active: ActiveStatus.Active,
                         is_deleted: DeleteStatus.No,
@@ -834,6 +789,7 @@ const addGroupToDB = async (list: any) => {
                     "loose_diamond",
                     "modified_by",
                     "modified_at",
+                    "remain_quantity",
                 ],
             });
         }
