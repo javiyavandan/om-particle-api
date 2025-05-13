@@ -1064,17 +1064,17 @@ ALTER TABLE IF EXISTS public.diamond_list
 -- View: public.packet_diamond_list
 
 
- CREATE MATERIALIZED VIEW IF NOT EXISTS public.packet_diamond_list
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.packet_diamond_list
 TABLESPACE pg_default
 AS
- WITH filtered_memo_details AS (
+WITH filtered_memo_details AS (
          SELECT md.stock_id,
             ms.customer_id,
             ms.id AS memo_id,
             row_number() OVER (PARTITION BY md.stock_id ORDER BY ms.created_at DESC) AS row_num
            FROM memo_details md
              JOIN memos ms ON ms.id = md.memo_id
-          WHERE ms.status = 'active'::memo_status AND md.is_return = '0'::bit(1)
+          WHERE ms.status = 'active'::memo_status AND md.is_return = '0'::bit(1) AND creation_type = 'packet'
         ), filtered_invoice_details AS (
          SELECT ids.stock_id,
             io.customer_id,
@@ -1082,11 +1082,48 @@ AS
             row_number() OVER (PARTITION BY ids.stock_id ORDER BY io.created_at DESC) AS row_num
            FROM invoice_details ids
              JOIN invoices io ON io.id = ids.invoice_id
-          WHERE io.status = 'active'::invoice_status AND ids.is_return = '0'::bit(1)
-        )
+          WHERE io.status = 'active'::invoice_status AND ids.is_return = '0'::bit(1) AND creation_type = 'packet'
+        ),
+	memo_details AS (
+			SELECT 
+		stock_id,
+		COALESCE(COUNT(memo_details.id),0) as memo_count,
+		SUM(memo_details.quantity) as memo_quantity,
+		SUM(memo_details.weight) as memo_weight,
+		SUM(memo_details.stock_price) as memo_stock_price,
+		CASE WHEN memo_details.memo_type = 'quantity' THEN
+			CEIL(SUM(memo_details.quantity) * 100 / packet_diamonds.quantity) 
+			ELSE CEIL(SUM(memo_details.weight) * 100 / packet_diamonds.weight) 
+			END as memo_status_per,
+		
+		memo_details.memo_type FROM memos 
+		INNER JOIN memo_details ON memo_details.memo_id = memos.id
+		LEFT JOIN packet_diamonds ON packet_diamonds.id = stock_id
+		WHERE creation_type = 'packet' AND memos.status = 'active'::memo_status AND memo_details.is_return = '0'::bit(1)
+		GROUP BY memo_details.memo_type,stock_id,packet_diamonds.id
+	),
+	invoice_details AS (
+			SELECT 
+		stock_id,
+		SUM(invoice_details.quantity) as invoice_quantity,
+		SUM(invoice_details.weight) as invoice_weight,
+		COALESCE(COUNT(invoice_details.id),0) as invoice_count,
+		SUM(invoice_details.quantity),
+		SUM(invoice_details.stock_price) as sold_out_stock_price,
+		CASE WHEN invoice_details.invoice_type = 'quantity' THEN 
+			CEIL(SUM(invoice_details.quantity) * 100 / packet_diamonds.quantity) 
+			ELSE CEIL(SUM(invoice_details.weight) * 100 / packet_diamonds.weight) 
+			END as sold_status_per,
+		invoice_details.invoice_type FROM invoices 
+		INNER JOIN invoice_details ON invoice_details.invoice_id = invoices.id
+		LEFT JOIN packet_diamonds ON packet_diamonds.id = invoice_details.stock_id
+		WHERE creation_type = 'packet' AND invoices.status = 'active' AND invoice_details.is_return = '0'
+		GROUP BY invoice_details.invoice_type,stock_id,packet_diamonds.id
+	)
+
  SELECT d.id,
     d.packet_id,
-    d.shape,
+	d.shape,
     sm.name AS shape_name,
     d.clarity,
     cl.name AS clarity_name,
@@ -1103,7 +1140,8 @@ AS
     d.fluorescence,
     fm.name AS fluorescence_name,
     d.quantity,
-	d.remain_quantity,
+    d.remain_quantity,
+    d.remain_weight,
     d.weight,
     d.report,
     d.video,
@@ -1124,7 +1162,27 @@ AS
     d.is_active,
     d.created_at,
     d.created_by,
-	jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id,'company_id', cs.id, 'company_name', cs.company_name, 'company_website', cs.company_website,'company_email', cs.company_email))
+	memo_type,
+	invoice_type,
+    jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id, 'company_id', cs.id, 'company_name', cs.company_name, 'company_website', cs.company_website, 'company_email', cs.company_email)) AS company_detail,
+   COALESCE(memo_details.memo_status_per,0) as memo_status_per,
+   COALESCE(invoice_details.sold_status_per,0) as sold_out_status_per,
+   CASE WHEN (memo_details.memo_type = 'quantity' OR invoice_details.invoice_type = 'quantity') OR (memo_count = 0 AND invoice_count = 0) THEN  
+		CEIL(d.remain_quantity * 100 / d.quantity) 
+		ELSE CEIL(d.remain_weight * 100 / d.weight) 
+		END as available_status_per,
+	COALESCE(memo_quantity,0) as total_memo_quantity,
+	COALESCE(invoice_quantity,0) as total_sold_out_quantity,
+	COALESCE(d.remain_quantity,0) as total_available_quantity,
+	COALESCE(memo_weight,0) as total_memo_weight,
+	COALESCE(invoice_weight,0) as total_sold_out_weight,
+	COALESCE(d.remain_weight,0) total_available_weight,
+	COALESCE(memo_stock_price, 0) as total_memo_stock_price,
+	COALESCE(sold_out_stock_price, 0) as total_sold_out_stock_price,
+	CASE WHEN COALESCE(memo_count,0) = 0 AND COALESCE(invoice_count,0) = 0 THEN d.rate ELSE CASE WHEN memo_details.memo_type = 'quantity' OR invoice_details.invoice_type = 'quantity' THEN  
+		CEIL(d.rate * d.remain_quantity / 100) 
+		ELSE CEIL(d.rate * d.remain_weight / 100) 
+		END END as total_available_stock_price
    FROM packet_diamonds d
      LEFT JOIN masters sm ON sm.id = d.shape
      LEFT JOIN masters cm ON cm.id = d.color
@@ -1136,13 +1194,18 @@ AS
      LEFT JOIN companys com ON com.id = d.company_id
      LEFT JOIN masters fm ON fm.id = d.fluorescence
      LEFT JOIN filtered_memo_details fmd ON fmd.stock_id = d.id
+	 LEFT JOIN memo_details ON memo_details.stock_id = d.id
+	 LEFT JOIN invoice_details ON invoice_details.stock_id = d.id
      LEFT JOIN filtered_invoice_details fid ON fid.stock_id = d.id
      LEFT JOIN customers cs ON cs.id = fmd.customer_id
      LEFT JOIN app_users au ON au.id = cs.user_id
      LEFT JOIN customers csi ON csi.id = fid.customer_id
      LEFT JOIN app_users aui ON aui.id = csi.user_id
   WHERE d.is_deleted = '0'::bit(1)
-  GROUP BY d.id,sm.name,cl.name,cm.name,cim.name,lm.name,pm.name,symm.name,fm.name
+  GROUP BY d.id, sm.name, cl.name, cm.name, cim.name, lm.name, pm.name, symm.name, fm.name,
+  memo_details.memo_status_per,memo_details.memo_type,invoice_details.sold_status_per,
+  memo_stock_price,sold_out_stock_price,invoice_details.invoice_type,memo_count,invoice_count,
+  memo_quantity,invoice_quantity,memo_weight,invoice_weight
   ORDER BY d.id DESC
   WITH DATA;
 

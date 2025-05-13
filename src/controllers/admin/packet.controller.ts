@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
 import { addPacketCSVFile, deleteBulkPacket, updateBulkPacketStatus } from "../../services/admin/packet-diamonds-bulk.service";
-import { addPacket, deletePacket, updatePacket, updatePacketStatus } from "../../services/admin/packet-diamond.service";
+import { addPacket, deletePacket, getAllPackets, getPacket, updatePacket, updatePacketStatus } from "../../services/admin/packet-diamond.service";
 
 export const addEditBulkPacket :RequestHandler = (req, res) => {
     callServiceMethod(req, res, addPacketCSVFile(req), "addEditBulkPacketFn");
@@ -29,4 +29,12 @@ export const updatePacketStatusBulkFn: RequestHandler = (req, res) => {
 
 export const deleteBulkPacketFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, deleteBulkPacket(req), "deleteBulkPacketFn");
+}
+
+export const getAllPacketsFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, getAllPackets(req), "getAllPacketsFn");
+}
+
+export const getPacketFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, getPacket(req), "getPacketFn");
 }
