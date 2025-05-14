@@ -436,14 +436,8 @@ export const getAllPackets = async (req: Request) => {
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
-                            OR EXISTS (
-                                SELECT 1 
-                                FROM jsonb_array_elements(company_detail) AS item
-                                WHERE item->>'company_name' = ANY (string_to_array('${pagination.search_text}', ','))
-                                OR item->>'company_website' = ANY (string_to_array('${pagination.search_text}', ','))
-                                OR item->>'company_email' = ANY (string_to_array('${pagination.search_text}', ','))
-                            )
                             OR lab_name ILIKE '%${pagination.search_text}%'
+                            OR company_name ILIKE '%${pagination.search_text}%'
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(remain_quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(remain_weight AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -526,15 +520,8 @@ export const getAllPackets = async (req: Request) => {
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
-                            OR EXISTS (
-                                SELECT 1 
-                                FROM jsonb_array_elements(company_detail) AS item
-                                WHERE item->>'company_name' = ANY (string_to_array('${pagination.search_text}', ','))
-                                OR item->>'company_website' = ANY (string_to_array('${pagination.search_text}', ','))
-                                OR item->>'company_email' = ANY (string_to_array('${pagination.search_text}', ','))
-                            )
+                            OR company_name ILIKE '%${pagination.search_text}%'
                             OR lab_name ILIKE '%${pagination.search_text}%'
-                          
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(remain_quantity AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -558,12 +545,12 @@ export const getAllPackets = async (req: Request) => {
                             ${customer ? `AND customer_id IN (${customer})` : ""}
                             ${req.body.session_res.id_role != 0 && query.stock_search !== "1" ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                             ${query.status ? `AND status = '${query.status}' ` : ""}
-                            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
-                            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
-                            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
-                            ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
-                            ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
-                            ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
+                            ${query.min_rate && query.max_rate ? `AND total_available_stock_price BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
+                            ${query.min_rate && !query.max_rate ? `AND total_available_stock_price >= ${query.min_rate}` : ""}
+                            ${!query.min_rate && query.max_rate ? `AND total_available_stock_price <= ${query.max_rate}` : ""}
+                            ${query.min_weight && query.max_weight ? `AND total_available_weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
+                            ${query.min_weight && !query.max_weight ? `AND total_available_weight >= ${query.min_weight}` : ""}
+                            ${!query.min_weight && query.max_weight ? `AND total_available_weight <= ${query.max_weight}` : ""}
                             ${query.min_depth_value && query.max_depth_value ? `AND depth_value BETWEEN ${query.min_depth_value} AND ${query.max_depth_value}` : ""}
                             ${query.min_depth_value && !query.max_depth_value ? `AND depth_value >= ${query.min_depth_value}` : ""}
                             ${!query.min_depth_value && query.max_depth_value ? `AND depth_value <= ${query.max_depth_value}` : ""}

@@ -231,7 +231,7 @@ export const getMethodFromRequest = (method: string) => {
 
 export const refreshMaterializedDiamondListView = async () => {
   try {
-    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list;");
+    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list; REFRESH MATERIALIZED VIEW packet_diamond_list;");
   } catch (error) {
     throw error;
   }

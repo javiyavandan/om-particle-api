@@ -14,6 +14,8 @@ import Master from "../../model/masters.model";
 import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
 import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
 import PacketDiamonds from "../../model/packet-diamond.model";
+import Invoice from "../../model/invoice.model";
+import InvoiceDetail from "../../model/invoice-detail.model";
 
 export const createMemo = async (req: Request) => {
     try {
@@ -237,27 +239,31 @@ export const createMemo = async (req: Request) => {
 
         for (let index = 0; index < stock_list.length; index++) {
             const memo_type = stock_list[index].memo_type ?? Memo_Invoice_Type.quantity;
+            const stockId = stock_list[index].stock_id;
+            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
 
+            console.log("----------------------", findStock)
             if(memo_creation_type === Menu_Invoice_creation.Packet) {
-                const findSameMemoExist = await Memo.count({
-                    where: { creation_type: Menu_Invoice_creation.Packet },
-                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: memo_type} }],
-                });
-
-                console.log("findSameMemoExist", findSameMemoExist)
-                if(findSameMemoExist == 0) {
+ 
                     const findMemoExist = await Memo.count({
                     where: { creation_type: Menu_Invoice_creation.Packet },
-                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: {[Op.ne]: memo_type}} }],
+                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
                     });
 
                     if(findMemoExist && findMemoExist > 0) {
-                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
                     }
-                }
+                
+                    const findInvoiceExist = await Invoice.count({
+                        where: { creation_type: Menu_Invoice_creation.Packet },
+                        include: [{ model: InvoiceDetail, as: "invoice_details", attributes: ["id", "stock_id", "invoice_type"], where: {invoice_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
+                    });
+                
+                    if(findInvoiceExist && findInvoiceExist > 0) {
+                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "invoice"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                    }
+                
             }
-            const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
   
             const quantity = stock_list[index].quantity ?? findStock?.dataValues.remain_quantity;
             const weight = stock_list[index].weight ?? findStock?.dataValues.remain_weight;
