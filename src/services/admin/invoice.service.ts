@@ -252,8 +252,6 @@ export const createInvoice = async (req: Request) => {
                     include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: {[Op.ne]: invoice_type},stock_id: stock_list[index].stock_id} }],
                     });
                 
-                
-
                     if(findMemoExist && findMemoExist > 0) {
                         stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"],["type_1", "invoice"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${invoice_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
                     }
@@ -408,8 +406,6 @@ export const createInvoice = async (req: Request) => {
                 ...stock,
                 invoice_id: invoiceId,
             }));
-
-            console.log("++++++++++++++++++++++++++", stockListWithInvoiceId)
 
             await InvoiceDetail.bulkCreate(stockListWithInvoiceId, {
                 transaction: trn,

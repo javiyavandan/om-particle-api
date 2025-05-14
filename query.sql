@@ -1211,3 +1211,168 @@ WITH filtered_memo_details AS (
 
 ALTER TABLE IF EXISTS public.packet_diamond_list
     OWNER TO postgres;
+
+
+/* update packet diamond list materialized view */
+
+DROP MATERIALIZED VIEW IF EXISTS public.packet_diamond_list;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.packet_diamond_list
+TABLESPACE pg_default
+AS
+ WITH filtered_memo_details AS (
+         SELECT md.stock_id,
+            ms.customer_id,
+            ms.id AS memo_id,
+            row_number() OVER (PARTITION BY md.stock_id ORDER BY ms.created_at DESC) AS row_num
+           FROM public.memo_details md
+             JOIN memos ms ON ms.id = md.memo_id
+          WHERE ms.status = 'active'::memo_status AND md.is_return = '0'::bit(1) AND ms.creation_type = 'packet'::memo_invoice_creation_type
+        ), filtered_invoice_details AS (
+         SELECT ids.stock_id,
+            io.customer_id,
+            io.id AS invoice_id,
+            row_number() OVER (PARTITION BY ids.stock_id ORDER BY io.created_at DESC) AS row_num
+           FROM public.invoice_details ids
+             JOIN invoices io ON io.id = ids.invoice_id
+          WHERE io.status = 'active'::invoice_status AND ids.is_return = '0'::bit(1) AND io.creation_type = 'packet'::memo_invoice_creation_type
+        ), memo_details AS (
+         SELECT memo_details_1.stock_id,
+            COALESCE(count(memo_details_1.id), 0::bigint) AS memo_count,
+            sum(memo_details_1.quantity) AS memo_quantity,
+            sum(memo_details_1.weight) AS memo_weight,
+            sum(memo_details_1.stock_price) AS memo_stock_price,
+                CASE
+                    WHEN memo_details_1.memo_type = 'quantity'::memo_invoice_type THEN ceil(sum(memo_details_1.quantity) * 100::numeric / packet_diamonds.quantity::numeric)::double precision
+                    ELSE ceil(sum(memo_details_1.weight) * 100::double precision / packet_diamonds.weight)
+                END AS memo_status_per,
+            memo_details_1.memo_type
+           FROM memos
+             JOIN public.memo_details memo_details_1 ON memo_details_1.memo_id = memos.id
+             LEFT JOIN packet_diamonds ON packet_diamonds.id = memo_details_1.stock_id
+          WHERE memos.creation_type = 'packet'::memo_invoice_creation_type AND memos.status = 'active'::memo_status AND memo_details_1.is_return = '0'::bit(1)
+          GROUP BY memo_details_1.memo_type, memo_details_1.stock_id, packet_diamonds.id
+        ), invoice_details AS (
+         SELECT invoice_details_1.stock_id,
+            sum(invoice_details_1.quantity) AS invoice_quantity,
+            sum(invoice_details_1.weight) AS invoice_weight,
+            COALESCE(count(invoice_details_1.id), 0::bigint) AS invoice_count,
+            sum(invoice_details_1.quantity) AS sum,
+            sum(invoice_details_1.stock_price) AS sold_out_stock_price,
+                CASE
+                    WHEN invoice_details_1.invoice_type = 'quantity'::memo_invoice_type THEN ceil(sum(invoice_details_1.quantity) * 100::numeric / packet_diamonds.quantity::numeric)::double precision
+                    ELSE ceil(sum(invoice_details_1.weight) * 100::double precision / packet_diamonds.weight)
+                END AS sold_status_per,
+            invoice_details_1.invoice_type
+           FROM invoices
+             JOIN public.invoice_details invoice_details_1 ON invoice_details_1.invoice_id = invoices.id
+             LEFT JOIN packet_diamonds ON packet_diamonds.id = invoice_details_1.stock_id
+          WHERE invoices.creation_type = 'packet'::memo_invoice_creation_type AND invoices.status = 'active'::invoice_status AND invoice_details_1.is_return = '0'::"bit"
+          GROUP BY invoice_details_1.invoice_type, invoice_details_1.stock_id, packet_diamonds.id
+        )
+ SELECT d.id,
+    d.packet_id,
+    d.shape,
+    sm.name AS shape_name,
+    d.clarity,
+    cl.name AS clarity_name,
+    d.color,
+    cm.name AS color_name,
+    d.color_intensity,
+    cim.name AS color_intensity_name,
+    d.lab,
+    lm.name AS lab_name,
+    d.polish,
+    pm.name AS polish_name,
+    d.symmetry,
+    symm.name AS symmetry_name,
+    d.fluorescence,
+    fm.name AS fluorescence_name,
+    d.quantity,
+    d.remain_quantity,
+    d.remain_weight,
+    d.weight,
+    d.report,
+    d.video,
+    d.image,
+    d.certificate,
+    d.measurement_height,
+    d.measurement_width,
+    d.measurement_depth,
+    d.table_value,
+    d.depth_value,
+    d.ratio,
+    d.user_comments,
+    d.admin_comments,
+    d.local_location,
+    d.status,
+    d.rate,
+    d.color_over_tone,
+    d.is_active,
+    d.created_at,
+    d.created_by,
+	d.company_id,
+    com.name AS company_name,
+    memo_details.memo_type,
+    invoice_details.invoice_type,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id, 'company_id', cs.id, 'company_name', cs.company_name,
+										  'company_website', cs.company_website, 'company_email', cs.company_email))
+										  FILTER (WHERE fmd.memo_id IS NOT NULL), '[]'::jsonb) AS memo_company_detail,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fid.invoice_id, 'company_id', ics.id, 'company_name',
+												   ics.company_name, 'company_website', ics.company_website,
+												   'company_email', ics.company_email)) FILTER (WHERE fid.invoice_id IS NOT NULL), '[]'::jsonb) AS invoice_company_detail,
+	COALESCE(memo_details.memo_status_per, 0::double precision) AS memo_status_per,
+    COALESCE(invoice_details.sold_status_per, 0::double precision) AS sold_out_status_per,
+        CASE
+            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN 100
+            ELSE
+            CASE
+            WHEN memo_details.memo_type = 'quantity'::memo_invoice_type OR invoice_details.invoice_type = 'quantity'::memo_invoice_type THEN ceil((d.remain_quantity * 100 / d.quantity)::double precision)
+            ELSE ceil(d.remain_weight * 100::double precision / d.weight)
+        END END AS available_status_per,
+    COALESCE(memo_details.memo_quantity, 0::numeric) AS total_memo_quantity,
+    COALESCE(invoice_details.invoice_quantity, 0::numeric) AS total_sold_out_quantity,
+    COALESCE(d.remain_quantity, 0::bigint) AS total_available_quantity,
+    COALESCE(memo_details.memo_weight, 0::double precision) AS total_memo_weight,
+    COALESCE(invoice_details.invoice_weight, 0::double precision) AS total_sold_out_weight,
+    COALESCE(d.remain_weight, 0::double precision) AS total_available_weight,
+    COALESCE(memo_details.memo_stock_price, 0::numeric) AS total_memo_stock_price,
+    COALESCE(invoice_details.sold_out_stock_price, 0::double precision) AS total_sold_out_stock_price,
+        CASE
+            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN d.rate
+            ELSE
+            CASE
+                WHEN memo_details.memo_type = 'quantity'::memo_invoice_type OR invoice_details.invoice_type = 'quantity'::memo_invoice_type THEN ceil(d.rate * d.remain_quantity::double precision / 100::double precision)
+                ELSE ceil(d.rate * d.remain_weight / 100::double precision)
+            END
+        END AS total_available_stock_price
+   FROM packet_diamonds d
+     LEFT JOIN masters sm ON sm.id = d.shape
+     LEFT JOIN masters cm ON cm.id = d.color
+     LEFT JOIN masters cl ON cl.id = d.clarity
+     LEFT JOIN masters cim ON cim.id = d.color_intensity
+     LEFT JOIN masters lm ON lm.id = d.lab
+     LEFT JOIN masters pm ON pm.id = d.polish
+     LEFT JOIN masters symm ON symm.id = d.symmetry
+     LEFT JOIN companys com ON com.id = d.company_id
+     LEFT JOIN masters fm ON fm.id = d.fluorescence
+     LEFT JOIN filtered_memo_details fmd ON fmd.stock_id = d.id
+     LEFT JOIN memo_details ON memo_details.stock_id = d.id
+     LEFT JOIN invoice_details ON invoice_details.stock_id = d.id
+     LEFT JOIN filtered_invoice_details fid ON fid.stock_id = d.id
+     LEFT JOIN customers cs ON cs.id = fmd.customer_id
+	 LEFT JOIN customers ics ON ics.id = fid.customer_id
+     LEFT JOIN app_users au ON au.id = cs.user_id
+     LEFT JOIN customers csi ON csi.id = fid.customer_id
+     LEFT JOIN app_users aui ON aui.id = csi.user_id
+  WHERE d.is_deleted = '0'::bit(1)
+  GROUP BY d.id, sm.name, cl.name, cm.name, cim.name, lm.name, pm.name, symm.name,
+  fm.name, memo_details.memo_status_per, memo_details.memo_type, invoice_details.sold_status_per,
+  memo_details.memo_stock_price, invoice_details.sold_out_stock_price, invoice_details.invoice_type,
+  memo_details.memo_count, invoice_details.invoice_count, memo_details.memo_quantity,
+  invoice_details.invoice_quantity, memo_details.memo_weight, invoice_details.invoice_weight,com.name
+  ORDER BY d.id DESC
+WITH DATA;
+
+ALTER TABLE IF EXISTS public.packet_diamond_list
+    OWNER TO postgres;
