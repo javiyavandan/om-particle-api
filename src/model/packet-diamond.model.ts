@@ -123,6 +123,9 @@ const PacketDiamonds = dbContext.define('packet_diamonds', {
     deleted_at: {
         type: DATE,
     },
+    local_location: {
+        type: STRING
+    }
 })
 
 PacketDiamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });
