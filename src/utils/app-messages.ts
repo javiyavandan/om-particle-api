@@ -191,4 +191,4 @@ import {
   export const CURRENCY_STATUS_DEFAULT = "Cannot change the status of default currency"
 export const CURRENCY_DELETE_DEFAULT = "Cannot remove the default currency"
   
-export const PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR = "You have already created memo with <<memo_type>>, can not create memo with different memo type in #<<stock_id>>"
+export const PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR = "You have already created <<type>> with <<memo_type>>, can not create <<type_1>> with different <<type_1>> type in #<<stock_id>>"
