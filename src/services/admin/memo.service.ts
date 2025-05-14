@@ -1,8 +1,8 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { ActiveStatus, DeleteStatus, Discount_Type, Master_type, MEMO_STATUS, StockStatus, UserVerification } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Discount_Type, Master_type, Memo_Invoice_Type, MEMO_STATUS, Menu_Invoice_creation, StockStatus, UserVerification } from "../../utils/app-enumeration";
 import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND } from "../../utils/app-messages";
+import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND, PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
 import Company from "../../model/companys.model";
 import Memo from "../../model/memo.model";
@@ -13,12 +13,19 @@ import AppUser from "../../model/app_user.model";
 import Master from "../../model/masters.model";
 import { mailAdminMemo, mailCustomerMemo } from "../mail.service";
 import { ADMIN_MAIL, IMAGE_PATH } from "../../config/env.var";
+import PacketDiamonds from "../../model/packet-diamond.model";
+import Invoice from "../../model/invoice.model";
+import InvoiceDetail from "../../model/invoice-detail.model";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
+        const { company_id, customer_id, stock_list, memo_creation_type, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
         const stockError = [];
         const stockList: any = [];
+
+        if (!Object.values(Menu_Invoice_creation).includes(memo_creation_type)) {
+            return resBadRequest({ message: "Invalid menu type" })
+        }
 
         if (report_date) {
             const inputDate = new Date(report_date);
@@ -86,94 +93,232 @@ export const createMemo = async (req: Request) => {
             })
         }
 
-        const allStock = await Diamonds.findAll({
-            where: {
-                status: StockStatus.AVAILABLE,
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
-            },
-            attributes: [
-                "id",
-                "stock_id",
-                "status",
-                "is_active",
-                "is_deleted",
-                "shape",
-                "quantity",
-                "weight",
-                "rate",
-                "color",
-                "color_intensity",
-                "color_over_tone",
-                "clarity",
-                "lab",
-                "report",
-                "polish",
-                "symmetry",
-                "video",
-                "image",
-                "certificate",
-                "local_location",
-                "measurement_height",
-                "measurement_width",
-                "measurement_depth",
-                "table_value",
-                "depth_value",
-                "ratio",
-                "fluorescence",
-                "company_id",
-                "user_comments",
-                "admin_comments",
-                "loose_diamond",
-                "created_by",
-                "created_at",
-                "modified_by",
-                "modified_at",
-                "deleted_by",
-                "deleted_at",
-                [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
-                [Sequelize.literal(`"color_master"."name"`), 'color_name'],
-                [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
-            ],
-            include: [
-                {
-                    model: Master,
-                    as: 'shape_master',
-                    attributes: []
+        let allStock;
+
+        if (memo_creation_type === Menu_Invoice_creation.Single) {
+            allStock = await Diamonds.findAll({
+                where: {
+                    status: StockStatus.AVAILABLE,
+                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
                 },
-                {
-                    model: Master,
-                    as: 'color_master',
-                    attributes: []
+                attributes: [
+                    "id",
+                    "stock_id",
+                    "status",
+                    "is_active",
+                    "is_deleted",
+                    "shape",
+                    "quantity",
+                    "remain_quantity",
+                    "weight",
+                    "rate",
+                    "color",
+                    "color_intensity",
+                    "color_over_tone",
+                    "clarity",
+                    "lab",
+                    "report",
+                    "polish",
+                    "symmetry",
+                    "video",
+                    "image",
+                    "certificate",
+                    "local_location",
+                    "measurement_height",
+                    "measurement_width",
+                    "measurement_depth",
+                    "table_value",
+                    "depth_value",
+                    "ratio",
+                    "fluorescence",
+                    "company_id",
+                    "user_comments",
+                    "admin_comments",
+                    "loose_diamond",
+                    "created_by",
+                    "created_at",
+                    "modified_by",
+                    "modified_at",
+                    "deleted_by",
+                    "deleted_at",
+                    [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                    [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                    [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
+                ],
+                include: [
+                    {
+                        model: Master,
+                        as: 'shape_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'color_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'clarity_master',
+                        attributes: []
+                    }
+                ]
+            })
+        } else {
+            allStock = await PacketDiamonds.findAll({
+                where: {
+                    status: StockStatus.AVAILABLE,
+                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
                 },
-                {
-                    model: Master,
-                    as: 'clarity_master',
-                    attributes: []
-                }
-            ]
-        })
+                attributes: [
+                    "id",
+                    ["packet_id", "stock_id"],
+                    "status",
+                    "is_active",
+                    "is_deleted",
+                    "shape",
+                    "quantity",
+                    "remain_quantity",
+                    "weight",
+                    "remain_weight",
+                    "carat_rate",
+                    "rate",
+                    "color",
+                    "color_intensity",
+                    "color_over_tone",
+                    "clarity",
+                    "lab",
+                    "report",
+                    "polish",
+                    "symmetry",
+                    "video",
+                    "image",
+                    "certificate",
+                    "local_location",
+                    "measurement_height",
+                    "measurement_width",
+                    "measurement_depth",
+                    "table_value",
+                    "depth_value",
+                    "ratio",
+                    "fluorescence",
+                    "company_id",
+                    "user_comments",
+                    "admin_comments",
+                    "created_by",
+                    "created_at",
+                    "modified_by",
+                    "modified_at",
+                    "deleted_by",
+                    "deleted_at",
+                    [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                    [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                    [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
+                ],
+                include: [
+                    {
+                        model: Master,
+                        as: 'shape_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'color_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'clarity_master',
+                        attributes: []
+                    }
+                ]
+            })
+        }
 
         let totalItemPrice = 0;
         let totalWeight = 0;
 
         for (let index = 0; index < stock_list.length; index++) {
+            const memo_type = stock_list[index].memo_type ?? Memo_Invoice_Type.quantity;
             const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find((stock) => stock.dataValues.stock_id === stockId)
+            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
+
+            if(memo_creation_type === Menu_Invoice_creation.Packet) {
+ 
+                    const findMemoExist = await Memo.count({
+                    where: { creation_type: Menu_Invoice_creation.Packet },
+                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
+                    });
+
+                    if(findMemoExist && findMemoExist > 0) {
+                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                    }
+                
+                    const findInvoiceExist = await Invoice.count({
+                        where: { creation_type: Menu_Invoice_creation.Packet },
+                        include: [{ model: InvoiceDetail, as: "invoice_details", attributes: ["id", "stock_id", "invoice_type"], where: {invoice_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
+                    });
+                
+                    if(findInvoiceExist && findInvoiceExist > 0) {
+                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "invoice"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                    }
+                
+            }
+  
+            const quantity = stock_list[index].quantity ?? findStock?.dataValues.remain_quantity;
+            const weight = stock_list[index].weight ?? findStock?.dataValues.remain_weight;
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
+            } else if (!Object.values(Memo_Invoice_Type).includes(memo_type)) {
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${memo_type} memo type`]]))
             } else {
+                if (memo_type === Memo_Invoice_Type.carat) {
+                    if (!weight) {
+                        stockError.push(`${stockId} stock weight is required`)
+                    } else if (weight > findStock.dataValues.remain_weight) {
+                        stockError.push(`${stockId} stock weight is greater than available weight`)
+                    } else if (weight <= 0) {
+                        stockError.push(`${stockId} stock weight should be greater than zero`)
+                    } else {
+                        totalItemPrice += (stock_list[index].rate * weight);
+                        totalWeight += weight;
 
-                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity);
-                totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity);
+                        stockList.push({
+                            stock_id: findStock.dataValues.id,
+                            stock_original_price: findStock.dataValues.rate,
+                            stock_price: stock_list[index].rate,
+                            quantity,
+                            weight,
+                            memo_type,
+                            created_at: getLocalDate(),
+                            created_by: req.body.session_res.id,
+                            is_deleted: DeleteStatus.No,
+                        })
+                    }
+                } else {
+                    if (!quantity) {
+                        stockError.push(`${stockId} stock quantity is required`)
+                    } else if (quantity > findStock.dataValues.remain_quantity) {
+                        stockError.push(`${stockId} stock quantity is greater than available quantity`)
+                    } else if (quantity <= 0) {
+                        stockError.push(`${stockId} stock quantity should be greater than zero`)
+                    } else {
+                        totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * quantity);
+                        totalWeight += (weight * quantity);
 
-                stockList.push({
-                    stock_id: findStock.dataValues.id,
-                    stock_original_price: findStock.dataValues.rate,
-                    stock_price: stock_list[index].rate,
-                    created_at: getLocalDate(),
-                    created_by: req.body.session_res.id,
-                    is_deleted: DeleteStatus.No,
-                })
+                        stockList.push({
+                            stock_id: findStock.dataValues.id,
+                            stock_original_price: findStock.dataValues.rate,
+                            stock_price: stock_list[index].rate,
+                            quantity,
+                            weight,
+                            memo_type,
+                            created_at: getLocalDate(),
+                            created_by: req.body.session_res.id,
+                            is_deleted: DeleteStatus.No,
+                        })
+                    }
+                }
+
             }
         }
 
@@ -230,7 +375,8 @@ export const createMemo = async (req: Request) => {
                 ship_via,
                 cust_order,
                 tracking,
-                report_date: report_date ? new Date(report_date) : null
+                report_date: report_date ? new Date(report_date) : null,
+                creation_type: memo_creation_type
             };
 
             const memoData = await Memo.create(memoPayload, {
@@ -247,19 +393,43 @@ export const createMemo = async (req: Request) => {
             await MemoDetail.bulkCreate(stockListWithMemoId, {
                 transaction: trn,
             })
+            
+            let stockUpdate: any
+            if (memo_creation_type === Menu_Invoice_creation.Single) {
+                stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
+                    ...stock.dataValues,
+                    status: StockStatus.MEMO,
+                    remain_quantity: stock.dataValues.remain_quantity - stockList.find((data: any) => data.stock_id == stock.dataValues.id).quantity
+                }))
+                await Diamonds.bulkCreate(stockUpdate, {
+                    updateOnDuplicate: [
+                        "remain_quantity",
+                        "status"
+                    ],
+                    transaction: trn,
+                })
+            } else {
 
-            const stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
-                ...stock.dataValues,
-                status: StockStatus.MEMO
-            }))
-
-            await Diamonds.bulkCreate(stockUpdate, {
-                updateOnDuplicate: [
-                    "status"
-                ],
-                transaction: trn,
-            })
-
+                stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
+                    const findStock = stockList.find((data: any) => data.stock_id == stock.dataValues.id)
+                    
+                    return {
+                            ...stock.dataValues,
+                            packet_id: stock.dataValues.stock_id,
+                            remain_quantity: stock.dataValues.remain_quantity - findStock.quantity,
+                            remain_weight: stock.dataValues.remain_weight - findStock.weight,
+                        }
+                    
+                })
+                await PacketDiamonds.bulkCreate(stockUpdate, {
+                    updateOnDuplicate: [
+                        "remain_quantity",
+                        "remain_weight",
+                        "status"
+                    ],
+                    transaction: trn,
+                })
+            }
             const admin = await AppUser.findOne({
                 where: {
                     id_role: req.body.session_res.id_role,
@@ -364,8 +534,7 @@ export const createMemo = async (req: Request) => {
                     }
                 }
             }
-            console.log(adminMail, customerMail)
-
+           
             await mailAdminMemo(adminMail);
             await mailCustomerMemo(customerMail);
 
@@ -600,11 +769,13 @@ export const getAllMemo = async (req: Request) => {
 
 export const returnMemoStock = async (req: Request) => {
     try {
-        const { memo_id, stock_list, company_id } = req.body;
+        const { memo_id, stock_list, company_id, memo_creation_type } = req.body;
         const stockError = [];
         const stockList = [];
         const memoDetailStock = [];
-
+if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_creation_type)) {
+            return resBadRequest({ message: "Invalid menu type" })
+        }
         if (stock_list) {
             if (stock_list.length == 0) {
                 return resBadRequest({
@@ -612,7 +783,7 @@ export const returnMemoStock = async (req: Request) => {
                 })
             }
         }
-
+        const memoType = memo_creation_type ? memo_creation_type : Menu_Invoice_creation.Single
         const memo = await Memo.findOne({
             where: {
                 id: memo_id,
@@ -640,14 +811,23 @@ export const returnMemoStock = async (req: Request) => {
         }
 
         const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.filter((memoData: any) => memoData.dataValues.is_return === ActiveStatus.InActive && memoData.dataValues.memo_id === memo_id).map((data: any) => data.dataValues.stock_id)
-
-        const allStock = await Diamonds.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
-                status: StockStatus.MEMO
-            }
-        })
+        let allStock
+        if(memoType === Menu_Invoice_creation.Packet) {
+            allStock = await PacketDiamonds.findAll({
+               where: {
+                   is_deleted: DeleteStatus.No,
+                   company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+               }
+           })
+        } else {
+            allStock = await Diamonds.findAll({
+               where: {
+                   is_deleted: DeleteStatus.No,
+                   company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                   status: StockStatus.MEMO
+               }
+           })
+        }
 
         for (let index = 0; index < stockData.length; index++) {
             const stockId = stockData[index];
@@ -655,17 +835,32 @@ export const returnMemoStock = async (req: Request) => {
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
-                stockList.push({
-                    ...findStock.dataValues,
-                    modified_at: getLocalDate(),
-                    modified_by: req.body.session_res.id,
-                    status: StockStatus.AVAILABLE,
-                })
                 const memoDetail = memo.dataValues.memo_details.find((data: any) => data.dataValues.stock_id == stockId)
                 memoDetailStock.push({
                     ...memoDetail.dataValues,
                     is_return: ActiveStatus.Active,
                 })
+                if (memoType === Menu_Invoice_creation.Packet) {
+                
+                       stockList.push({
+                    ...findStock.dataValues,
+                    modified_at: getLocalDate(),
+                    remain_quantity: Number(findStock.dataValues.remain_quantity) + Number(memoDetail.dataValues.quantity),
+                    remain_weight: Number(findStock.dataValues.remain_weight) + Number(memoDetail.dataValues.weight),
+                    modified_by: req.body.session_res.id,
+                    status: StockStatus.AVAILABLE,
+                })
+                
+                } else {
+                    stockList.push({
+                    ...findStock.dataValues,
+                    remain_quantity: findStock.dataValues.remain_quantity + memoDetail.dataValues.quantity,
+                    modified_at: getLocalDate(),
+                    modified_by: req.body.session_res.id,
+                    status: StockStatus.AVAILABLE,
+                })
+                }
+               
             }
         }
 
@@ -678,10 +873,19 @@ export const returnMemoStock = async (req: Request) => {
 
         const trn = await dbContext.transaction();
         try {
-            await Diamonds.bulkCreate(stockList, {
-                updateOnDuplicate: ["modified_at", "modified_by", "status"],
+
+            if(memoType === Menu_Invoice_creation.Packet) {
+                await PacketDiamonds.bulkCreate(stockList, {
+                updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity', 'remain_weight'],
                 transaction: trn
             });
+            } else {
+            await Diamonds.bulkCreate(stockList, {
+                updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity'],
+                transaction: trn
+            });
+            }
+            
 
             await MemoDetail.bulkCreate(memoDetailStock, {
                 updateOnDuplicate: ["is_return"],

@@ -189,4 +189,6 @@ import {
   export const EMAIL_ALL_READY_EXIST = "User is already exists with the same email!";
   export const INVALID_OLD_PASSWORD = "Invalid old password!";
   export const CURRENCY_STATUS_DEFAULT = "Cannot change the status of default currency"
-  export const CURRENCY_DELETE_DEFAULT = "Cannot remove the default currency"
+export const CURRENCY_DELETE_DEFAULT = "Cannot remove the default currency"
+  
+export const PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR = "You have already created <<type>> with <<memo_type>>, can not create <<type_1>> with different <<type_1>> type in #<<stock_id>>"

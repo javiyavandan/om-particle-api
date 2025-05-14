@@ -3,13 +3,13 @@ import dbContext from "../config/dbContext";
 import Master from "./masters.model";
 import Company from "./companys.model";
 
-const Diamonds = dbContext.define('diamonds', {
+const PacketDiamonds = dbContext.define('packet_diamonds', {
     id: {
         type: BIGINT,
         primaryKey: true,
         autoIncrement: true,
     },
-    stock_id: {
+    packet_id: {
         type: STRING,
     },
     status: {
@@ -28,6 +28,9 @@ const Diamonds = dbContext.define('diamonds', {
         type: BIGINT,
     },
     weight: {
+        type: DOUBLE,
+    },
+    carat_rate: {
         type: DOUBLE,
     },
     rate: {
@@ -66,9 +69,6 @@ const Diamonds = dbContext.define('diamonds', {
     certificate: {
         type: STRING,
     },
-    local_location: {
-        type: STRING,
-    },
     measurement_height: {
         type: DOUBLE,
     },
@@ -99,8 +99,11 @@ const Diamonds = dbContext.define('diamonds', {
     admin_comments: {
         type: STRING,
     },
-    loose_diamond: {
-        type: STRING,
+    remain_weight: {
+        type: DOUBLE,
+    },
+    remain_quantity: {
+        type: BIGINT,
     },
     created_by: {
         type: BIGINT,
@@ -120,19 +123,19 @@ const Diamonds = dbContext.define('diamonds', {
     deleted_at: {
         type: DATE,
     },
-    remain_quantity: {
-        type: BIGINT,
-    },
+    local_location: {
+        type: STRING
+    }
 })
 
-Diamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });
-Diamonds.belongsTo(Master, { foreignKey: "color", as: "color_master" });
-Diamonds.belongsTo(Master, { foreignKey: "color_intensity", as: "color_intensity_master" });
-Diamonds.belongsTo(Master, { foreignKey: "lab", as: "lab_master" });
-Diamonds.belongsTo(Company, { foreignKey: "company_id", as: "company_master" });
-Diamonds.belongsTo(Master, { foreignKey: "polish", as: "polish_master" });
-Diamonds.belongsTo(Master, { foreignKey: "shape", as: "shape_master" });
-Diamonds.belongsTo(Master, { foreignKey: "symmetry", as: "symmetry_master" });
-Diamonds.belongsTo(Master, { foreignKey: "fluorescence", as: "fluorescence_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "clarity", as: "clarity_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "color", as: "color_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "color_intensity", as: "color_intensity_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "lab", as: "lab_master" });
+PacketDiamonds.belongsTo(Company, { foreignKey: "company_id", as: "company_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "polish", as: "polish_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "shape", as: "shape_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "symmetry", as: "symmetry_master" });
+PacketDiamonds.belongsTo(Master, { foreignKey: "fluorescence", as: "fluorescence_master" });
 
-export default Diamonds;
+export default PacketDiamonds;

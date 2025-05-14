@@ -74,6 +74,9 @@ const Invoice = dbContext.define('invoices', {
     },
     tracking: {
         type: STRING,
+    },
+    creation_type: {
+        type: STRING,
     }
 });
 

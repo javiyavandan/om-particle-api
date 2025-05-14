@@ -291,3 +291,13 @@ export enum Discount_Type {
   Percentage = 'percentage',
   Amount = 'amount',
 }
+
+export enum Menu_Invoice_creation {
+  Single = 'single',
+  Packet = 'packet',
+}
+
+export enum Memo_Invoice_Type {
+  carat = 'carat',
+  quantity = 'quantity',
+}
