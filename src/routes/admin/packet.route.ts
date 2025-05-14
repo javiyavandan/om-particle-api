@@ -7,7 +7,7 @@ import { addPacketValidator } from "../../validators/packet/packet.validator";
 export default (app: Router) => {
     app.post("/packet/import", [adminAuthorization, reqProductBulkUploadFileParser("packet_file")], addEditBulkPacket);
     app.post("/packet", [adminAuthorization, addPacketValidator], addPacketFn);
-    app.post("/packet/:diamond_id", [adminAuthorization, addPacketValidator], updatePacketFn);
+    app.put("/packet/:diamond_id", [adminAuthorization, addPacketValidator], updatePacketFn);
     app.patch("/packet/:diamond_id", [adminAuthorization], updatePacketStatusFn);
     app.delete("/packet/:diamond_id", [adminAuthorization], deletePacketFn);
     app.patch("/packet-update-status", [adminAuthorization], updatePacketStatusBulkFn);
