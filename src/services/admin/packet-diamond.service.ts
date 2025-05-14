@@ -1,21 +1,22 @@
-import { Request } from "express";
-import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
-import Master from "../../model/masters.model";
-import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus } from "../../utils/app-enumeration";
-import Company from "../../model/companys.model";
-import { Op, QueryTypes, Sequelize } from "sequelize";
-import dbContext from "../../config/dbContext";
+import { Request } from "express"
+import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus } from "../../utils/app-enumeration"
+import PacketDiamonds from "../../model/packet-diamond.model"
+import Master from "../../model/masters.model"
+import Company from "../../model/companys.model"
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions"
+import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages"
+import { Op, QueryTypes } from "sequelize"
+import dbContext from "../../config/dbContext"
 
-export const addStock = async (req: Request) => {
+export const addPacket = async (req: Request) => {
     try {
         const {
-            stock_id,
+            packet_id,
             status = StockStatus.AVAILABLE,
             shape,
             quantity = 1,
             weight,
+            carat_rate,
             rate,
             color,
             color_intensity,
@@ -40,12 +41,11 @@ export const addStock = async (req: Request) => {
             admin_comments,
             local_location,
             session_res,
-            loose_diamond = Is_loose_diamond.No
         } = req.body
 
-        const findDiamond = await Diamonds.findOne({
+        const findDiamond = await PacketDiamonds.findOne({
             where: {
-                stock_id: stock_id,
+                packet_id,
                 is_deleted: DeleteStatus.No
             }
         })
@@ -57,14 +57,14 @@ export const addStock = async (req: Request) => {
             }
         })
 
-        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
-        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
-        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
-        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
-        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
-        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
-        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
+        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id == shape)
+        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id == color)
+        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id == clarity)
+        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id == lab)
+        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id == polish)
+        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id == symmetry)
+        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id == color_intensity)
+        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id == fluorescence)
         const companyData: any = await Company.findOne({
             where: {
                 id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
@@ -98,24 +98,24 @@ export const addStock = async (req: Request) => {
             })
         }
 
-        await Diamonds.create({
-            stock_id: stock_id,
+        await PacketDiamonds.create({
+            packet_id,
             status: status,
             is_active: ActiveStatus.Active,
             is_deleted: DeleteStatus.No,
-            shape: shape,
+            shape: shapeData?.dataValues.id,
             quantity: quantity,
-            remain_quantity: quantity,
             weight: weight,
-            rate: rate,
-            color: color,
-            color_intensity: color_intensity,
+            carat_rate,
+            rate: rate ?? carat_rate * weight * quantity,
+            color: colorData?.dataValues.id,
+            color_intensity: colorIntensityData?.dataValues.id,
             color_over_tone,
-            clarity: clarity,
-            lab: lab,
+            clarity: clarityData?.dataValues.id,
+            lab: labData?.dataValues.id,
             report: report,
-            polish: polish,
-            symmetry: symmetry,
+            polish: polishData?.dataValues.id,
+            symmetry: symmetryData?.dataValues.id,
             video: video,
             image: image,
             certificate: certificate,
@@ -126,11 +126,12 @@ export const addStock = async (req: Request) => {
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
-            fluorescence: fluorescence,
-            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+            fluorescence: fluorescenceData?.dataValues.id,
+            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : companyData.dataValues.id,
             user_comments,
             admin_comments,
-            loose_diamond: loose_diamond ?? Is_loose_diamond.No,
+            remain_quantity: quantity,
+            remain_weight: weight,
             created_by: session_res.id,
             created_at: getLocalDate(),
         })
@@ -143,16 +144,17 @@ export const addStock = async (req: Request) => {
     }
 }
 
-export const updateStock = async (req: Request) => {
+export const updatePacket = async (req: Request) => {
     try {
         const {
-            stock_id,
+            packet_id,
             available,
             is_active,
             is_deleted,
             shape,
             quantity = 1,
             weight,
+            carat_rate,
             rate,
             color,
             color_intensity,
@@ -175,13 +177,12 @@ export const updateStock = async (req: Request) => {
             user_comments,
             admin_comments,
             local_location,
-            loose_diamond = Is_loose_diamond.No,
             color_over_tone,
             session_res
         } = req.body
         const { diamond_id } = req.params
 
-        const diamond = await Diamonds.findOne({
+        const diamond = await PacketDiamonds.findOne({
             where: {
                 is_deleted: DeleteStatus.No,
                 id: diamond_id
@@ -194,11 +195,11 @@ export const updateStock = async (req: Request) => {
             })
         }
 
-        const duplicateDiamond = await Diamonds.findOne({
+        const duplicateDiamond = await PacketDiamonds.findOne({
             where: {
                 is_deleted: DeleteStatus.No,
                 id: { [Op.ne]: diamond.dataValues.id },
-                stock_id: stock_id
+                packet_id
             }
         })
 
@@ -206,7 +207,7 @@ export const updateStock = async (req: Request) => {
             return resBadRequest({
                 code: DUPLICATE_ERROR_CODE,
                 message: prepareMessageFromParams(DATA_ALREADY_EXITS, [
-                    ["field_name", "Diamond"],
+                    ["field_name", "Packet"],
                 ]),
             });
         }
@@ -218,14 +219,14 @@ export const updateStock = async (req: Request) => {
             }
         })
 
-        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id === shape)
-        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id === color)
-        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id === clarity)
-        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id === lab)
-        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id === polish)
-        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id === symmetry)
-        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id === color_intensity)
-        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id === fluorescence)
+        const shapeData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Stone_shape && item.dataValues.id == shape)
+        const colorData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_color && item.dataValues.id == color)
+        const clarityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Diamond_clarity && item.dataValues.id == clarity)
+        const labData: any = MastersData.find(item => item.dataValues.master_type === Master_type.lab && item.dataValues.id == lab)
+        const polishData: any = MastersData.find(item => item.dataValues.master_type === Master_type.Polish && item.dataValues.id == polish)
+        const symmetryData: any = MastersData.find(item => item.dataValues.master_type === Master_type.symmetry && item.dataValues.id == symmetry)
+        const colorIntensityData: any = MastersData.find(item => item.dataValues.master_type === Master_type.colorIntensity && item.dataValues.id == color_intensity)
+        const fluorescenceData: any = MastersData.find(item => item.dataValues.master_type === Master_type.fluorescence && item.dataValues.id == fluorescence)
         const companyData: any = await Company.findOne({
             where: {
                 id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
@@ -253,28 +254,34 @@ export const updateStock = async (req: Request) => {
             });
         }
 
-        await Diamonds.update({
-            stock_id: stock_id,
+        await PacketDiamonds.update({
+            packet_id,
             available: available,
             is_active: is_active,
             is_deleted: is_deleted,
-            shape: shape,
+            shape: shapeData?.dataValues.id,
             quantity: quantity != diamond.dataValues.remain_quantity
                 ? Number(diamond.dataValues.quantity) +
                 Number(quantity) -
                 Number(diamond.dataValues.remain_quantity)
                 : diamond.dataValues.quantity,
             remain_quantity: quantity,
-            weight: weight,
-            rate: rate,
-            color: color,
-            color_intensity: color_intensity,
+            weight: weight != diamond.dataValues.remain_weight
+                ? Number(diamond.dataValues.weight) +
+                Number(weight) -
+                Number(diamond.dataValues.remain_weight)
+                : diamond.dataValues.weight,
+            remain_weight: weight,
+            carat_rate,
+            rate: rate ?? carat_rate * weight * quantity,
+            color: colorData?.dataValues.id,
+            color_intensity: colorIntensityData?.dataValues.id,
             color_over_tone,
-            clarity: clarity,
-            lab: lab,
+            clarity: clarityData?.dataValues.id,
+            lab: labData?.dataValues.id,
             report: report,
-            polish: polish,
-            symmetry: symmetry,
+            polish: polishData?.dataValues.id,
+            symmetry: symmetryData?.dataValues.id,
             video: video,
             image: image,
             certificate: certificate,
@@ -285,11 +292,10 @@ export const updateStock = async (req: Request) => {
             table_value: table_value,
             depth_value: depth_value,
             ratio: ratio,
-            fluorescence: fluorescence,
-            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+            fluorescence: fluorescenceData?.dataValues.id,
+            company_id: req.body.session_res.company_id ? req.body.session_res.company_id : companyData.dataValues.id,
             user_comments,
             admin_comments,
-            loose_diamond: loose_diamond ?? Is_loose_diamond.No,
             modified_by: session_res.id,
             modified_at: getLocalDate(),
         }, {
@@ -305,11 +311,11 @@ export const updateStock = async (req: Request) => {
     }
 }
 
-export const deleteStock = async (req: Request) => {
+export const deletePacket = async (req: Request) => {
     try {
         const { diamond_id } = req.params
 
-        const findDiamond = await Diamonds.findOne({
+        const findDiamond = await PacketDiamonds.findOne({
             where: {
                 id: diamond_id,
                 is_deleted: DeleteStatus.No,
@@ -320,11 +326,11 @@ export const deleteStock = async (req: Request) => {
         })
         if (!(findDiamond && findDiamond.dataValues)) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]]),
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Packet"]]),
             })
         }
 
-        await Diamonds.update({
+        await PacketDiamonds.update({
             is_deleted: DeleteStatus.Yes,
             deleted_at: getLocalDate(),
             deleted_by: req.body.session_res.id,
@@ -340,17 +346,50 @@ export const deleteStock = async (req: Request) => {
     }
 }
 
-export const getStock = async (req: Request) => {
+export const updatePacketStatus = async (req: Request) => {
+    try {
+        const { diamond_id } = req.params
+
+        const findDiamond = await PacketDiamonds.findOne({
+            where: {
+                id: diamond_id,
+                is_deleted: DeleteStatus.No,
+            },
+        })
+
+        if (!(findDiamond && findDiamond.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]])
+            })
+        }
+
+        await PacketDiamonds.update({
+            is_active: findDiamond.dataValues.is_active === ActiveStatus.InActive ? ActiveStatus.Active : ActiveStatus.InActive
+        }, {
+            where: {
+                id: findDiamond.dataValues.id,
+            },
+        })
+
+        await refreshMaterializedDiamondListView()
+        return resSuccess({ message: RECORD_UPDATE })
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const getPacket = async (req: Request) => {
     try {
         const { diamond_id } = req.params
 
         const diamond = await dbContext.query(
-            `SELECT * FROM diamond_list WHERE id = ${diamond_id}`, { type: QueryTypes.SELECT }
+            `SELECT * FROM packet_diamond_list WHERE id = ${diamond_id}`, { type: QueryTypes.SELECT }
         )
 
         if (!diamond[0]) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_message", 'Diamond']])
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", 'Packet']])
             })
         }
 
@@ -362,7 +401,7 @@ export const getStock = async (req: Request) => {
     }
 }
 
-export const getAllStock = async (req: Request) => {
+export const getAllPackets = async (req: Request) => {
     try {
         const { query } = req;
         let pagination = {
@@ -385,25 +424,29 @@ export const getAllStock = async (req: Request) => {
                 SELECT
                     *
                 FROM
-                    diamond_list
+                    packet_diamond_list
                 WHERE
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
                             OR clarity_name ILIKE '%${pagination.search_text}%'
                             OR color_name ILIKE '%${pagination.search_text}%'
                             OR color_intensity_name ILIKE '%${pagination.search_text}%'
-                            OR stock_id ILIKE '%${pagination.search_text}%'
+                            OR packet_id ILIKE '%${pagination.search_text}%'
                             OR local_location ILIKE '%${pagination.search_text}%'
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
-                            OR customer_name ILIKE '%${pagination.search_text}%'
+                            OR EXISTS (
+                                SELECT 1 
+                                FROM jsonb_array_elements(company_detail) AS item
+                                WHERE item->>'company_name' = ANY (string_to_array('${pagination.search_text}', ','))
+                                OR item->>'company_website' = ANY (string_to_array('${pagination.search_text}', ','))
+                                OR item->>'company_email' = ANY (string_to_array('${pagination.search_text}', ','))
+                            )
                             OR lab_name ILIKE '%${pagination.search_text}%'
-                            OR company_name ILIKE '%${pagination.search_text}%'
-                            OR first_name ILIKE '%${pagination.search_text}%'
-                            OR last_name ILIKE '%${pagination.search_text}%'
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(remain_quantity AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(remain_weight AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(report AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(table_value AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -471,25 +514,31 @@ export const getAllStock = async (req: Request) => {
                 SELECT
                     *
                 FROM
-                    diamond_list
+                    packet_diamond_list
                 WHERE
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
                             shape_name ILIKE '%${pagination.search_text}%'
                             OR clarity_name ILIKE '%${pagination.search_text}%'
                             OR color_name ILIKE '%${pagination.search_text}%'
                             OR color_intensity_name ILIKE '%${pagination.search_text}%'
-                            OR stock_id ILIKE '%${pagination.search_text}%'
+                            OR packet_id ILIKE '%${pagination.search_text}%'
                             OR local_location ILIKE '%${pagination.search_text}%'
                             OR user_comments ILIKE '%${pagination.search_text}%'
                             OR admin_comments ILIKE '%${pagination.search_text}%'
                             OR ratio ILIKE '%${pagination.search_text}%'
-                            OR customer_name ILIKE '%${pagination.search_text}%'
+                            OR EXISTS (
+                                SELECT 1 
+                                FROM jsonb_array_elements(company_detail) AS item
+                                WHERE item->>'company_name' = ANY (string_to_array('${pagination.search_text}', ','))
+                                OR item->>'company_website' = ANY (string_to_array('${pagination.search_text}', ','))
+                                OR item->>'company_email' = ANY (string_to_array('${pagination.search_text}', ','))
+                            )
                             OR lab_name ILIKE '%${pagination.search_text}%'
-                            OR company_name ILIKE '%${pagination.search_text}%'
-                            OR first_name ILIKE '%${pagination.search_text}%'
-                            OR last_name ILIKE '%${pagination.search_text}%'
+                          
                             OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(remain_quantity AS TEXT) ILIKE '%${pagination.search_text}%'
+                            OR CAST(remain_weight AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(report AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(table_value AS TEXT) ILIKE '%${pagination.search_text}%'
@@ -553,38 +602,5 @@ export const getAllStock = async (req: Request) => {
     } catch (error) {
         console.log(error)
         throw error;
-    }
-}
-
-export const updateStockStatus = async (req: Request) => {
-    try {
-        const { diamond_id } = req.params
-
-        const findDiamond = await Diamonds.findOne({
-            where: {
-                id: diamond_id,
-                is_deleted: DeleteStatus.No,
-            },
-        })
-
-        if (!(findDiamond && findDiamond.dataValues)) {
-            return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Diamond"]])
-            })
-        }
-
-        await Diamonds.update({
-            is_active: findDiamond.dataValues.is_active === ActiveStatus.InActive ? ActiveStatus.Active : ActiveStatus.InActive
-        }, {
-            where: {
-                id: findDiamond.dataValues.id,
-            },
-        })
-
-        await refreshMaterializedDiamondListView()
-        return resSuccess({ message: RECORD_UPDATE })
-
-    } catch (error) {
-        throw error
     }
 }

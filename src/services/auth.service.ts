@@ -38,6 +38,8 @@ import {
   HUBSPOT_ASSOCIATION,
   IMAGE_TYPE,
   Image_type,
+  Memo_Invoice_Type,
+  Menu_Invoice_creation,
   StockStatus,
   UserType,
   UserVerification,
@@ -71,12 +73,19 @@ import Image from "../model/image.model";
 import { QueryTypes, Sequelize } from "sequelize";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
+import Company from "../model/companys.model";
+import Country from "../model/country.model";
+import Memo from "../model/memo.model";
+import MemoDetail from "../model/memo-detail.model";
 
 export const test = async (req: Request) => {
 
   try {
-
-    return resSuccess({ data: `<meta name="copyright" content="TCC Technologies" />` });
+    const findMemoExist = await Memo.count({
+      where: { creation_type: Menu_Invoice_creation.Packet },
+      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: Memo_Invoice_Type.carat} }],
+    });
+    return resSuccess({ data: findMemoExist });
   } catch (error) {
     console.log(error)
     throw error;
@@ -322,7 +331,7 @@ export const login = async (req: Request, res: Response) => {
     const { user_type = UserType.Customer } = req.query
     const appUser = await AppUser.findOne({
       where: {
-        email: columnValueLowerCase("email", email),
+        email: columnValueLowerCase("app_users.email", email),
         is_deleted: DeleteStatus.No,
         is_active: ActiveStatus.Active,
         user_type
@@ -335,7 +344,7 @@ export const login = async (req: Request, res: Response) => {
         "first_name",
         "last_name",
         "id",
-        "email",
+        [Sequelize.literal("app_users.email"), "email"],
         "id_image",
         "phone_number",
         "user_type",
@@ -346,6 +355,8 @@ export const login = async (req: Request, res: Response) => {
           Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
           "image_path",
         ],
+        [Sequelize.literal(`"company->country"."name"`), "country_name"],
+        [Sequelize.literal(`"company->country"."id"`), "country_id"],
       ],
       include: [
         {
@@ -354,6 +365,20 @@ export const login = async (req: Request, res: Response) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Company,
+          attributes: [],
+          as: "company",
+          include: [
+            {
+              required: false,
+              model: Country,
+              attributes: [],
+              as: "country",
+            }
+          ]
+        }
       ],
     });
 

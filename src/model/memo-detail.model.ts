@@ -1,4 +1,4 @@
-import { BIGINT, DATE, STRING } from "sequelize";
+import { BIGINT, DATE, DOUBLE, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import Memo from "./memo.model";
 import Diamonds from "./diamond.model";
@@ -27,6 +27,15 @@ const MemoDetail = dbContext.define("memo_details", {
     is_return: {
         type: STRING
     },
+    memo_type: {
+        type: STRING
+    },
+    quantity: {
+        type: BIGINT,
+    },
+    weight: {
+        type: DOUBLE,
+    },
     deleted_at: {
         type: DATE,
     },
@@ -35,8 +44,8 @@ const MemoDetail = dbContext.define("memo_details", {
     },
 })
 
-MemoDetail.belongsTo(Memo, {foreignKey: 'memo_id', as: "memo"})
-Memo.hasMany(MemoDetail, {foreignKey: 'memo_id', as: "memo_details"})
-MemoDetail.belongsTo(Diamonds, {foreignKey: 'stock_id', as: "stocks"})
+MemoDetail.belongsTo(Memo, { foreignKey: 'memo_id', as: "memo" })
+Memo.hasMany(MemoDetail, { foreignKey: 'memo_id', as: "memo_details" })
+MemoDetail.belongsTo(Diamonds, { foreignKey: 'stock_id', as: "stocks" })
 
 export default MemoDetail;
