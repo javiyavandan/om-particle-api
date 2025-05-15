@@ -238,40 +238,42 @@ export const createMemo = async (req: Request) => {
         let totalWeight = 0;
 
         for (let index = 0; index < stock_list.length; index++) {
-            const memo_type = stock_list[index].memo_type ?? Memo_Invoice_Type.quantity;
             const stockId = stock_list[index].stock_id;
             const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
+            const memo_type = (!findStock?.dataValues?.quantity && findStock?.dataValues?.quantity < 2) ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity;
+            const quantity = stock_list[index].quantity;
+            const weight = stock_list[index].weight;
 
-            if(memo_creation_type === Menu_Invoice_creation.Packet) {
- 
-                    const findMemoExist = await Memo.count({
+            if (memo_creation_type === Menu_Invoice_creation.Packet) {
+
+                const findMemoExist = await Memo.count({
                     where: { creation_type: Menu_Invoice_creation.Packet },
-                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
-                    });
+                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: { memo_type: { [Op.ne]: memo_type }, stock_id: findStock?.dataValues.id } }],
+                });
 
-                    if(findMemoExist && findMemoExist > 0) {
-                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
-                    }
-                
-                    const findInvoiceExist = await Invoice.count({
-                        where: { creation_type: Menu_Invoice_creation.Packet },
-                        include: [{ model: InvoiceDetail, as: "invoice_details", attributes: ["id", "stock_id", "invoice_type"], where: {invoice_type: {[Op.ne]: memo_type}, stock_id: findStock?.dataValues.id} }],
-                    });
-                
-                    if(findInvoiceExist && findInvoiceExist > 0) {
-                        stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "invoice"],["type_1", "memo"],["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
-                    }
-                
+                if (findMemoExist && findMemoExist > 0) {
+                    stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"], ["type_1", "memo"], ["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                }
+
+                const findInvoiceExist = await Invoice.count({
+                    where: { creation_type: Menu_Invoice_creation.Packet },
+                    include: [{ model: InvoiceDetail, as: "invoice_details", attributes: ["id", "stock_id", "invoice_type"], where: { invoice_type: { [Op.ne]: memo_type }, stock_id: findStock?.dataValues.id } }],
+                });
+
+                if (findInvoiceExist && findInvoiceExist > 0) {
+                    stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "invoice"], ["type_1", "memo"], ["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${memo_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                }
+
             }
-  
-            const quantity = stock_list[index].quantity ?? findStock?.dataValues.remain_quantity;
-            const weight = stock_list[index].weight ?? findStock?.dataValues.remain_weight;
+
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else if (!Object.values(Memo_Invoice_Type).includes(memo_type)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${memo_type} memo type`]]))
             } else {
-                if (memo_type === Memo_Invoice_Type.carat) {
+                if (
+                    memo_type === Memo_Invoice_Type.carat
+                ) {
                     if (!weight) {
                         stockError.push(`${stockId} stock weight is required`)
                     } else if (weight > findStock.dataValues.remain_weight) {
@@ -286,9 +288,9 @@ export const createMemo = async (req: Request) => {
                             stock_id: findStock.dataValues.id,
                             stock_original_price: findStock.dataValues.rate,
                             stock_price: stock_list[index].rate,
-                            quantity,
+                            quantity: quantity ?? findStock.dataValues.quantity,
                             weight,
-                            memo_type,
+                            memo_type: Memo_Invoice_Type.carat,
                             created_at: getLocalDate(),
                             created_by: req.body.session_res.id,
                             is_deleted: DeleteStatus.No,
@@ -301,6 +303,12 @@ export const createMemo = async (req: Request) => {
                         stockError.push(`${stockId} stock quantity is greater than available quantity`)
                     } else if (quantity <= 0) {
                         stockError.push(`${stockId} stock quantity should be greater than zero`)
+                    } else if (!weight) {
+                        stockError.push(`${stockId} stock weight is required`)
+                    } else if (weight > findStock.dataValues.remain_weight) {
+                        stockError.push(`${stockId} stock weight is greater than available weight`)
+                    } else if (weight <= 0) {
+                        stockError.push(`${stockId} stock weight should be greater than zero`)
                     } else {
                         totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * quantity);
                         totalWeight += (weight * quantity);
@@ -393,7 +401,7 @@ export const createMemo = async (req: Request) => {
             await MemoDetail.bulkCreate(stockListWithMemoId, {
                 transaction: trn,
             })
-            
+
             let stockUpdate: any
             if (memo_creation_type === Menu_Invoice_creation.Single) {
                 stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
@@ -412,14 +420,14 @@ export const createMemo = async (req: Request) => {
 
                 stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
                     const findStock = stockList.find((data: any) => data.stock_id == stock.dataValues.id)
-                    
+
                     return {
-                            ...stock.dataValues,
-                            packet_id: stock.dataValues.stock_id,
-                            remain_quantity: stock.dataValues.remain_quantity - findStock.quantity,
-                            remain_weight: stock.dataValues.remain_weight - findStock.weight,
-                        }
-                    
+                        ...stock.dataValues,
+                        packet_id: stock.dataValues.stock_id,
+                        remain_quantity: stock.dataValues.remain_quantity - findStock.quantity,
+                        remain_weight: stock.dataValues.remain_weight - findStock.weight,
+                    }
+
                 })
                 await PacketDiamonds.bulkCreate(stockUpdate, {
                     updateOnDuplicate: [
@@ -534,7 +542,7 @@ export const createMemo = async (req: Request) => {
                     }
                 }
             }
-           
+
             await mailAdminMemo(adminMail);
             await mailCustomerMemo(customerMail);
 
@@ -664,7 +672,7 @@ export const getAllMemo = async (req: Request) => {
                 ${query.min_weight && query.max_weight ? `AND memo_list.total_weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
                 ${query.min_weight && !query.max_weight ? `AND memo_list.total_weight >= ${query.min_weight}` : ""}
                 ${!query.min_weight && query.max_weight ? `AND memo_list.total_weight <= ${query.max_weight}` : ""}
-                ORDER BY id ASC
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
         `, { type: QueryTypes.SELECT });
 
         if (!noPagination) {
@@ -773,7 +781,7 @@ export const returnMemoStock = async (req: Request) => {
         const stockError = [];
         const stockList = [];
         const memoDetailStock = [];
-if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_creation_type)) {
+        if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_creation_type)) {
             return resBadRequest({ message: "Invalid menu type" })
         }
         if (stock_list) {
@@ -812,21 +820,21 @@ if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_cr
 
         const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.filter((memoData: any) => memoData.dataValues.is_return === ActiveStatus.InActive && memoData.dataValues.memo_id === memo_id).map((data: any) => data.dataValues.stock_id)
         let allStock
-        if(memoType === Menu_Invoice_creation.Packet) {
+        if (memoType === Menu_Invoice_creation.Packet) {
             allStock = await PacketDiamonds.findAll({
-               where: {
-                   is_deleted: DeleteStatus.No,
-                   company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
-               }
-           })
+                where: {
+                    is_deleted: DeleteStatus.No,
+                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                }
+            })
         } else {
             allStock = await Diamonds.findAll({
-               where: {
-                   is_deleted: DeleteStatus.No,
-                   company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
-                   status: StockStatus.MEMO
-               }
-           })
+                where: {
+                    is_deleted: DeleteStatus.No,
+                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                    status: StockStatus.MEMO
+                }
+            })
         }
 
         for (let index = 0; index < stockData.length; index++) {
@@ -841,26 +849,26 @@ if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_cr
                     is_return: ActiveStatus.Active,
                 })
                 if (memoType === Menu_Invoice_creation.Packet) {
-                
-                       stockList.push({
-                    ...findStock.dataValues,
-                    modified_at: getLocalDate(),
-                    remain_quantity: Number(findStock.dataValues.remain_quantity) + Number(memoDetail.dataValues.quantity),
-                    remain_weight: Number(findStock.dataValues.remain_weight) + Number(memoDetail.dataValues.weight),
-                    modified_by: req.body.session_res.id,
-                    status: StockStatus.AVAILABLE,
-                })
-                
+
+                    stockList.push({
+                        ...findStock.dataValues,
+                        modified_at: getLocalDate(),
+                        remain_quantity: Number(findStock.dataValues.remain_quantity) + Number(memoDetail.dataValues.quantity),
+                        remain_weight: Number(findStock.dataValues.remain_weight) + Number(memoDetail.dataValues.weight),
+                        modified_by: req.body.session_res.id,
+                        status: StockStatus.AVAILABLE,
+                    })
+
                 } else {
                     stockList.push({
-                    ...findStock.dataValues,
-                    remain_quantity: findStock.dataValues.remain_quantity + memoDetail.dataValues.quantity,
-                    modified_at: getLocalDate(),
-                    modified_by: req.body.session_res.id,
-                    status: StockStatus.AVAILABLE,
-                })
+                        ...findStock.dataValues,
+                        remain_quantity: findStock.dataValues.remain_quantity + memoDetail.dataValues.quantity,
+                        modified_at: getLocalDate(),
+                        modified_by: req.body.session_res.id,
+                        status: StockStatus.AVAILABLE,
+                    })
                 }
-               
+
             }
         }
 
@@ -874,18 +882,18 @@ if (memo_creation_type && !Object.values(Menu_Invoice_creation).includes(memo_cr
         const trn = await dbContext.transaction();
         try {
 
-            if(memoType === Menu_Invoice_creation.Packet) {
+            if (memoType === Menu_Invoice_creation.Packet) {
                 await PacketDiamonds.bulkCreate(stockList, {
-                updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity', 'remain_weight'],
-                transaction: trn
-            });
+                    updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity', 'remain_weight'],
+                    transaction: trn
+                });
             } else {
-            await Diamonds.bulkCreate(stockList, {
-                updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity'],
-                transaction: trn
-            });
+                await Diamonds.bulkCreate(stockList, {
+                    updateOnDuplicate: ["modified_at", "modified_by", "status", 'remain_quantity'],
+                    transaction: trn
+                });
             }
-            
+
 
             await MemoDetail.bulkCreate(memoDetailStock, {
                 updateOnDuplicate: ["is_return"],

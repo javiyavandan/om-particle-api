@@ -490,6 +490,7 @@ export const getAllPackets = async (req: Request) => {
                               ${!query.start_date && query.end_date
                 ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
                 `,
             { type: QueryTypes.SELECT }
         )

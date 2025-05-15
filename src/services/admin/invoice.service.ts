@@ -243,7 +243,11 @@ export const createInvoice = async (req: Request) => {
 
 
         for (let index = 0; index < stock_list.length; index++) {
-            const invoice_type = stock_list[index].invoice_type ?? Memo_Invoice_Type.quantity;
+            const stockId = stock_list[index].stock_id;
+            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
+            const quantity = stock_list[index].quantity ?? findStock?.dataValues.remain_quantity;            
+            const weight = stock_list[index].weight ?? findStock?.dataValues.remain_weight;
+            const invoice_type = (!findStock?.dataValues?.quantity && findStock?.dataValues?.quantity < 2) ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity;
 
             if(invoice_creation_type === Menu_Invoice_creation.Packet) {
  
@@ -266,10 +270,6 @@ export const createInvoice = async (req: Request) => {
                     }
                 
             }
-            const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
-            const quantity = stock_list[index].quantity ?? findStock?.dataValues.remain_quantity;            
-            const weight = stock_list[index].weight ?? findStock?.dataValues.remain_weight;
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else if (!Object.values(Memo_Invoice_Type).includes(invoice_type)) {
@@ -290,7 +290,7 @@ export const createInvoice = async (req: Request) => {
                             stock_id: findStock.dataValues.id,
                             stock_original_price: findStock.dataValues.rate,
                             stock_price: stock_list[index].rate,
-                            quantity,
+                            quantity: quantity ?? findStock.dataValues.quantity,
                             weight,
                             invoice_type: invoice_type,
                             created_at: getLocalDate(),
@@ -305,6 +305,12 @@ export const createInvoice = async (req: Request) => {
                         stockError.push(`${stockId} stock quantity is greater than available quantity`)
                     } else if (quantity <= 0) {
                         stockError.push(`${stockId} stock quantity should be greater than zero`)
+                    } else if (!weight) {
+                        stockError.push(`${stockId} stock weight is required`)
+                    } else if (weight > findStock.dataValues.remain_weight) {
+                        stockError.push(`${stockId} stock weight is greater than available weight`)
+                    } else if (weight <= 0) {
+                        stockError.push(`${stockId} stock weight should be greater than zero`)
                     } else {
                         totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * quantity);
                         totalWeight += (weight * quantity);
@@ -789,6 +795,7 @@ export const getAllInvoice = async (req: Request) => {
                 ${query.min_weight && query.max_weight ? `AND invoice_list.total_weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
                 ${query.min_weight && !query.max_weight ? `AND invoice_list.total_weight >= ${query.min_weight}` : ""}
                 ${!query.min_weight && query.max_weight ? `AND invoice_list.total_weight <= ${query.max_weight}` : ""}
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
         `, { type: QueryTypes.SELECT });
 
         if (!noPagination) {
