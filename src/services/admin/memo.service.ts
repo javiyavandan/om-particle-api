@@ -433,7 +433,6 @@ export const createMemo = async (req: Request) => {
                     updateOnDuplicate: [
                         "remain_quantity",
                         "remain_weight",
-                        "status"
                     ],
                     transaction: trn,
                 })
