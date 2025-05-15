@@ -310,7 +310,7 @@ export const createMemo = async (req: Request) => {
                     } else if (weight <= 0) {
                         stockError.push(`${stockId} stock weight should be greater than zero`)
                     } else {
-                        totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight);
+                        totalItemPrice += (stock_list[index].rate * weight);
                         totalWeight += weight;
 
                         stockList.push({
