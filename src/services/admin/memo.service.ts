@@ -440,6 +440,7 @@ export const getAllMemo = async (req: Request) => {
             ${customer ? `AND memo_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
+            ${query.creation_type ? `AND memo_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(memo_list.memo_details) AS detail
@@ -528,6 +529,7 @@ export const getAllMemo = async (req: Request) => {
             ${customer ? `AND memo_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND memo_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND memo_list.company_id = ${query.company}` : ""}`}
             ${query.status ? `AND memo_list.status = '${query.status}'` : ''}
+            ${query.creation_type ? `AND memo_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(memo_list.memo_details) AS detail
