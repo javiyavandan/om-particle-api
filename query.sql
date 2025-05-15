@@ -1288,6 +1288,7 @@ AS
     symm.name AS symmetry_name,
     d.fluorescence,
     fm.name AS fluorescence_name,
+    d.carat_rate AS price_per_carat,
     d.quantity,
     d.remain_quantity,
     d.remain_weight,
@@ -1311,25 +1312,22 @@ AS
     d.is_active,
     d.created_at,
     d.created_by,
-	d.company_id,
+    d.company_id,
     com.name AS company_name,
     memo_details.memo_type,
     invoice_details.invoice_type,
-    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id, 'company_id', cs.id, 'company_name', cs.company_name,
-										  'company_website', cs.company_website, 'company_email', cs.company_email))
-										  FILTER (WHERE fmd.memo_id IS NOT NULL), '[]'::jsonb) AS memo_company_detail,
-    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fid.invoice_id, 'company_id', ics.id, 'company_name',
-												   ics.company_name, 'company_website', ics.company_website,
-												   'company_email', ics.company_email)) FILTER (WHERE fid.invoice_id IS NOT NULL), '[]'::jsonb) AS invoice_company_detail,
-	COALESCE(memo_details.memo_status_per, 0::double precision) AS memo_status_per,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id, 'company_id', cs.id, 'company_name', cs.company_name, 'company_website', cs.company_website, 'company_email', cs.company_email)) FILTER (WHERE fmd.memo_id IS NOT NULL), '[]'::jsonb) AS memo_company_detail,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fid.invoice_id, 'company_id', ics.id, 'company_name', ics.company_name, 'company_website', ics.company_website, 'company_email', ics.company_email)) FILTER (WHERE fid.invoice_id IS NOT NULL), '[]'::jsonb) AS invoice_company_detail,
+    COALESCE(memo_details.memo_status_per, 0::double precision) AS memo_status_per,
     COALESCE(invoice_details.sold_status_per, 0::double precision) AS sold_out_status_per,
         CASE
-            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN 100
+            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN 100::double precision
             ELSE
             CASE
-            WHEN memo_details.memo_type = 'quantity'::memo_invoice_type OR invoice_details.invoice_type = 'quantity'::memo_invoice_type THEN ceil((d.remain_quantity * 100 / d.quantity)::double precision)
-            ELSE ceil(d.remain_weight * 100::double precision / d.weight)
-        END END AS available_status_per,
+                WHEN memo_details.memo_type = 'quantity'::memo_invoice_type OR invoice_details.invoice_type = 'quantity'::memo_invoice_type THEN ceil((d.remain_quantity * 100 / d.quantity)::double precision)
+                ELSE ceil(d.remain_weight * 100::double precision / d.weight)
+            END
+        END AS available_status_per,
     COALESCE(memo_details.memo_quantity, 0::numeric) AS total_memo_quantity,
     COALESCE(invoice_details.invoice_quantity, 0::numeric) AS total_sold_out_quantity,
     COALESCE(d.remain_quantity, 0::bigint) AS total_available_quantity,
@@ -1361,16 +1359,12 @@ AS
      LEFT JOIN invoice_details ON invoice_details.stock_id = d.id
      LEFT JOIN filtered_invoice_details fid ON fid.stock_id = d.id
      LEFT JOIN customers cs ON cs.id = fmd.customer_id
-	 LEFT JOIN customers ics ON ics.id = fid.customer_id
+     LEFT JOIN customers ics ON ics.id = fid.customer_id
      LEFT JOIN app_users au ON au.id = cs.user_id
      LEFT JOIN customers csi ON csi.id = fid.customer_id
      LEFT JOIN app_users aui ON aui.id = csi.user_id
   WHERE d.is_deleted = '0'::bit(1)
-  GROUP BY d.id, sm.name, cl.name, cm.name, cim.name, lm.name, pm.name, symm.name,
-  fm.name, memo_details.memo_status_per, memo_details.memo_type, invoice_details.sold_status_per,
-  memo_details.memo_stock_price, invoice_details.sold_out_stock_price, invoice_details.invoice_type,
-  memo_details.memo_count, invoice_details.invoice_count, memo_details.memo_quantity,
-  invoice_details.invoice_quantity, memo_details.memo_weight, invoice_details.invoice_weight,com.name
+  GROUP BY d.id, sm.name, cl.name, cm.name, cim.name, lm.name, pm.name, symm.name, fm.name, memo_details.memo_status_per, memo_details.memo_type, invoice_details.sold_status_per, memo_details.memo_stock_price, invoice_details.sold_out_stock_price, invoice_details.invoice_type, memo_details.memo_count, invoice_details.invoice_count, memo_details.memo_quantity, invoice_details.invoice_quantity, memo_details.memo_weight, invoice_details.invoice_weight, com.name
   ORDER BY d.id DESC
 WITH DATA;
 
