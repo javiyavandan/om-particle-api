@@ -563,7 +563,6 @@ export const getAllInvoice = async (req: Request) => {
             END
             ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
-            ${query.creation_type ? `AND invoice_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
@@ -673,7 +672,6 @@ export const getAllInvoice = async (req: Request) => {
             END
             ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
-            ${query.creation_type ? `AND invoice_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
