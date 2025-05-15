@@ -2,7 +2,7 @@ import { Request } from "express";
 import { QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
 import { getCurrencyPrice, getInitialPaginationFromQuery, prepareMessageFromParams, resNotFound, resSuccess } from "../../utils/shared-functions";
-import { Is_loose_diamond, StockStatus, UserType } from "../../utils/app-enumeration";
+import { ActiveStatus, Is_loose_diamond, StockStatus, UserType } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 
 export const getStockList = async (req: Request) => {
@@ -43,6 +43,7 @@ export const getStockList = async (req: Request) => {
                     LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                diamond_list.is_active = '${ActiveStatus.Active}' AND
                 loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
@@ -110,7 +111,8 @@ export const getStockList = async (req: Request) => {
                 : ""}
                               ${!query.start_date && query.end_date
                 ? `AND created_at <= '${new Date(new Date(query.end_date as string).setMinutes(0, 0, 0)).toISOString()}'`
-                : ""}
+                : ""}                    
+                ORDER BY diamond_list.${pagination.sort_by} ${pagination.order_by}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -142,6 +144,7 @@ export const getStockList = async (req: Request) => {
                     LEFT JOIN countrys ON companys.country_id = countrys.id
                     ${id ? `LEFT JOIN wishlist_products ON wishlist_products.product_id = diamond_list.id AND wishlist_products.user_id = '${id}'` : ''} 
                 WHERE
+                diamond_list.is_active = '${ActiveStatus.Active}' AND
                 loose_diamond = '${Is_loose_diamond.No}' AND
                 status != '${StockStatus.SOLD}' AND
                 CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
