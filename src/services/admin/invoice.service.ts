@@ -6,7 +6,7 @@ import Customer from "../../model/customer.modal";
 import Diamonds from "../../model/diamond.model";
 import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
-import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type, Memo_Invoice_creation, Memo_Invoice_Type } from "../../utils/app-enumeration";
+import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type, Memo_Invoice_creation, Memo_Invoice_Type, Log_Type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND, PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR } from "../../utils/app-messages";
 import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
@@ -16,6 +16,7 @@ import MemoDetail from "../../model/memo-detail.model";
 import { ADMIN_MAIL } from "../../config/env.var";
 import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
 import PacketDiamonds from "../../model/packet-diamond.model";
+import StockLogs from "../../model/stock-logs.model";
 
 export const createInvoice = async (req: Request) => {
     try {
@@ -340,6 +341,7 @@ export const createInvoice = async (req: Request) => {
                         totalWeight += weight;
 
                         stockList.push({
+                            stock: findStock?.dataValues?.stock_id,
                             stock_id: findStock.dataValues.id,
                             stock_original_price: findStock.dataValues.rate,
                             stock_price: stock_list[index].rate,
@@ -369,6 +371,7 @@ export const createInvoice = async (req: Request) => {
                         totalWeight += weight;
 
                         stockList.push({
+                            stock: findStock?.dataValues?.stock_id,
                             stock_id: findStock.dataValues.id,
                             stock_original_price: findStock.dataValues.rate,
                             stock_price: stock_list[index].rate,
@@ -454,6 +457,17 @@ export const createInvoice = async (req: Request) => {
                 report_date: report_date ? new Date(report_date) : null,
                 creation_type: invoice_creation_type
             };
+
+            const admin = await AppUser.findOne({
+                where: {
+                    id_role: req.body.session_res.id_role,
+                    id: req.body.session_res.id,
+                    is_deleted: DeleteStatus.No,
+                    is_active: ActiveStatus.Active
+                },
+                attributes: ["first_name", "last_name", "email", "phone_number", "id"],
+                transaction: trn,
+            })
 
             const invoiceData = await Invoice.create(invoicePayload, {
                 transaction: trn,
@@ -543,8 +557,17 @@ export const createInvoice = async (req: Request) => {
                         }, {
                             where: {
                                 id: memo_id
-                            }
+                            }, transaction: trn
                         })
+
+                        await StockLogs.create({
+                            change_at: getLocalDate(),
+                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by_id: admin?.dataValues?.id,
+                            log_type: Log_Type.MEMO,
+                            reference_id: memo_id,
+                            description: `Memo closed and created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                        }, { transaction: trn })
                     }
                 } else {
                     let totalMemoWeight = 0;
@@ -590,7 +613,7 @@ export const createInvoice = async (req: Request) => {
                     }, {
                         where: {
                             id: findMemo?.dataValues?.id
-                        }
+                        }, transaction: trn
                     })
 
                     await MemoDetail.bulkCreate(memoDetailUpdate, {
@@ -600,19 +623,17 @@ export const createInvoice = async (req: Request) => {
                         ],
                         transaction: trn
                     })
+
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: memoStatus === MEMO_STATUS.Close ? Log_Type.MEMO : Log_Type.INVOICE,
+                        reference_id: memoStatus === MEMO_STATUS.Close ? memo_id : invoiceId,
+                        description: `${memoStatus === MEMO_STATUS.Close ? "Memo closed and " : ""}Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                    }, { transaction: trn })
                 }
             }
-
-            const admin = await AppUser.findOne({
-                where: {
-                    id_role: req.body.session_res.id_role,
-                    id: req.body.session_res.id,
-                    is_deleted: DeleteStatus.No,
-                    is_active: ActiveStatus.Active
-                },
-                attributes: ["first_name", "last_name", "email", "phone_number"],
-                transaction: trn,
-            })
 
             const adminMail = {
                 toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
@@ -666,6 +687,14 @@ export const createInvoice = async (req: Request) => {
                 },
             }
 
+            await StockLogs.create({
+                change_at: getLocalDate(),
+                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by_id: admin?.dataValues?.id,
+                log_type: Log_Type.INVOICE,
+                reference_id: invoiceId,
+                description: `Invoice created with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+            }, { transaction: trn })
 
             await mailAdminInvoice(adminMail);
             await mailCustomerInvoice(customerMail);
@@ -783,8 +812,18 @@ export const getInvoice = async (req: Request) => {
             `SELECT * FROM invoice_list WHERE id = ${invoice_id}`, { type: QueryTypes.SELECT }
         )
 
+        const logs = await StockLogs.findAll({
+            where: {
+                reference_id: invoice_id,
+                log_type: Log_Type.INVOICE,
+            }
+        })
+
         return resSuccess({
-            data: invoice[0]
+            data: {
+                ...invoice[0],
+                logs: logs
+            }
         })
 
     } catch (error) {
