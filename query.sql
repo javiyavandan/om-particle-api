@@ -1370,3 +1370,329 @@ WITH DATA;
 
 ALTER TABLE IF EXISTS public.packet_diamond_list
     OWNER TO postgres;
+
+---------------------------------------------- solved issue ------------------------------------
+
+DROP MATERIALIZED VIEW IF EXISTS public.memo_list;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.memo_list
+TABLESPACE pg_default
+AS
+ SELECT me.id,
+    me.company_id,
+    me.customer_id,
+    me.created_at,
+    me.status,
+    me.memo_number,
+    me.remarks,
+    me.contact,
+    me.salesperson,
+    me.ship_via,
+    me.report_date,
+    me.cust_order,
+    me.tracking,
+    me.total_price,
+    me.shipping_charge,
+    me.discount,
+    me.discount_type,
+    me.creation_type,
+    cs.company_name AS customer_name,
+    cs.country,
+    cs.city,
+    cs.state,
+    cs.postcode,
+    cs.address,
+    jsonb_build_object('customer_name', cs.company_name, 'customer_email', cs.company_email, 'country', cs.country, 'city', cs.city, 'state', cs.state, 'postcode', cs.postcode, 'address', cs.address, 'registration_number', cs.registration_number, 'contact_person', (au.first_name::text || ' '::text) || au.last_name::text, 'contact_email', au.email, 'contact_phone', au.phone_number) AS customer_details,
+    jsonb_build_object('company_name', cp.name, 'company_email', cp.email, 'company_phone', cp.phone_number, 'company_state', cp.state, 'company_city', cp.city, 'company_address', cp.company_address, 'pincode', cp.pincode, 'map_link', cp.map_link, 'contact_person', cp.contact_person, 'registration_number', cp.registration_number, 'bank_details', jsonb_build_object('ac_holder', cp.ac_holder, 'ac_number', cp.ac_number, 'bank_name', cp.bank_name, 'bank_branch', cp.bank_branch, 'bank_branch_code', cp.bank_branch_code)) AS company_details,
+    au.first_name,
+    au.last_name,
+    au.email,
+    au.phone_number,
+    cp.name AS company_name,
+    me.total_item_price,
+    me.total_weight,
+    me.total_diamond_count,
+        CASE
+            WHEN me.creation_type = 'single'::memo_invoice_creation_type THEN aggregated.memo_details
+            ELSE aggregatedpacket.memo_details
+        END AS memo_details
+   FROM memos me
+     JOIN customers cs ON cs.id = me.customer_id
+     JOIN app_users au ON cs.user_id = au.id
+     JOIN companys cp ON cp.id = me.company_id
+     LEFT JOIN ( SELECT md.memo_id,
+            jsonb_agg(DISTINCT jsonb_build_object('stock_price', md.stock_price, 'memo_type', md.memo_type, 'is_return', md.is_return, 'stock', md.stock_id, 'stock_id', d.stock_id, 'status', d.status, 'quantity', d.quantity, 'weight', d.weight, 'report', d.report, 'video', d.video, 'image', d.image, 'certificate', d.certificate, 'measurement_height', d.measurement_height, 'measurement_width', d.measurement_width, 'measurement_depth', d.measurement_depth, 'table_value', d.table_value, 'depth_value', d.depth_value, 'ratio', d.ratio, 'user_comments', d.user_comments, 'admin_comments', d.admin_comments, 'local_location', d.local_location, 'color_over_tone', d.color_over_tone, 'loose_diamond', d.loose_diamond, 'shape', sm.name, 'shape_id', sm.id, 'clarity', cl.name, 'clarity_id', cl.id, 'color', cm.name, 'color_id', cm.id, 'color_intensity', cim.name, 'color_intensity_id', cim.id, 'lab', lm.name, 'lab_id', lm.id, 'polish', pm.name, 'polish_id', pm.id, 'symmetry', symm.name, 'symmetry_id', symm.id, 'fluorescence', fm.name, 'fluorescence_id', fm.id)) AS memo_details
+           FROM memo_details md
+             JOIN diamonds d ON d.id = md.stock_id
+             LEFT JOIN masters sm ON sm.id = d.shape
+             LEFT JOIN masters cm ON cm.id = d.color
+             LEFT JOIN masters cl ON cl.id = d.clarity
+             LEFT JOIN masters cim ON cim.id = d.color_intensity
+             LEFT JOIN masters lm ON lm.id = d.lab
+             LEFT JOIN masters pm ON pm.id = d.polish
+             LEFT JOIN masters symm ON symm.id = d.symmetry
+             LEFT JOIN masters fm ON fm.id = d.fluorescence
+          WHERE d.is_deleted = '0'::"bit"
+          GROUP BY md.memo_id) aggregated ON aggregated.memo_id = me.id
+     LEFT JOIN ( SELECT pmd.memo_id,
+            jsonb_agg(DISTINCT jsonb_build_object('stock_price', pmd.stock_price, 'memo_type', pmd.memo_type, 'is_return', pmd.is_return, 'stock', pmd.stock_id, 'stock_id', pd.packet_id, 'status', pd.status, 'quantity', pmd.quantity, 'weight', pmd.weight, 'report', pd.report, 'video', pd.video, 'image', pd.image, 'certificate', pd.certificate, 'measurement_height', pd.measurement_height, 'measurement_width', pd.measurement_width, 'measurement_depth', pd.measurement_depth, 'table_value', pd.table_value, 'depth_value', pd.depth_value, 'ratio', pd.ratio, 'user_comments', pd.user_comments, 'admin_comments', pd.admin_comments, 'local_location', pd.local_location, 'color_over_tone', pd.color_over_tone, 'shape', sm.name, 'shape_id', sm.id, 'clarity', cl.name, 'clarity_id', cl.id, 'color', cm.name, 'color_id', cm.id, 'color_intensity', cim.name, 'color_intensity_id', cim.id, 'lab', lm.name, 'lab_id', lm.id, 'polish', pm.name, 'polish_id', pm.id, 'symmetry', symm.name, 'symmetry_id', symm.id, 'fluorescence', fm.name, 'fluorescence_id', fm.id)) AS memo_details
+           FROM memo_details pmd
+             JOIN packet_diamonds pd ON pd.id = pmd.stock_id
+             LEFT JOIN masters sm ON sm.id = pd.shape
+             LEFT JOIN masters cm ON cm.id = pd.color
+             LEFT JOIN masters cl ON cl.id = pd.clarity
+             LEFT JOIN masters cim ON cim.id = pd.color_intensity
+             LEFT JOIN masters lm ON lm.id = pd.lab
+             LEFT JOIN masters pm ON pm.id = pd.polish
+             LEFT JOIN masters symm ON symm.id = pd.symmetry
+             LEFT JOIN masters fm ON fm.id = pd.fluorescence
+          WHERE pd.is_deleted = '0'::"bit"
+          GROUP BY pmd.memo_id) aggregatedpacket ON aggregatedpacket.memo_id = me.id
+WITH DATA;
+
+ALTER TABLE IF EXISTS public.memo_list
+    OWNER TO postgres;
+
+DROP MATERIALIZED VIEW IF EXISTS public.invoice_list;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.invoice_list
+TABLESPACE pg_default
+AS
+ SELECT ins.id,
+    ins.company_id,
+    ins.customer_id,
+    ins.created_at,
+    ins.invoice_number,
+    ins.remarks,
+    ins.contact,
+    ins.salesperson,
+    ins.ship_via,
+    ins.report_date,
+    ins.cust_order,
+    ins.tracking,
+    ins.discount,
+    ins.discount_type,
+    ins.shipping_charge,
+    ins.total_tax_price,
+    ins.total_price,
+    ins.total_item_price,
+    ins.total_weight,
+    ins.total_diamond_count,
+    ins.tax_data,
+    ins.creation_type,
+    cs.company_name AS customer_name,
+    cs.country,
+    cs.city,
+    cs.state,
+    cs.postcode,
+    cs.address,
+    jsonb_build_object('customer_name', cs.company_name, 'customer_email', cs.company_email, 'country', cs.country, 'city', cs.city, 'state', cs.state, 'postcode', cs.postcode, 'address', cs.address, 'registration_number', cs.registration_number, 'contact_person', (au.first_name::text || ' '::text) || au.last_name::text, 'contact_email', au.email, 'contact_phone', au.phone_number) AS customer_details,
+    jsonb_build_object('company_name', cp.name, 'company_email', cp.email, 'company_phone', cp.phone_number, 'company_state', cp.state, 'company_city', cp.city, 'company_address', cp.company_address, 'pincode', cp.pincode, 'map_link', cp.map_link, 'contact_person', cp.contact_person, 'registration_number', cp.registration_number, 'bank_details', jsonb_build_object('ac_holder', cp.ac_holder, 'ac_number', cp.ac_number, 'bank_name', cp.bank_name, 'bank_branch', cp.bank_branch, 'bank_branch_code', cp.bank_branch_code)) AS company_details,
+    au.first_name,
+    au.last_name,
+    au.email,
+    au.phone_number,
+    cp.name AS company_name,
+        CASE
+            WHEN ins.creation_type = 'single'::memo_invoice_creation_type THEN aggregated.invoice_details
+            ELSE aggregatedpacket.invoice_details
+        END AS invoice_details
+   FROM invoices ins
+     JOIN customers cs ON cs.id = ins.customer_id
+     JOIN app_users au ON cs.user_id = au.id
+     JOIN companys cp ON cp.id = ins.company_id
+     LEFT JOIN ( SELECT md.invoice_id,
+            jsonb_agg(DISTINCT jsonb_build_object('stock_price', md.stock_price, 'invoice_type', md.invoice_type, 'stock', d.id, 'stock_id', d.stock_id, 'status', d.status, 'quantity', d.quantity, 'weight', d.weight, 'report', d.report, 'video', d.video, 'image', d.image, 'certificate', d.certificate, 'measurement_height', d.measurement_height, 'measurement_width', d.measurement_width, 'measurement_depth', d.measurement_depth, 'table_value', d.table_value, 'depth_value', d.depth_value, 'ratio', d.ratio, 'user_comments', d.user_comments, 'admin_comments', d.admin_comments, 'local_location', d.local_location, 'color_over_tone', d.color_over_tone, 'loose_diamond', d.loose_diamond, 'shape', sm.name, 'shape_id', sm.id, 'clarity', cl.name, 'clarity_id', cl.id, 'color', cm.name, 'color_id', cm.id, 'color_intensity', cim.name, 'color_intensity_id', cim.id, 'lab', lm.name, 'lab_id', lm.id, 'polish', pm.name, 'polish_id', pm.id, 'symmetry', symm.name, 'symmetry_id', symm.id, 'fluorescence', fm.name, 'fluorescence_id', fm.id)) AS invoice_details
+           FROM invoice_details md
+             JOIN diamonds d ON d.id = md.stock_id
+             LEFT JOIN masters sm ON sm.id = d.shape
+             LEFT JOIN masters cm ON cm.id = d.color
+             LEFT JOIN masters cl ON cl.id = d.clarity
+             LEFT JOIN masters cim ON cim.id = d.color_intensity
+             LEFT JOIN masters lm ON lm.id = d.lab
+             LEFT JOIN masters pm ON pm.id = d.polish
+             LEFT JOIN masters symm ON symm.id = d.symmetry
+             LEFT JOIN masters fm ON fm.id = d.fluorescence
+          WHERE d.is_deleted = '0'::"bit"
+          GROUP BY md.invoice_id) aggregated ON aggregated.invoice_id = ins.id
+     LEFT JOIN ( SELECT pmd.invoice_id,
+            jsonb_agg(DISTINCT jsonb_build_object('stock_price', pmd.stock_price, 'invoice_type', pmd.invoice_type, 'stock', pd.id, 'stock_id', pd.packet_id, 'status', pd.status, 'quantity', pmd.quantity, 'weight', pmd.weight, 'report', pd.report, 'video', pd.video, 'image', pd.image, 'certificate', pd.certificate, 'measurement_height', pd.measurement_height, 'measurement_width', pd.measurement_width, 'measurement_depth', pd.measurement_depth, 'table_value', pd.table_value, 'depth_value', pd.depth_value, 'ratio', pd.ratio, 'user_comments', pd.user_comments, 'admin_comments', pd.admin_comments, 'local_location', pd.local_location, 'color_over_tone', pd.color_over_tone, 'shape', sm.name, 'shape_id', sm.id, 'clarity', cl.name, 'clarity_id', cl.id, 'color', cm.name, 'color_id', cm.id, 'color_intensity', cim.name, 'color_intensity_id', cim.id, 'lab', lm.name, 'lab_id', lm.id, 'polish', pm.name, 'polish_id', pm.id, 'symmetry', symm.name, 'symmetry_id', symm.id, 'fluorescence', fm.name, 'fluorescence_id', fm.id)) AS invoice_details
+           FROM invoice_details pmd
+             JOIN packet_diamonds pd ON pd.id = pmd.stock_id
+             LEFT JOIN masters sm ON sm.id = pd.shape
+             LEFT JOIN masters cm ON cm.id = pd.color
+             LEFT JOIN masters cl ON cl.id = pd.clarity
+             LEFT JOIN masters cim ON cim.id = pd.color_intensity
+             LEFT JOIN masters lm ON lm.id = pd.lab
+             LEFT JOIN masters pm ON pm.id = pd.polish
+             LEFT JOIN masters symm ON symm.id = pd.symmetry
+             LEFT JOIN masters fm ON fm.id = pd.fluorescence
+          WHERE pd.is_deleted = '0'::"bit"
+          GROUP BY pmd.invoice_id) aggregatedpacket ON aggregatedpacket.invoice_id = ins.id
+WITH DATA;
+
+ALTER TABLE IF EXISTS public.invoice_list
+    OWNER TO postgres;
+
+DROP MATERIALIZED VIEW IF EXISTS public.packet_diamond_list;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.packet_diamond_list
+TABLESPACE pg_default
+AS
+ WITH filtered_memo_details AS (
+         SELECT md.stock_id,
+            ms.customer_id,
+            ms.id AS memo_id,
+            row_number() OVER (PARTITION BY md.stock_id ORDER BY ms.created_at DESC) AS row_num
+           FROM public.memo_details md
+             JOIN memos ms ON ms.id = md.memo_id
+          WHERE ms.status = 'active'::memo_status AND md.is_return = '0'::bit(1) AND ms.creation_type = 'packet'::memo_invoice_creation_type
+        ), filtered_invoice_details AS (
+         SELECT ids.stock_id,
+            io.customer_id,
+            io.id AS invoice_id,
+            row_number() OVER (PARTITION BY ids.stock_id ORDER BY io.created_at DESC) AS row_num
+           FROM public.invoice_details ids
+             JOIN invoices io ON io.id = ids.invoice_id
+          WHERE io.status = 'active'::invoice_status AND ids.is_return = '0'::bit(1) AND io.creation_type = 'packet'::memo_invoice_creation_type
+        ), memo_details AS (
+         SELECT memo_details_1.stock_id,
+            COALESCE(count(memo_details_1.id), 0::bigint) AS memo_count,
+            sum(memo_details_1.quantity) AS memo_quantity,
+            sum(memo_details_1.weight) AS memo_weight,
+            sum(memo_details_1.stock_price) AS memo_stock_price,
+            ceil(sum(memo_details_1.weight) * 100::double precision / packet_diamonds.weight) AS memo_status_per,
+            memo_details_1.memo_type
+           FROM memos
+             JOIN public.memo_details memo_details_1 ON memo_details_1.memo_id = memos.id
+             LEFT JOIN packet_diamonds ON packet_diamonds.id = memo_details_1.stock_id
+          WHERE memos.creation_type = 'packet'::memo_invoice_creation_type AND memos.status = 'active'::memo_status AND memo_details_1.is_return = '0'::bit(1)
+          GROUP BY memo_details_1.memo_type, memo_details_1.stock_id, packet_diamonds.id
+        ), invoice_details AS (
+         SELECT invoice_details_1.stock_id,
+            sum(invoice_details_1.quantity) AS invoice_quantity,
+            sum(invoice_details_1.weight) AS invoice_weight,
+            COALESCE(count(invoice_details_1.id), 0::bigint) AS invoice_count,
+            sum(invoice_details_1.quantity) AS sum,
+            sum(invoice_details_1.stock_price) AS sold_out_stock_price,
+            ceil(sum(invoice_details_1.weight) * 100::double precision / packet_diamonds.weight) AS sold_status_per,
+            invoice_details_1.invoice_type
+           FROM invoices
+             JOIN public.invoice_details invoice_details_1 ON invoice_details_1.invoice_id = invoices.id
+             LEFT JOIN packet_diamonds ON packet_diamonds.id = invoice_details_1.stock_id
+          WHERE invoices.creation_type = 'packet'::memo_invoice_creation_type AND invoices.status = 'active'::invoice_status AND invoice_details_1.is_return = '0'::"bit"
+          GROUP BY invoice_details_1.invoice_type, invoice_details_1.stock_id, packet_diamonds.id
+        )
+ SELECT d.id,
+    d.packet_id,
+    d.shape,
+    sm.name AS shape_name,
+    d.clarity,
+    cl.name AS clarity_name,
+    d.color,
+    cm.name AS color_name,
+    d.color_intensity,
+    cim.name AS color_intensity_name,
+    d.lab,
+    lm.name AS lab_name,
+    d.polish,
+    pm.name AS polish_name,
+    d.symmetry,
+    symm.name AS symmetry_name,
+    d.fluorescence,
+    fm.name AS fluorescence_name,
+    d.carat_rate AS price_per_carat,
+    d.quantity,
+    d.remain_quantity,
+    d.remain_weight,
+    d.weight,
+    d.report,
+    d.video,
+    d.image,
+    d.certificate,
+    d.measurement_height,
+    d.measurement_width,
+    d.measurement_depth,
+    d.table_value,
+    d.depth_value,
+    d.ratio,
+    d.user_comments,
+    d.admin_comments,
+    d.local_location,
+    d.status,
+    d.rate,
+    d.color_over_tone,
+    d.is_active,
+    d.created_at,
+    d.created_by,
+    d.company_id,
+    com.name AS company_name,
+    memo_details.memo_type,
+    invoice_details.invoice_type,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fmd.memo_id, 'company_id', cs.id, 'company_name', cs.company_name, 'company_website', cs.company_website, 'company_email', cs.company_email)) FILTER (WHERE fmd.memo_id IS NOT NULL), '[]'::jsonb) AS memo_company_detail,
+    COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', fid.invoice_id, 'company_id', ics.id, 'company_name', ics.company_name, 'company_website', ics.company_website, 'company_email', ics.company_email)) FILTER (WHERE fid.invoice_id IS NOT NULL), '[]'::jsonb) AS invoice_company_detail,
+    COALESCE(memo_details.memo_status_per, 0::double precision) AS memo_status_per,
+    COALESCE(invoice_details.sold_status_per, 0::double precision) AS sold_out_status_per,
+        CASE
+            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN 100::double precision
+            ELSE ceil(d.remain_weight * 100::double precision / d.weight)
+        END AS available_status_per,
+    COALESCE(memo_details.memo_quantity, 0::numeric) AS total_memo_quantity,
+    COALESCE(invoice_details.invoice_quantity, 0::numeric) AS total_sold_out_quantity,
+    COALESCE(d.remain_quantity, 0::bigint) AS total_available_quantity,
+    COALESCE(memo_details.memo_weight, 0::double precision) AS total_memo_weight,
+    COALESCE(invoice_details.invoice_weight, 0::double precision) AS total_sold_out_weight,
+    COALESCE(d.remain_weight, 0::double precision) AS total_available_weight,
+    COALESCE(memo_details.memo_stock_price, 0::numeric) AS total_memo_stock_price,
+    COALESCE(invoice_details.sold_out_stock_price, 0::double precision) AS total_sold_out_stock_price,
+        CASE
+            WHEN COALESCE(memo_details.memo_count, 0::bigint) = 0 AND COALESCE(invoice_details.invoice_count, 0::bigint) = 0 THEN d.rate
+            ELSE ceil(d.rate * d.remain_weight / 100::double precision)
+        END AS total_available_stock_price
+   FROM packet_diamonds d
+     LEFT JOIN masters sm ON sm.id = d.shape
+     LEFT JOIN masters cm ON cm.id = d.color
+     LEFT JOIN masters cl ON cl.id = d.clarity
+     LEFT JOIN masters cim ON cim.id = d.color_intensity
+     LEFT JOIN masters lm ON lm.id = d.lab
+     LEFT JOIN masters pm ON pm.id = d.polish
+     LEFT JOIN masters symm ON symm.id = d.symmetry
+     LEFT JOIN companys com ON com.id = d.company_id
+     LEFT JOIN masters fm ON fm.id = d.fluorescence
+     LEFT JOIN filtered_memo_details fmd ON fmd.stock_id = d.id
+     LEFT JOIN memo_details ON memo_details.stock_id = d.id
+     LEFT JOIN invoice_details ON invoice_details.stock_id = d.id
+     LEFT JOIN filtered_invoice_details fid ON fid.stock_id = d.id
+     LEFT JOIN customers cs ON cs.id = fmd.customer_id
+     LEFT JOIN customers ics ON ics.id = fid.customer_id
+     LEFT JOIN app_users au ON au.id = cs.user_id
+     LEFT JOIN customers csi ON csi.id = fid.customer_id
+     LEFT JOIN app_users aui ON aui.id = csi.user_id
+  WHERE d.is_deleted = '0'::bit(1)
+  GROUP BY d.id, sm.name, cl.name, cm.name, cim.name, lm.name, pm.name, symm.name, fm.name, memo_details.memo_status_per, memo_details.memo_type, invoice_details.sold_status_per, memo_details.memo_stock_price, invoice_details.sold_out_stock_price, invoice_details.invoice_type, memo_details.memo_count, invoice_details.invoice_count, memo_details.memo_quantity, invoice_details.invoice_quantity, memo_details.memo_weight, invoice_details.invoice_weight, com.name
+  ORDER BY d.id DESC
+WITH DATA;
+
+ALTER TABLE IF EXISTS public.packet_diamond_list
+    OWNER TO postgres;
+
+------------------------------ stock logs ---------------------------------
+CREATE TABLE IF NOT EXISTS public.stock_logs
+(
+    id bigint NOT NULL GENERATED BY DEFAULT AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    change_at timestamp with time zone NOT NULL,
+    change_by character varying COLLATE pg_catalog."default" NOT NULL,
+    change_by_id bigint NOT NULL,
+    reference_id bigint NOT NULL,
+    description text COLLATE pg_catalog."default" NOT NULL
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.stock_logs
+    OWNER to postgres;
+
+CREATE TYPE stock_log_type AS ENUM ('memo','invoice')
+
+ALTER TABLE IF EXISTS stock_logs
+    ADD COLUMN log_type stock_log_type;
