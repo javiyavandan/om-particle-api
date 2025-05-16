@@ -329,62 +329,79 @@ export const createInvoice = async (req: Request) => {
             } else if (!Object.values(Memo_Invoice_Type).includes(invoice_type)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${invoice_type} memo type`]]))
             } else {
-                if (invoice_type === Memo_Invoice_Type.carat) {
-                    if (!weight) {
-                        stockError.push(`${stockId} stock weight is required`)
-                    } else if (weight > findStock.dataValues.remain_weight) {
-                        stockError.push(`${stockId} stock weight is greater than available weight`)
-                    } else if (weight <= 0) {
-                        stockError.push(`${stockId} stock weight should be greater than zero`)
-                    } else {
-                        totalItemPrice += (stock_list[index].rate * weight);
-                        totalWeight += weight;
+                if (!memo_id) {
+                    if (invoice_type === Memo_Invoice_Type.carat) {
+                        if (!weight) {
+                            stockError.push(`${stockId} stock weight is required`)
+                        } else if (weight > findStock.dataValues.remain_weight) {
+                            stockError.push(`${stockId} stock weight is greater than available weight`)
+                        } else if (weight <= 0) {
+                            stockError.push(`${stockId} stock weight should be greater than zero`)
+                        } else {
+                            totalItemPrice += (stock_list[index].rate * weight);
+                            totalWeight += weight;
 
-                        stockList.push({
-                            stock: findStock?.dataValues?.stock_id,
-                            stock_id: findStock.dataValues.id,
-                            stock_original_price: findStock.dataValues.rate,
-                            stock_price: stock_list[index].rate,
-                            quantity: quantity ?? findStock.dataValues.quantity,
-                            weight,
-                            invoice_type: invoice_type,
-                            created_at: getLocalDate(),
-                            created_by: req.body.session_res.id,
-                            is_deleted: DeleteStatus.No,
-                        })
+                            stockList.push({
+                                stock: findStock?.dataValues?.stock_id,
+                                stock_id: findStock.dataValues.id,
+                                stock_original_price: findStock.dataValues.rate,
+                                stock_price: stock_list[index].rate,
+                                quantity: quantity ?? findStock.dataValues.quantity,
+                                weight,
+                                invoice_type: invoice_type,
+                                created_at: getLocalDate(),
+                                created_by: req.body.session_res.id,
+                                is_deleted: DeleteStatus.No,
+                            })
+                        }
+                    } else {
+                        if (!quantity) {
+                            stockError.push(`${stockId} stock quantity is required`)
+                        } else if (quantity > findStock.dataValues.remain_quantity) {
+                            stockError.push(`${stockId} stock quantity is greater than available quantity`)
+                        } else if (quantity <= 0) {
+                            stockError.push(`${stockId} stock quantity should be greater than zero`)
+                        } else if (!weight) {
+                            stockError.push(`${stockId} stock weight is required`)
+                        } else if (weight > findStock.dataValues.remain_weight) {
+                            stockError.push(`${stockId} stock weight is greater than available weight`)
+                        } else if (weight <= 0) {
+                            stockError.push(`${stockId} stock weight should be greater than zero`)
+                        } else {
+                            totalItemPrice += (stock_list[index].rate * weight);
+                            totalWeight += weight;
+
+                            stockList.push({
+                                stock: findStock?.dataValues?.stock_id,
+                                stock_id: findStock.dataValues.id,
+                                stock_original_price: findStock.dataValues.rate,
+                                stock_price: stock_list[index].rate,
+                                quantity,
+                                weight,
+                                invoice_type: invoice_type,
+                                created_at: getLocalDate(),
+                                created_by: req.body.session_res.id,
+                                is_deleted: DeleteStatus.No,
+                            })
+                        }
                     }
                 } else {
-                    if (!quantity) {
-                        stockError.push(`${stockId} stock quantity is required`)
-                    } else if (quantity > findStock.dataValues.remain_quantity) {
-                        stockError.push(`${stockId} stock quantity is greater than available quantity`)
-                    } else if (quantity <= 0) {
-                        stockError.push(`${stockId} stock quantity should be greater than zero`)
-                    } else if (!weight) {
-                        stockError.push(`${stockId} stock weight is required`)
-                    } else if (weight > findStock.dataValues.remain_weight) {
-                        stockError.push(`${stockId} stock weight is greater than available weight`)
-                    } else if (weight <= 0) {
-                        stockError.push(`${stockId} stock weight should be greater than zero`)
-                    } else {
-                        totalItemPrice += (stock_list[index].rate * weight);
-                        totalWeight += weight;
+                    totalItemPrice += (stock_list[index].rate * weight);
+                    totalWeight += weight;
 
-                        stockList.push({
-                            stock: findStock?.dataValues?.stock_id,
-                            stock_id: findStock.dataValues.id,
-                            stock_original_price: findStock.dataValues.rate,
-                            stock_price: stock_list[index].rate,
-                            quantity,
-                            weight,
-                            invoice_type: invoice_type,
-                            created_at: getLocalDate(),
-                            created_by: req.body.session_res.id,
-                            is_deleted: DeleteStatus.No,
-                        })
-                    }
+                    stockList.push({
+                        stock: findStock?.dataValues?.stock_id,
+                        stock_id: findStock.dataValues.id,
+                        stock_original_price: findStock.dataValues.rate,
+                        stock_price: stock_list[index].rate,
+                        quantity: quantity ?? findStock.dataValues.quantity,
+                        weight,
+                        invoice_type: invoice_type,
+                        created_at: getLocalDate(),
+                        created_by: req.body.session_res.id,
+                        is_deleted: DeleteStatus.No,
+                    })
                 }
-
             }
         }
 
