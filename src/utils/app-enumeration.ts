@@ -301,3 +301,8 @@ export enum Memo_Invoice_Type {
   carat = 'carat',
   quantity = 'quantity',
 }
+
+export enum Log_Type {
+   MEMO = 'memo',
+   INVOICE = 'invoice'
+}
