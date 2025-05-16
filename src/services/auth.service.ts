@@ -39,7 +39,7 @@ import {
   IMAGE_TYPE,
   Image_type,
   Memo_Invoice_Type,
-  Menu_Invoice_creation,
+  Memo_Invoice_creation,
   StockStatus,
   UserType,
   UserVerification,
@@ -82,7 +82,7 @@ export const test = async (req: Request) => {
 
   try {
     const findMemoExist = await Memo.count({
-      where: { creation_type: Menu_Invoice_creation.Packet },
+      where: { creation_type: Memo_Invoice_creation.Packet },
       include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: Memo_Invoice_Type.carat} }],
     });
     return resSuccess({ data: findMemoExist });
