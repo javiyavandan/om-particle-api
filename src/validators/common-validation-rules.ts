@@ -277,6 +277,39 @@ export const fieldUniqueValueArrayChain = (
       ])
     );
 
+
+export const fieldUniqueValueKeyArrayChain = (
+  name: string,
+  field: string,
+  min: number,
+  key: string,
+) =>
+  body(field)
+    .exists()
+    .withMessage(
+      prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [["field_name", name]])
+    )
+    .isArray({ min })
+    .withMessage(
+      prepareMessageFromParams(
+        min > 0 ? TYPE_ARRAY_NON_EMPTY_ERROR_MESSAGE : TYPE_ARRAY_ERROR_MESSAGE,
+        [["field_name", name]]
+      )
+    )
+    .custom((value) => {
+      const keys = value.map((item: any) => item[key]);
+      const uniqueKeys = new Set(keys);
+      if (keys.length !== uniqueKeys.size) {
+        return false;
+      }
+      return true;
+    })
+    .withMessage(
+      prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+        ["field_name", name],
+      ])
+    );
+
 export const fieldBitChain = (name: string, field: string) =>
   body(field)
     .exists()

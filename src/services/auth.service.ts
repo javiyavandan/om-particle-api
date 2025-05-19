@@ -83,7 +83,7 @@ export const test = async (req: Request) => {
   try {
     const findMemoExist = await Memo.count({
       where: { creation_type: Memo_Invoice_creation.Packet },
-      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: {memo_type: Memo_Invoice_Type.carat} }],
+      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: { memo_type: Memo_Invoice_Type.carat } }],
     });
     return resSuccess({ data: findMemoExist });
   } catch (error) {
@@ -267,12 +267,14 @@ export const registerUser = async (req: Request, res: Response) => {
           app_name: APP_NAME,
         },
       };
-      await mailRegistationOtp(mailPayload);
+      if (verification !== UserVerification.Admin_Verified) {
+        await mailRegistationOtp(mailPayload)
+      };
 
       await trn.commit();
       return resSuccess({
         data: { id: createUser.dataValues.id },
-        message: OTP_SENT + " " + email,
+        message: verification === UserVerification.Admin_Verified ? "User Created" : OTP_SENT + " " + email,
       });
     } catch (error) {
       await trn.rollback();
