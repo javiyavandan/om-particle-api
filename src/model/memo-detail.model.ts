@@ -46,6 +46,5 @@ const MemoDetail = dbContext.define("memo_details", {
 
 MemoDetail.belongsTo(Memo, { foreignKey: 'memo_id', as: "memo" })
 Memo.hasMany(MemoDetail, { foreignKey: 'memo_id', as: "memo_details" })
-MemoDetail.belongsTo(Diamonds, { foreignKey: 'stock_id', as: "stocks" })
 
 export default MemoDetail;
