@@ -9,8 +9,9 @@ import {
   MAIL_SECURE,
   MAIL_USER_NAME,
 } from "../config/env.var";
-import puppeteer from "puppeteer";
+// import puppeteer from "puppeteer";
 const nodemailer = require("nodemailer");
+import * as htmlPdf from "html-pdf-node";
 
 export default class EmailHelper {
   private _transporter: any;
@@ -49,6 +50,7 @@ export default class EmailHelper {
     const template = handlebars.compile(source);
     const contentReplacements = this._contentToReplace;
     const htmlToSend = template(contentReplacements);
+
     let htmlToSendFile: any;
     let pdf: any;
     if (this._attachments) {
@@ -63,25 +65,16 @@ export default class EmailHelper {
       const contentReplacement = this._attachments.toBeReplace;
       htmlToSendFile = templateFile(contentReplacement);
 
-      const browser = await puppeteer.launch({
-        headless: "new",
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-      const page = await browser.newPage();
-      await page.setContent(htmlToSendFile, { waitUntil: "domcontentloaded" });
-
-      await page.emulateMediaType("screen");
-      pdf = await page.pdf();
-
-
-      await browser.close();
+      const file = { content: htmlToSendFile };
+      const pdfBuffer = await htmlPdf.generatePdf(file, { format: 'A4' });
+      console.log("PDF Buffer Generated:", pdfBuffer);
+      pdf = pdfBuffer;
     }
 
     try {
       // if (PROCESS_ENVIRONMENT === "development") {
       //   this._emailTo = "khushi.vihaainfotech@gmail.com";
       // }
-
       if (htmlToSendFile) {
         const sendMailResult = await this._transporter.sendMail({
           from: MAIL_FROM,
@@ -95,8 +88,10 @@ export default class EmailHelper {
             },
           ],
         });
+        console.log("Email sent successfully:", sendMailResult);
 
       } else {
+        console.log(this._emailSubject)
         const sendMailResult = await this._transporter.sendMail({
           from: MAIL_FROM,
           to: this._emailTo,
@@ -104,6 +99,7 @@ export default class EmailHelper {
           html: htmlToSend,
         });
 
+        console.log("Email sent successfully:", sendMailResult);
       }
 
       // const setConversationData = {
@@ -116,6 +112,7 @@ export default class EmailHelper {
       // };
       // await setConversationHistories(setConversationData);
     } catch (err) {
+      console.error("Error sending email:", err);
       // saveErrorLogToFile(
       //   {
       //     body: "",
