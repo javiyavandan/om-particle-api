@@ -20,7 +20,17 @@ import StockLogs from "../../model/stock-logs.model";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, invoice_creation_type = Memo_Invoice_creation.Single, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
+        const data = await invoiceCreation(req.body)
+
+        return data
+    } catch (error) {
+        throw error
+    }
+}
+
+export const invoiceCreation = async (data: any) => {
+    try {
+        const { company_id, customer_id, invoice_creation_type = Memo_Invoice_creation.Single, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount, session_res } = data
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
@@ -74,7 +84,7 @@ export const createInvoice = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                id: session_res.company_id ? session_res.company_id : company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
             }
@@ -118,13 +128,13 @@ export const createInvoice = async (req: Request) => {
             })
         }
 
-        let allStock;
+        let allStock: any;
 
         if (invoice_creation_type === Memo_Invoice_creation.Single) {
             allStock = await Diamonds.findAll({
                 where: [
                     memo_id ? { status: StockStatus.MEMO } : { status: StockStatus.AVAILABLE },
-                    { company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id }
+                    { company_id: session_res.company_id ? session_res.company_id : company_id }
                 ],
                 attributes: [
                     "id",
@@ -192,7 +202,7 @@ export const createInvoice = async (req: Request) => {
             allStock = await PacketDiamonds.findAll({
                 where: {
                     status: StockStatus.AVAILABLE,
-                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                    company_id: session_res.company_id ? session_res.company_id : company_id
                 },
                 attributes: [
                     "id",
@@ -287,7 +297,7 @@ export const createInvoice = async (req: Request) => {
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
+            const findStock = allStock.find((stock: any) => stock.dataValues.stock_id == stockId);
             const invoice_type = (Number(findStock?.dataValues?.quantity) < 2) ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity;
             const quantity = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.remain_quantity : stock_list[index].quantity;
             const weight = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.weight : stock_list[index].weight;
@@ -350,7 +360,7 @@ export const createInvoice = async (req: Request) => {
                                 weight,
                                 invoice_type: invoice_type,
                                 created_at: getLocalDate(),
-                                created_by: req.body.session_res.id,
+                                created_by: session_res.id,
                                 is_deleted: DeleteStatus.No,
                             })
                         }
@@ -380,7 +390,7 @@ export const createInvoice = async (req: Request) => {
                                 weight,
                                 invoice_type: invoice_type,
                                 created_at: getLocalDate(),
-                                created_by: req.body.session_res.id,
+                                created_by: session_res.id,
                                 is_deleted: DeleteStatus.No,
                             })
                         }
@@ -398,7 +408,7 @@ export const createInvoice = async (req: Request) => {
                         weight,
                         invoice_type: invoice_type,
                         created_at: getLocalDate(),
-                        created_by: req.body.session_res.id,
+                        created_by: session_res.id,
                         is_deleted: DeleteStatus.No,
                     })
                 }
@@ -436,7 +446,7 @@ export const createInvoice = async (req: Request) => {
 
         const lastInvoice = await Invoice.findOne({
             where: {
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                company_id: session_res.company_id ? session_res.company_id : company_id
             },
             order: [["invoice_number", "DESC"]],
             transaction: trn,
@@ -454,7 +464,7 @@ export const createInvoice = async (req: Request) => {
                 company_id: findCompany.dataValues.id,
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
-                created_by: req.body.session_res.id,
+                created_by: session_res.id,
                 total_item_price: Number(totalItemPrice.toFixed(2)),
                 total_tax_price: Number(totalTaxPrice.toFixed(2)),
                 total_weight: Number(totalWeight.toFixed(2)),
@@ -477,8 +487,8 @@ export const createInvoice = async (req: Request) => {
 
             const admin = await AppUser.findOne({
                 where: {
-                    id_role: req.body.session_res.id_role,
-                    id: req.body.session_res.id,
+                    id_role: session_res.id_role,
+                    id: session_res.id,
                     is_deleted: DeleteStatus.No,
                     is_active: ActiveStatus.Active
                 },
@@ -503,7 +513,7 @@ export const createInvoice = async (req: Request) => {
 
             let stockUpdate: any
             if (invoice_creation_type === Memo_Invoice_creation.Single) {
-                stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
+                stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => ({
                     ...stock.dataValues,
                     status: StockStatus.SOLD,
                     remain_quantity: stock.dataValues.remain_quantity - stockList.find((data: any) => data.stock_id == stock.dataValues.id).quantity
@@ -517,7 +527,7 @@ export const createInvoice = async (req: Request) => {
                 })
             } else {
                 if (!memo_id) {
-                    stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
                         const findStock = stockList.find((data: any) => data.stock_id == stock.dataValues.id)
 
                         return {
@@ -536,7 +546,7 @@ export const createInvoice = async (req: Request) => {
                         transaction: trn,
                     })
                 } else {
-                    stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
                         return {
                             ...stock.dataValues,
                             packet_id: stock.dataValues.stock_id,
@@ -553,22 +563,18 @@ export const createInvoice = async (req: Request) => {
                             is_deleted: DeleteStatus.No,
                             is_return: DeleteStatus.No
                         },
-                        include: [
-                            {
-                                model: Diamonds,
-                                as: "stocks",
-                                where: [
-                                    {
-                                        is_deleted: DeleteStatus.No,
-                                        status: StockStatus.MEMO
-                                    }
-                                ],
-                                attributes: []
-                            }
-                        ],
                         transaction: trn,
                     })
-                    if (memoDetail?.length === 0) {
+                    const memoDetailCheck = memoDetail?.map((item) => {
+                        const stock = allStock?.find((item: any) => item.dataValues?.id == item?.dataValues?.stock_id)
+                        return {
+                            is_deleted: stock?.dataValues?.is_deleted,
+                            status: stock?.dataValues?.status
+                        }
+                    })
+                    const memoDetailUpdate = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
+
+                    if (memoDetailUpdate?.length === 0) {
                         await Memo.update({
                             status: MEMO_STATUS.Close,
                         }, {
@@ -653,7 +659,7 @@ export const createInvoice = async (req: Request) => {
             }
 
             const adminMail = {
-                toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
+                toEmailAddress: session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
                 contentTobeReplaced: {
                     admin_name: admin?.dataValues.first_name,
                     customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,

@@ -76,7 +76,7 @@ export const addPacketCSVFile = async (req: Request) => {
             file_path: resMFTL.data,
             status: FILE_STATUS.Uploaded,
             file_type: FILE_BULK_UPLOAD_TYPE.StockUpload,
-            created_by: req.body.session_res.id_app_user,
+            created_by: req.body.session_res.id,
             created_date: getLocalDate(),
         });
 

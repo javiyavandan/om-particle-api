@@ -231,11 +231,19 @@ export const getMethodFromRequest = (method: string) => {
 
 export const refreshMaterializedDiamondListView = async () => {
   try {
-    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list; REFRESH MATERIALIZED VIEW packet_diamond_list;");
+    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list; REFRESH MATERIALIZED VIEW packet_diamond_list; REFRESH MATERIALIZED VIEW api_list;");
   } catch (error) {
     throw error;
   }
 };
+
+export const refreshMaterializedApiListView = async () => {
+  try {
+    return await dbContext.query("REFRESH MATERIALIZED VIEW api_list;")
+  } catch (error) {
+    throw error
+  }
+}
 
 const getDateString = (date: Date) => date.toISOString().slice(0, 10);
 
