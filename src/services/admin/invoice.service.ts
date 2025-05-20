@@ -128,7 +128,7 @@ export const invoiceCreation = async (data: any) => {
             })
         }
 
-        let allStock;
+        let allStock: any;
 
         if (invoice_creation_type === Memo_Invoice_creation.Single) {
             allStock = await Diamonds.findAll({
@@ -297,7 +297,7 @@ export const invoiceCreation = async (data: any) => {
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find(stock => stock.dataValues.stock_id == stockId);
+            const findStock = allStock.find((stock: any) => stock.dataValues.stock_id == stockId);
             const invoice_type = (Number(findStock?.dataValues?.quantity) < 2) ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity;
             const quantity = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.remain_quantity : stock_list[index].quantity;
             const weight = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.weight : stock_list[index].weight;
@@ -513,7 +513,7 @@ export const invoiceCreation = async (data: any) => {
 
             let stockUpdate: any
             if (invoice_creation_type === Memo_Invoice_creation.Single) {
-                stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
+                stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => ({
                     ...stock.dataValues,
                     status: StockStatus.SOLD,
                     remain_quantity: stock.dataValues.remain_quantity - stockList.find((data: any) => data.stock_id == stock.dataValues.id).quantity
@@ -527,7 +527,7 @@ export const invoiceCreation = async (data: any) => {
                 })
             } else {
                 if (!memo_id) {
-                    stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
                         const findStock = stockList.find((data: any) => data.stock_id == stock.dataValues.id)
 
                         return {
@@ -546,7 +546,7 @@ export const invoiceCreation = async (data: any) => {
                         transaction: trn,
                     })
                 } else {
-                    stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
                         return {
                             ...stock.dataValues,
                             packet_id: stock.dataValues.stock_id,
@@ -566,7 +566,7 @@ export const invoiceCreation = async (data: any) => {
                         transaction: trn,
                     })
                     const memoDetailCheck = memoDetail?.map((item) => {
-                        const stock = allStock?.find((item) => item.dataValues?.id == item?.dataValues?.stock_id)
+                        const stock = allStock?.find((item: any) => item.dataValues?.id == item?.dataValues?.stock_id)
                         return {
                             is_deleted: stock?.dataValues?.is_deleted,
                             status: stock?.dataValues?.status
