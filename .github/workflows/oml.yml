@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [22.x]
 
     steps:
     - name: Checkout code
@@ -152,7 +152,7 @@ jobs:
         source $NVM_DIR/nvm.sh
         source $NVM_DIR/bash_completion
         nvm use default
-        export PATH="$NVM_DIR/versions/node/v18.11.0/bin:$PATH"
+        export PATH="$NVM_DIR/versions/node/v22.15.0/bin:$PATH"
         cd /root/om-particle-api/
         pm2 restart "OML"
         EOF
