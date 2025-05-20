@@ -563,22 +563,18 @@ export const invoiceCreation = async (data: any) => {
                             is_deleted: DeleteStatus.No,
                             is_return: DeleteStatus.No
                         },
-                        include: [
-                            {
-                                model: Diamonds,
-                                as: "stocks",
-                                where: [
-                                    {
-                                        is_deleted: DeleteStatus.No,
-                                        status: StockStatus.MEMO
-                                    }
-                                ],
-                                attributes: []
-                            }
-                        ],
                         transaction: trn,
                     })
-                    if (memoDetail?.length === 0) {
+                    const memoDetailCheck = memoDetail?.map((item) => {
+                        const stock = allStock?.find((item) => item.dataValues?.id == item?.dataValues?.stock_id)
+                        return {
+                            is_deleted: stock?.dataValues?.is_deleted,
+                            status: stock?.dataValues?.status
+                        }
+                    })
+                    const memoDetailUpdate = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
+
+                    if (memoDetailUpdate?.length === 0) {
                         await Memo.update({
                             status: MEMO_STATUS.Close,
                         }, {
