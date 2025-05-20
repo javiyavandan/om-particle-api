@@ -1,8 +1,8 @@
 import { Request } from "express"
 import Customer from "../../model/customer.modal"
 import AppUser from "../../model/app_user.model"
-import { ActiveStatus, DeleteStatus, StockStatus, UserVerification } from "../../utils/app-enumeration"
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedApiListView, resErrorDataExit, resNotFound, resSuccess } from "../../utils/shared-functions"
+import { ActiveStatus, DeleteStatus, Memo_Invoice_creation, StockStatus, UserVerification } from "../../utils/app-enumeration"
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedApiListView, resBadRequest, resErrorDataExit, resNotFound, resSuccess } from "../../utils/shared-functions"
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, STATUS_UPDATED } from "../../utils/app-messages"
 import { generateRandomKey, statusUpdateValue } from "../../helpers/helper"
 import dbContext from "../../config/dbContext"
@@ -11,6 +11,8 @@ import Diamonds from "../../model/diamond.model"
 import Company from "../../model/companys.model"
 import ApiStockDetails from "../../model/api-stock-details"
 import { Op, QueryTypes, Sequelize } from "sequelize"
+import { memoCreation } from "./memo.service"
+import { invoiceCreation } from "./invoice.service"
 
 export const createApi = async (req: Request) => {
     let trn;
@@ -400,6 +402,207 @@ export const getApiDetails = async (req: Request) => {
         return resSuccess({
             data: result[0]
         })
+    } catch (error) {
+        throw error
+    }
+}
+
+export const getStockListApiForCustomer = async (req: Request) => {
+    try {
+        const { api_key } = req.params
+
+        const findApi = await Apis.findOne({
+            where: {
+                api_key,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            }
+        })
+
+        if (!(findApi && findApi.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Api"]])
+            })
+        }
+
+        const column = findApi?.dataValues?.column_array?.map((item: string) => {
+            return `elem->>'${item}' AS ${item}`
+        })
+
+        const apiData = await dbContext.query(
+            `
+                SELECT
+                    ${column?.map((item: string) => item)}
+                FROM api_list,
+                        LATERAL json_array_elements(api_list.stock_details) AS elem
+                WHERE api_list.id = :id
+            `,
+            {
+                replacements: { id: findApi?.dataValues?.id },
+                type: QueryTypes.SELECT
+            }
+        )
+
+        return resSuccess({ data: apiData })
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const checkStockStatusApi = async (req: Request) => {
+    try {
+        const { api_key, stock_id } = req.params;
+
+        const findApi = await Apis.findOne({
+            where: {
+                api_key,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            }
+        })
+
+        if (!(findApi && findApi?.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Api"]])
+            })
+        }
+
+        const findStock = await Diamonds.findOne({
+            where: {
+                stock_id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            }
+        })
+
+        if (!(findStock && findStock?.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]])
+            })
+        }
+
+        const findStockInDetail = await ApiStockDetails.findOne({
+            where: {
+                stock_id: findStock?.dataValues?.id,
+                api_id: findApi?.dataValues?.id
+            }
+        })
+
+        if (!(findStockInDetail && findStockInDetail?.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]])
+            })
+        }
+
+        if (findStock?.dataValues?.status === StockStatus.MEMO || findStock?.dataValues?.status === StockStatus.SOLD) {
+            return resBadRequest({
+                message: "Stock is not available"
+            })
+        } else {
+            return resSuccess({
+                message: "Stock is available"
+            })
+        }
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const updateStockStatusFromCustomer = async (req: Request) => {
+    try {
+        const { api_key, status } = req.params
+        const { stock_list } = req.body
+        const stockError: string[] = []
+        const stocks = [];
+
+        const findApi = await Apis.findOne({
+            where: {
+                api_key,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            }
+        })
+
+        if (!(findApi && findApi?.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Api"]])
+            })
+        }
+
+        const stockList = await Diamonds.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active,
+                status: StockStatus.AVAILABLE
+            }
+        })
+
+        const apiStockDetailList = await ApiStockDetails.findAll({
+            where: {
+                api_id: findApi?.dataValues?.id
+            }
+        })
+
+        for (let i = 0; i < stock_list.length; i++) {
+            const stock = stock_list[i];
+            const findStockFromList = stockList?.find((item) => item?.dataValues?.stock_id === stock)
+            if (!(findStockFromList && findStockFromList.dataValues)) {
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]))
+                continue;
+            } else {
+                const findStockInDetail = apiStockDetailList?.find((item) => item?.dataValues?.stock_id === findStockFromList.dataValues?.id)
+                if (!(findStockInDetail && findStockInDetail)) {
+                    stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]))
+                    continue;
+                } else {
+                    stocks.push({
+                        stock_id: findStockFromList?.dataValues?.stock_id,
+                        rate: findStockInDetail?.dataValues?.price,
+                        weight: findStockFromList?.dataValues?.weight,
+                        quantity: findStockFromList?.dataValues?.quantity,
+                    })
+                }
+            }
+        }
+
+        const apiAdmin = await AppUser.findOne({
+            where: {
+                email: "apicustomer@gmail.com"
+            },
+            attributes: ["id"]
+        })
+
+        const payload = {
+            company_id: findApi?.dataValues?.company_id,
+            memo_creation_type: Memo_Invoice_creation.Single,
+            invoice_creation_type: Memo_Invoice_creation.Single,
+            customer_id: findApi?.dataValues?.customer_id,
+            remarks: "",
+            contact: "",
+            salesperson: "",
+            ship_via: "",
+            report_date: "",
+            cust_order: "",
+            tracking: "",
+            stock_list: stocks,
+            session_res: {
+                id_role: 0,
+                id: apiAdmin?.dataValues?.id
+            }
+        }
+
+        if (status === StockStatus.MEMO) {
+            const data = await memoCreation(payload)
+            return data
+        }
+
+        if (status === StockStatus.SOLD) {
+            const data = await invoiceCreation(payload)
+            return data
+        }
+
     } catch (error) {
         throw error
     }

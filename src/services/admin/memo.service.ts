@@ -20,7 +20,16 @@ import StockLogs from "../../model/stock-logs.model";
 
 export const createMemo = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_creation_type, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
+        const data = await memoCreation(req.body)
+        return data;
+    } catch (error) {
+        throw error
+    }
+}
+
+export const memoCreation = async (data: any) => {
+    try {
+        const { company_id, customer_id, stock_list, memo_creation_type, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount, session_res } = data
         const stockError = [];
         const stockList: any = [];
 
@@ -51,7 +60,7 @@ export const createMemo = async (req: Request) => {
             })
         }
 
-        if (req.body.session_res.company_id === undefined && company_id === undefined) {
+        if (session_res.company_id === undefined && company_id === undefined) {
             return resBadRequest({
                 message: "Please select company"
             })
@@ -59,7 +68,7 @@ export const createMemo = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                id: session_res.company_id ? session_res.company_id : company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
             }
@@ -100,7 +109,7 @@ export const createMemo = async (req: Request) => {
             allStock = await Diamonds.findAll({
                 where: {
                     status: StockStatus.AVAILABLE,
-                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                    company_id: session_res.company_id ? session_res.company_id : company_id
                 },
                 attributes: [
                     "id",
@@ -168,7 +177,7 @@ export const createMemo = async (req: Request) => {
             allStock = await PacketDiamonds.findAll({
                 where: {
                     status: StockStatus.AVAILABLE,
-                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                    company_id: session_res.company_id ? session_res.company_id : company_id
                 },
                 attributes: [
                     "id",
@@ -294,7 +303,7 @@ export const createMemo = async (req: Request) => {
                             weight,
                             memo_type: Memo_Invoice_Type.carat,
                             created_at: getLocalDate(),
-                            created_by: req.body.session_res.id,
+                            created_by: session_res.id,
                             is_deleted: DeleteStatus.No,
                         })
                     }
@@ -324,7 +333,7 @@ export const createMemo = async (req: Request) => {
                             weight,
                             memo_type,
                             created_at: getLocalDate(),
-                            created_by: req.body.session_res.id,
+                            created_by: session_res.id,
                             is_deleted: DeleteStatus.No,
                         })
                     }
@@ -350,7 +359,7 @@ export const createMemo = async (req: Request) => {
 
         const lastMemo = await Memo.findOne({
             where: {
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                company_id: session_res.company_id ? session_res.company_id : company_id
             },
             order: [["memo_number", "DESC"]],
             transaction: trn,
@@ -372,7 +381,7 @@ export const createMemo = async (req: Request) => {
                 status: MEMO_STATUS.Active,
                 is_deleted: DeleteStatus.No,
                 created_at: getLocalDate(),
-                created_by: req.body.session_res.id,
+                created_by: session_res.id,
                 total_item_price: Number(totalItemPrice.toFixed(2)),
                 total_price: Number(totalPrice.toFixed(2)),
                 shipping_charge: Number(shipping_charge_value.toFixed(2)),
@@ -442,8 +451,8 @@ export const createMemo = async (req: Request) => {
             }
             const admin = await AppUser.findOne({
                 where: {
-                    id_role: req.body.session_res.id_role,
-                    id: req.body.session_res.id,
+                    id_role: session_res.id_role,
+                    id: session_res.id,
                     is_deleted: DeleteStatus.No,
                     is_active: ActiveStatus.Active
                 },
@@ -452,7 +461,7 @@ export const createMemo = async (req: Request) => {
             })
 
             const adminMail = {
-                toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
+                toEmailAddress: session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
                 contentTobeReplaced: {
                     admin_name: admin?.dataValues.first_name,
                     customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
