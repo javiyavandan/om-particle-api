@@ -78,6 +78,9 @@ export const getUserDetail = async (req: Request) => {
             "is_verified",
             "remarks",
             "id_pdf",
+            "memo_terms",
+            "credit_terms",
+            "limit",
             [
               Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
@@ -135,7 +138,10 @@ export const updateUserDetail = async (req: Request) => {
       remarks,
       session_res,
       registration_number,
-      id_pdf
+      id_pdf,
+      memo_terms,
+      credit_terms,
+      limit
     } = req.body;
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -232,6 +238,9 @@ export const updateUserDetail = async (req: Request) => {
           modified_by: session_res.user_id,
           id_image: imageId,
           id_pdf: pdfId,
+          memo_terms,
+          credit_terms,
+          limit
         },
         {
           where: {

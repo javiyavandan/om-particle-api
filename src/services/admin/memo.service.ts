@@ -863,7 +863,7 @@ export const returnMemoStock = async (req: Request) => {
 
         const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.filter((memoData: any) => memoData.dataValues.is_return === ActiveStatus.InActive && memoData.dataValues.memo_id === memo_id).map((data: any) => data.dataValues.stock_id)
 
-        let allStock
+        let allStock: any;
 
         if (memoType === Memo_Invoice_creation.Packet) {
             allStock = await PacketDiamonds.findAll({
@@ -884,7 +884,7 @@ export const returnMemoStock = async (req: Request) => {
 
         for (let index = 0; index < stockData.length; index++) {
             const stockId = stockData[index];
-            const findStock = allStock.find(stock => stock.dataValues.id == stockId)
+            const findStock = allStock.find((stock: any) => stock.dataValues.id == stockId)
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
