@@ -112,6 +112,9 @@ export const registerUser = async (req: Request, res: Response) => {
       verification = UserVerification.NotVerified,
       remarks,
       registration_number,
+      memo_terms,
+      credit_terms,
+      limit
     } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
@@ -188,6 +191,9 @@ export const registerUser = async (req: Request, res: Response) => {
           id_pdf: pdfId,
           remarks,
           one_time_pass: OTP,
+          memo_terms,
+          credit_terms,
+          limit
         },
         { transaction: trn }
       );
@@ -353,9 +359,12 @@ export const login = async (req: Request, res: Response) => {
         "id_role",
         "is_active",
         "company_id",
+        "memo_terms",
+        "credit_terms",
+        "limit",
         [
-          Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
-          "image_path",
+        Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
+        "image_path",
         ],
         [Sequelize.literal(`"company->country"."name"`), "country_name"],
         [Sequelize.literal(`"company->country"."id"`), "country_id"],

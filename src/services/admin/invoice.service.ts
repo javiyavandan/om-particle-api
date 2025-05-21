@@ -271,28 +271,22 @@ export const invoiceCreation = async (data: any) => {
 
         let memoDetail = null;
         if (memo_id) {
-            memoDetail = await MemoDetail.findAll({
+            const detail = await MemoDetail.findAll({
                 where: {
                     memo_id,
                     is_deleted: DeleteStatus.No,
                     is_return: DeleteStatus.No
                 },
                 attributes: ["quantity", "weight", "stock_id"],
-                include: [
-                    {
-                        model: Diamonds,
-                        as: "stocks",
-                        where: [
-                            {
-                                is_deleted: DeleteStatus.No,
-                                status: StockStatus.MEMO
-                            }
-                        ],
-                        attributes: []
-                    }
-                ],
+            });
+            const memoDetailCheck = detail?.map((item) => {
+                const stock = allStock?.find((s: any) => s.dataValues?.id == item?.dataValues?.stock_id)
+                return {
+                    is_deleted: stock?.dataValues?.is_deleted,
+                    status: stock?.dataValues?.status
+                }
             })
-
+            memoDetail = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
         }
 
         for (let index = 0; index < stock_list.length; index++) {
@@ -303,7 +297,7 @@ export const invoiceCreation = async (data: any) => {
             const weight = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.weight : stock_list[index].weight;
 
             if (memo_id) {
-                const findMemoStock = memoDetail?.find((item) => item.dataValues?.stock_id === findStock?.dataValues?.id)
+                const findMemoStock: any = memoDetail?.find((item: any) => item.dataValues?.stock_id === findStock?.dataValues?.id)
                 if (quantity > findMemoStock?.dataValues?.quantity) {
                     stockError.push(`Quantity is grater then memo stock ${stockId}`)
                 }
@@ -565,16 +559,19 @@ export const invoiceCreation = async (data: any) => {
                         },
                         transaction: trn,
                     })
-                    const memoDetailCheck = memoDetail?.map((item) => {
-                        const stock = allStock?.find((item: any) => item.dataValues?.id == item?.dataValues?.stock_id)
-                        return {
-                            is_deleted: stock?.dataValues?.is_deleted,
-                            status: stock?.dataValues?.status
-                        }
+                    const allStock = await Diamonds?.findAll({
+                        where: {
+                            is_deleted: DeleteStatus.No,
+                            status: StockStatus.MEMO
+                        },
+                        transaction: trn
                     })
-                    const memoDetailUpdate = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
+                    const memoDetailCheck = allStock?.map((item) => {
+                        const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
+                        return stock
+                    })
 
-                    if (memoDetailUpdate?.length === 0) {
+                    if (memoDetailCheck?.length === 0) {
                         await Memo.update({
                             status: MEMO_STATUS.Close,
                         }, {
@@ -647,13 +644,24 @@ export const invoiceCreation = async (data: any) => {
                         transaction: trn
                     })
 
+                    if (memoStatus === MEMO_STATUS.Close) {
+                        await StockLogs.create({
+                            change_at: getLocalDate(),
+                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by_id: admin?.dataValues?.id,
+                            log_type: Log_Type.MEMO,
+                            reference_id: memo_id,
+                            description: `Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                        }, { transaction: trn })
+                    }
+
                     await StockLogs.create({
                         change_at: getLocalDate(),
                         change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
                         change_by_id: admin?.dataValues?.id,
-                        log_type: memoStatus === MEMO_STATUS.Close ? Log_Type.MEMO : Log_Type.INVOICE,
-                        reference_id: memoStatus === MEMO_STATUS.Close ? memo_id : invoiceId,
-                        description: `${memoStatus === MEMO_STATUS.Close ? "Memo closed and " : ""}Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                        log_type: Log_Type.INVOICE,
+                        reference_id: invoiceId,
+                        description: `Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
                     }, { transaction: trn })
                 }
             }
