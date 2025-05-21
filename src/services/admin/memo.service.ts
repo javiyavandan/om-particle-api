@@ -947,24 +947,22 @@ export const returnMemoStock = async (req: Request) => {
 
             const memoDetail = await MemoDetail.findAll({
                 where: {
-                    memo_id: memo.dataValues.id,
+                    memo_id,
                     is_deleted: DeleteStatus.No,
-                    is_return: ActiveStatus.InActive,
+                    is_return: DeleteStatus.No
                 },
-                include: [
-                    {
-                        model: Diamonds,
-                        as: 'stocks',
-                        attributes: ["status"],
-                        where: {
-                            status: StockStatus.MEMO
-                        }
-                    }
-                ],
-                transaction: trn
+                transaction: trn,
             })
+            const memoDetailCheck = memoDetail?.map((item) => {
+                const stock = allStock?.find((item: any) => item.dataValues?.id == item?.dataValues?.stock_id)
+                return {
+                    is_deleted: stock?.dataValues?.is_deleted,
+                    status: stock?.dataValues?.status
+                }
+            })
+            const memoDetailUpdate = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
 
-            if (memoDetail.length === 0) {
+            if (memoDetailUpdate?.length === 0) {
                 await Memo.update({
                     status: MEMO_STATUS.Close,
                 }, {
