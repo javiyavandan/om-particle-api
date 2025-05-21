@@ -7,6 +7,7 @@ export enum StockStatus {
   AVAILABLE = 'available',
   SOLD = 'sold',
   MEMO = 'memo',
+  ONHOLD = 'on_hold'
 }
 
 export enum AffiliateStatus {
@@ -305,4 +306,17 @@ export enum Memo_Invoice_Type {
 export enum Log_Type {
    MEMO = 'memo',
    INVOICE = 'invoice'
+}
+
+export enum TransferStatus {
+  Created = 'created',
+  Accepted = 'accepted',
+  Rejected = 'rejected',
+  Return = 'return',
+  Closed = 'closed',
+}
+
+export enum TransferStockStatus {
+  Return = 'return',
+  Sold = 'sold',
 }
