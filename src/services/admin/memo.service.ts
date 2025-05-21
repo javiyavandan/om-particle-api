@@ -813,7 +813,7 @@ export const returnMemoStock = async (req: Request) => {
     try {
         const { memo_id, stock_list, company_id } = req.body;
         const stockError = [];
-        const stockList = [];
+        const stockList: any = [];
         const memoDetailStock = [];
 
         if (stock_list) {
@@ -863,7 +863,7 @@ export const returnMemoStock = async (req: Request) => {
 
         const stockData = stock_list && stock_list.length > 0 ? stock_list : memo.dataValues.memo_details.filter((memoData: any) => memoData.dataValues.is_return === ActiveStatus.InActive && memoData.dataValues.memo_id === memo_id).map((data: any) => data.dataValues.stock_id)
 
-        let allStock: any;
+        let allStock
 
         if (memoType === Memo_Invoice_creation.Packet) {
             allStock = await PacketDiamonds.findAll({
@@ -884,7 +884,7 @@ export const returnMemoStock = async (req: Request) => {
 
         for (let index = 0; index < stockData.length; index++) {
             const stockId = stockData[index];
-            const findStock = allStock.find((stock: any) => stock.dataValues.id == stockId)
+            const findStock = allStock.find(stock => stock.dataValues.id == stockId)
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
             } else {
@@ -945,54 +945,139 @@ export const returnMemoStock = async (req: Request) => {
                 transaction: trn
             })
 
-            const memoDetail = await MemoDetail.findAll({
-                where: {
-                    memo_id,
-                    is_deleted: DeleteStatus.No,
-                    is_return: DeleteStatus.No
-                },
-                transaction: trn,
-            })
-            const memoDetailCheck = memoDetail?.map((item) => {
-                const stock = allStock?.find((item: any) => item.dataValues?.id == item?.dataValues?.stock_id)
-                return {
-                    is_deleted: stock?.dataValues?.is_deleted,
-                    status: stock?.dataValues?.status
-                }
-            })
-            const memoDetailUpdate = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
-
-            if (memoDetailUpdate?.length === 0) {
-                await Memo.update({
-                    status: MEMO_STATUS.Close,
-                }, {
+            if (memoType === Memo_Invoice_creation.Single) {
+                const memoDetail = await MemoDetail.findAll({
                     where: {
-                        id: memo.dataValues.id
+                        memo_id,
+                        is_deleted: DeleteStatus.No,
+                        is_return: DeleteStatus.No
+                    },
+                    transaction: trn,
+                })
+                const allStock = await Diamonds.findAll({
+                    where: {
+                        is_deleted: DeleteStatus.No,
+                        status: StockStatus.MEMO
+                    }
+                })
+                const memoDetailCheck = memoDetail?.map((item) => {
+                    const stock = allStock?.find((s: any) => s.dataValues?.id == item?.dataValues?.stock_id)
+                    return {
+                        is_deleted: stock?.dataValues?.is_deleted,
+                        status: stock?.dataValues?.status
+                    }
+                })
+                if (memoDetailCheck?.length === 0) {
+                    await Memo.update({
+                        status: MEMO_STATUS.Close,
+                    }, {
+                        where: {
+                            id: memo.dataValues.id
+                        },
+                        transaction: trn
+                    })
+
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: Log_Type.MEMO,
+                        reference_id: memo_id,
+                        description: `Memo is closed with ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")}`
+                    }, {
+                        transaction: trn
+                    })
+                } else {
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: Log_Type.MEMO,
+                        reference_id: memo_id,
+                        description: `Stock ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")} return from memo`
+                    }, {
+                        transaction: trn
+                    })
+                }
+            } else {
+                let totalMemoWeight = 0;
+                let totalMemoItemPrice = 0;
+
+                const memoDetail = await MemoDetail.findAll({
+                    where: {
+                        memo_id,
+                        is_deleted: DeleteStatus.No,
+                        is_return: DeleteStatus.No
                     },
                     transaction: trn
                 })
 
-                await StockLogs.create({
-                    change_at: getLocalDate(),
-                    change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
-                    change_by_id: admin?.dataValues?.id,
-                    log_type: Log_Type.MEMO,
-                    reference_id: memo_id,
-                    description: `Memo is closed with ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")}`
+                const memoDetailUpdate: any = memoDetail?.map((item) => {
+                    const findStock = stockList?.find((stock: any) => stock?.id == item?.dataValues?.stock_id)
+
+                    if (findStock) {
+                        const updatedWeight = Number(item?.dataValues?.weight) - Number(findStock?.weight)
+                        totalMemoWeight += Number(findStock?.weight);
+                        totalMemoItemPrice += updatedWeight * Number(item?.dataValues?.stock_price)
+                    } else {
+                        totalMemoWeight += Number(item?.dataValues?.weight);
+                        totalMemoItemPrice += Number(item?.dataValues?.weight) * Number(item?.dataValues?.stock_price)
+                    }
+
+                    return {
+                        ...item.dataValues,
+                        weight: Number(item?.dataValues?.weight) - Number(findStock?.weight),
+                        quantity: Number(item?.dataValues?.quantity) - Number(findStock?.quantity)
+                    }
+                })
+
+                const totalMemoPrice = ((totalMemoItemPrice - Number(memo?.dataValues?.discount ?? 0)) + Number(memo?.dataValues?.shipping_charge ?? 0))
+
+                const memoStatus = (Number(memo?.dataValues?.total_weight) - totalMemoWeight) === 0 ? MEMO_STATUS.Close : MEMO_STATUS.Active
+
+
+                await Memo.update({
+                    total_item_price: totalMemoItemPrice,
+                    total_price: totalMemoPrice,
+                    total_weight: Number(memo?.dataValues?.total_weight) - totalMemoWeight,
+                    status: memoStatus
                 }, {
+                    where: {
+                        id: memo?.dataValues?.id
+                    }, transaction: trn
+                })
+
+                await MemoDetail.bulkCreate(memoDetailUpdate, {
+                    updateOnDuplicate: [
+                        "weight",
+                        "quantity"
+                    ],
                     transaction: trn
                 })
-            } else {
-                await StockLogs.create({
-                    change_at: getLocalDate(),
-                    change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
-                    change_by_id: admin?.dataValues?.id,
-                    log_type: Log_Type.MEMO,
-                    reference_id: memo_id,
-                    description: `Stock ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")} return from memo`
-                }, {
-                    transaction: trn
-                })
+
+                if (memoStatus === MEMO_STATUS.Close) {
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: Log_Type.MEMO,
+                        reference_id: memo_id,
+                        description: `Memo is closed with ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")}`
+                    }, {
+                        transaction: trn
+                    })
+                } else {
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: Log_Type.MEMO,
+                        reference_id: memo_id,
+                        description: `Stock ${stockList?.map((item: any) => memoType === Memo_Invoice_creation.Packet ? item?.packet_id : item?.stock_id)?.join(", ")} return from memo`
+                    }, {
+                        transaction: trn
+                    })
+                }
             }
 
             await trn.commit();
