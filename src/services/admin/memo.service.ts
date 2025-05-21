@@ -960,13 +960,11 @@ export const returnMemoStock = async (req: Request) => {
                         status: StockStatus.MEMO
                     }
                 })
-                const memoDetailCheck = memoDetail?.map((item) => {
-                    const stock = allStock?.find((s: any) => s.dataValues?.id == item?.dataValues?.stock_id)
-                    return {
-                        is_deleted: stock?.dataValues?.is_deleted,
-                        status: stock?.dataValues?.status
-                    }
+                const memoDetailCheck = allStock?.filter((item) => {
+                    const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
+                    return stock
                 })
+
                 if (memoDetailCheck?.length === 0) {
                     await Memo.update({
                         status: MEMO_STATUS.Close,

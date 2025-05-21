@@ -566,12 +566,9 @@ export const invoiceCreation = async (data: any) => {
                         },
                         transaction: trn
                     })
-                    const memoDetailCheck = memoDetail?.map((item) => {
-                        const stock = allStock?.find((s: any) => s.dataValues?.id == item?.dataValues?.stock_id)
-                        return {
-                            is_deleted: stock?.dataValues?.is_deleted,
-                            status: stock?.dataValues?.status
-                        }
+                    const memoDetailCheck = allStock?.map((item) => {
+                        const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
+                        return stock
                     })
 
                     if (memoDetailCheck?.length === 0) {
