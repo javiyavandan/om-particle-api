@@ -347,6 +347,7 @@ export const getAllApi = async (req: Request) => {
                             customer_name ILIKE '%${pagination.search_text}%'
                             OR api_key ILIKE '%${pagination.search_text}%'
                 END
+                    ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
             `,
             { type: QueryTypes.SELECT }
@@ -369,6 +370,7 @@ export const getAllApi = async (req: Request) => {
                             customer_name ILIKE '%${pagination.search_text}%'
                             OR api_key ILIKE '%${pagination.search_text}%'
                 END
+                    ${req.body.session_res.id_role != 0 ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
@@ -410,6 +412,42 @@ export const getApiDetails = async (req: Request) => {
 export const getStockListApiForCustomer = async (req: Request) => {
     try {
         const { api_key } = req.params
+        const { query } = req;
+        const {
+            shape,
+            color,
+            clarity,
+            color_intensity,
+            lab,
+            polish,
+            symmetry,
+            fluorescence,
+            min_weight,
+            max_weight,
+            min_rate,
+            max_rate,
+            min_measurement_height,
+            max_measurement_height,
+            min_measurement_width,
+            max_measurement_width,
+            min_measurement_depth,
+            max_measurement_depth,
+        }: any = query
+
+        const shapeValue = shape?.split(",")
+        const colorValue = color?.split(",")
+        const clarityValue = clarity?.split(",")
+        const colorIntensityValue = color_intensity?.split(",")
+        const labValue = lab?.split(",")
+        const polishValue = polish?.split(",")
+        const symmetryValue = symmetry?.split(",")
+        const fluorescenceValue = fluorescence?.split(",")
+
+        let pagination = {
+            ...getInitialPaginationFromQuery(query),
+            search_text: query.search_text ?? "0",
+        };
+        let noPagination = req.query.no_pagination === "1";
 
         const findApi = await Apis.findOne({
             where: {
@@ -429,21 +467,99 @@ export const getStockListApiForCustomer = async (req: Request) => {
             return `elem->>'${item}' AS ${item}`
         })
 
-        const apiData = await dbContext.query(
+        const ilikeAnyClause = (key: string, arr?: string[]) =>
+            arr?.length ? `AND elem->>'${key}' ILIKE ANY (ARRAY[:${key}]::text[])` : ''
+        const rangeClause = (key: string, min: any, max: any, min_key: string, max_key: string) => `
+            ${min && max ? `AND (elem->>'${key}')::NUMERIC BETWEEN :${min_key} AND :${max_key}` : ""}
+            ${min && !max ? `AND (elem->>'${key}')::NUMERIC >= :${min_key}` : ""}
+            ${!min && max ? `AND (elem->>'${key}')::NUMERIC <= :${max_key}` : ""}
+        `
+
+        const generatingFilter = () => `
+                    ${ilikeAnyClause("shape_name", shapeValue)}
+                    ${ilikeAnyClause("color_name", colorValue)}
+                    ${ilikeAnyClause("clarity_name", clarityValue)}
+                    ${ilikeAnyClause("color_intensity_name", colorIntensityValue)}
+                    ${ilikeAnyClause("lab_name", labValue)}
+                    ${ilikeAnyClause("polish_name", polishValue)}
+                    ${ilikeAnyClause("symmetry_name", symmetryValue)}
+                    ${ilikeAnyClause("fluorescence_name", fluorescenceValue)}
+                    ${rangeClause("weight", min_weight, max_weight, "min_weight", "max_weight")}
+                    ${rangeClause("rate", min_rate, max_rate, "min_rate", "max_rate")}
+                    ${rangeClause("measurement_height", min_measurement_height, max_measurement_height, "min_measurement_height", "max_measurement_height")}
+                    ${rangeClause("measurement_width", min_measurement_width, max_measurement_width, "min_measurement_width", "max_measurement_width")}
+                    ${rangeClause("measurement_depth", min_measurement_depth, max_measurement_depth, "min_measurement_depth", "max_measurement_depth")}
+        `
+
+        const replacements = {
+            id: findApi?.dataValues?.id,
+            shape: shapeValue?.map((s: any) => `%${s}%`) ?? [],
+            color: colorValue?.map((s: any) => `%${s}%`) ?? [],
+            clarity: clarityValue?.map((s: any) => `%${s}%`) ?? [],
+            color_intensity: colorIntensityValue?.map((s: any) => `%${s}%`) ?? [],
+            lab: labValue?.map((s: any) => `%${s}%`) ?? [],
+            polish: polishValue?.map((s: any) => `%${s}%`) ?? [],
+            symmetry: symmetryValue?.map((s: any) => `%${s}%`) ?? [],
+            fluorescence: fluorescenceValue?.map((s: any) => `%${s}%`) ?? [],
+            min_weight,
+            max_weight,
+            min_rate,
+            max_rate,
+            min_measurement_height,
+            max_measurement_height,
+            min_measurement_width,
+            max_measurement_width,
+            min_measurement_depth,
+            max_measurement_depth
+        }
+
+        const totalItems = await dbContext.query(
             `
                 SELECT
                     ${column?.map((item: string) => item)}
                 FROM api_list,
                         LATERAL json_array_elements(api_list.stock_details) AS elem
                 WHERE api_list.id = :id
+                    ${generatingFilter()}
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
             `,
             {
-                replacements: { id: findApi?.dataValues?.id },
+                replacements: replacements,
                 type: QueryTypes.SELECT
             }
         )
 
-        return resSuccess({ data: apiData })
+        if (!noPagination) {
+            if (totalItems.length === 0) {
+                return resSuccess({ data: { pagination, result: [] } });
+            }
+
+            pagination.total_items = totalItems.length;
+            pagination.total_pages = Math.ceil(totalItems.length / pagination.per_page_rows);
+        }
+
+        const result = await dbContext.query(
+            `
+                SELECT
+                    ${column?.map((item: string) => item)}
+                FROM api_list,
+                        LATERAL json_array_elements(api_list.stock_details) AS elem
+                WHERE api_list.id = :id
+                    ${generatingFilter()}
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
+                    OFFSET
+                      ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
+                      FETCH NEXT ${pagination.per_page_rows} ROWS ONLY
+            `,
+            {
+                replacements: replacements,
+                type: QueryTypes.SELECT
+            }
+        )
+
+        return resSuccess({
+            data: noPagination ? totalItems : { pagination, result }
+        })
 
     } catch (error) {
         throw error
