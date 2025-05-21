@@ -82,7 +82,16 @@ const AppUser = dbContext.define("app_users", {
   },
   company_id: {
     type: BIGINT,
-  }
+  },
+  memo_terms: {
+    type: STRING,
+  },
+  credit_terms: {
+    type: STRING,
+  },
+  limit: {
+    type: STRING,
+  },
 });
 
 AppUser.belongsTo(Company, { foreignKey: "company_id", as: "company" });

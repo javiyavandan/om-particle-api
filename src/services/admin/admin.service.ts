@@ -115,6 +115,9 @@ export const userList = async (req: Request) => {
         "phone_number",
         "is_verified",
         "is_active",
+        "memo_terms",
+        "credit_terms",
+        "limit",
         [Sequelize.literal(`customer.company_name`), "company_name"],
         [Sequelize.literal(`customer.country`), "country"],
         [Sequelize.literal(`customer.state`), "state"],
@@ -191,6 +194,9 @@ export const userDetail = async (req: Request) => {
             "is_active",
             "remarks",
             "id_pdf",
+            "memo_terms",
+            "credit_terms",
+            "limit",
             [
               Sequelize.literal(`CASE WHEN "user->image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "user->image"."image_path") ELSE NULL END`),
               "image_path",
@@ -395,7 +401,10 @@ export const updateUserDetail = async (req: Request) => {
       remarks,
       id_pdf,
       session_res,
-      registration_number
+      registration_number,
+      memo_terms,
+      credit_terms,
+      limit
     } = req.body;
     const { user_id } = req.params;
 
@@ -493,6 +502,9 @@ export const updateUserDetail = async (req: Request) => {
           modified_by: session_res.id,
           id_image: imageId,
           id_pdf: pdfId,
+          memo_terms,
+          credit_terms,
+          limit
         },
         {
           where: {
