@@ -16,7 +16,7 @@ import {
 
 export const registerUserValidationRule = [
   fieldStringChain("First Name", "first_name"),
-  fieldStringChain("Last Name", "last_name"),
+  fieldStringNotReqChain("Last Name", "last_name"),
   emailChain("Email", "email"),
   passwordChain,
   confirmPasswordChain,
@@ -25,7 +25,7 @@ export const registerUserValidationRule = [
 
 export const updateCustomerValidatorRules = [
   fieldStringChain("first name", "first_name"),
-  fieldStringChain("last name", "last_name"),
+  fieldStringNotReqChain("last name", "last_name"),
   fieldStringNotReqChain("company name", "company_name"),
   fieldStringNotReqChain("address", "address"),
   fieldStringNotReqChain("city", "city"),
@@ -88,7 +88,7 @@ export const resetPasswordValidatorRules = [
 
 export const updateUserAdminRules = [
   fieldStringChain("first name", "first_name"),
-  fieldStringChain("last name", "last_name"),
+  fieldStringNotReqChain("last name", "last_name"),
   fieldStringNotReqChain("company name", "company_name"),
   fieldStringNotReqChain("address", "address"),
   fieldStringNotReqChain("city", "city"),
