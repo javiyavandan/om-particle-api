@@ -1,5 +1,5 @@
 import { body } from "express-validator";
-import { fieldStringChain, phoneNumberChain } from "../common-validation-rules";
+import { fieldStringChain, fieldStringNotReqChain, phoneNumberChain } from "../common-validation-rules";
 import { prepareMessageFromParams } from "../../utils/shared-functions";
 import {
   INVALID_ERROR_MESSAGE,
@@ -8,7 +8,7 @@ import {
 
 export const addAddressRules = [
   fieldStringChain("First Name", "first_name"),
-  fieldStringChain("Last Name", "last_name"),
+  fieldStringNotReqChain("Last Name", "last_name"),
   phoneNumberChain("phone_number"),
   fieldStringChain("address", "address"),
   fieldStringChain("city", "city"),
