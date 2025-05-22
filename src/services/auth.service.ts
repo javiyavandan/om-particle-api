@@ -363,8 +363,8 @@ export const login = async (req: Request, res: Response) => {
         "credit_terms",
         "limit",
         [
-        Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
-        "image_path",
+          Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
+          "image_path",
         ],
         [Sequelize.literal(`"company->country"."name"`), "country_name"],
         [Sequelize.literal(`"company->country"."id"`), "country_id"],
@@ -631,7 +631,8 @@ export const resetPassword = async (req: Request) => {
 export const customerList = async () => {
   try {
     const customer = await Customer.findAll({
-      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode", "registration_number"],
+      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode", "registration_number", [Sequelize.literal(`"user"."first_name"`), "first_name"], [Sequelize.literal(`"user"."last_name"`), "last_name"],
+      ],
       include: [{
         model: AppUser,
         as: "user",
