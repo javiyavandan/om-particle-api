@@ -4,7 +4,7 @@ import {
   getInitialPaginationFromQuery,
   getLocalDate,
   prepareMessageFromParams,
-  refreshMaterializedDiamondListView,
+  refreshMaterializedViews,
   resBadRequest,
   resNotFound,
   resSuccess,
@@ -174,7 +174,7 @@ export const addMaster = async (req: Request) => {
         { transaction: trn }
       );
       await trn.commit();
-      await refreshMaterializedDiamondListView()
+      await refreshMaterializedViews()
 
       return resSuccess();
     } catch (e) {
@@ -349,7 +349,7 @@ export const updateMaster = async (req: Request) => {
       );
 
       await trn.commit();
-      await refreshMaterializedDiamondListView()
+      await refreshMaterializedViews()
 
       return resSuccess();
     } else {
@@ -551,7 +551,7 @@ export const masterStatusUpdate = async (req: Request) => {
           },
           { where: { id: MasterData.dataValues.id } }
         );
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: STATUS_UPDATED });
 
       case ActiveStatus.InActive:
@@ -563,7 +563,7 @@ export const masterStatusUpdate = async (req: Request) => {
           },
           { where: { id: MasterData.dataValues.id } }
         );
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: STATUS_UPDATED });
 
       default:
@@ -627,7 +627,7 @@ export const masterDelete = async (req: Request) => {
       }
     );
 
-    await refreshMaterializedDiamondListView()
+    await refreshMaterializedViews()
     return resSuccess({ message: RECORD_DELETED });
   } catch (error) {
     throw error;

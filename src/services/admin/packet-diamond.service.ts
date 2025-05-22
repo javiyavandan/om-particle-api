@@ -3,7 +3,7 @@ import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus 
 import PacketDiamonds from "../../model/packet-diamond.model"
 import Master from "../../model/masters.model"
 import Company from "../../model/companys.model"
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions"
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions"
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages"
 import { Op, QueryTypes } from "sequelize"
 import dbContext from "../../config/dbContext"
@@ -136,7 +136,7 @@ export const addPacket = async (req: Request) => {
             created_at: getLocalDate(),
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess()
     } catch (error) {
@@ -303,7 +303,7 @@ export const updatePacket = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess()
     } catch (error) {
@@ -339,7 +339,7 @@ export const deletePacket = async (req: Request) => {
                 id: findDiamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -371,7 +371,7 @@ export const updatePacketStatus = async (req: Request) => {
             },
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: RECORD_UPDATE })
 
     } catch (error) {

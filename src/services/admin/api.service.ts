@@ -2,7 +2,7 @@ import { Request } from "express"
 import Customer from "../../model/customer.modal"
 import AppUser from "../../model/app_user.model"
 import { ActiveStatus, DeleteStatus, Memo_Invoice_creation, StockStatus, UserVerification } from "../../utils/app-enumeration"
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedApiListView, resBadRequest, resErrorDataExit, resNotFound, resSuccess } from "../../utils/shared-functions"
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resErrorDataExit, resNotFound, resSuccess } from "../../utils/shared-functions"
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, STATUS_UPDATED } from "../../utils/app-messages"
 import { generateRandomKey, statusUpdateValue } from "../../helpers/helper"
 import dbContext from "../../config/dbContext"
@@ -126,7 +126,7 @@ export const createApi = async (req: Request) => {
         await ApiStockDetails.bulkCreate(detailList, { transaction: trn })
 
         await trn.commit();
-        await refreshMaterializedApiListView()
+        await refreshMaterializedViews()
         return resSuccess();
 
     } catch (error) {
@@ -250,7 +250,7 @@ export const updateApi = async (req: Request) => {
         })
 
         await trn.commit();
-        await refreshMaterializedApiListView()
+        await refreshMaterializedViews()
         return resSuccess();
 
     } catch (error) {
@@ -288,7 +288,7 @@ export const updateStatus = async (req: Request) => {
             }
         })
 
-        await refreshMaterializedApiListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: STATUS_UPDATED })
 
     } catch (error) {
@@ -322,7 +322,7 @@ export const deleteApi = async (req: Request) => {
                 id: api_id
             }
         })
-        await refreshMaterializedApiListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: RECORD_DELETED })
 
     } catch (error) {

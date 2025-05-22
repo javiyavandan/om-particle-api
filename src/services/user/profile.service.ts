@@ -11,7 +11,7 @@ import {
 import {
   getLocalDate,
   prepareMessageFromParams,
-  refreshMaterializedDiamondListView,
+  refreshMaterializedViews,
   resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
@@ -275,7 +275,7 @@ export const updateUserDetail = async (req: Request) => {
       );
 
       await trn.commit();
-      await refreshMaterializedDiamondListView();
+      await refreshMaterializedViews();
       return resSuccess({ message: STATUS_UPDATED });
     } catch (error) {
       await trn.rollback();
