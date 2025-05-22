@@ -313,7 +313,7 @@ export enum TransferStatus {
   Accepted = 'accepted',
   Rejected = 'rejected',
   Return = 'return',
-  Closed = 'closed',
+  Closed = 'close',
 }
 
 export enum TransferStockStatus {

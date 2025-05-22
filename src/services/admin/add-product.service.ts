@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus } from "../../utils/app-enumeration";
@@ -135,7 +135,8 @@ export const addStock = async (req: Request) => {
             created_at: getLocalDate(),
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -297,7 +298,8 @@ export const updateStock = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -333,7 +335,8 @@ export const deleteStock = async (req: Request) => {
                 id: findDiamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -582,7 +585,8 @@ export const updateStockStatus = async (req: Request) => {
             },
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
         return resSuccess({ message: RECORD_UPDATE })
 
     } catch (error) {

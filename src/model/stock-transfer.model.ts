@@ -1,9 +1,9 @@
-import { BIGINT, DATE, DOUBLE, STRING } from "sequelize";
+import { BIGINT, DATE, DOUBLE, JSON, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import AppUser from "./app_user.model";
 import Company from "./companys.model";
 
-const StockTransfer = dbContext.define("stock-transfer", {
+const StockTransfer = dbContext.define("stock_transfers", {
     id: {
         type: BIGINT,
         autoIncrement: true,
@@ -44,72 +44,25 @@ const StockTransfer = dbContext.define("stock-transfer", {
     close_by: {
         type: BIGINT,
     },
+    return_at: {
+        type: DATE,
+    },
+    return_by: {
+        type: BIGINT,
+    },
     duration: {
         type: STRING,
     },
     status: {
         type: STRING,
     },
-    delivery_challan_no: {
-        type: STRING,
+    consignment_details: {
+        type: JSON,
         allowNull: false,
     },
-    pre_carriage: {
-        type: STRING,
-        allowNull: false,
-    },
-    vessels_flight_no: {
-        type: STRING,
-        allowNull: false,
-    },
-    hsn_code: {
-        type: STRING,
-        allowNull: false,
-    },
-    description: {
-        type: STRING,
-        allowNull: false,
-    },
-    diamond_description: {
-        type: STRING,
-        allowNull: false,
-    },
-    consignment_remarks: {
-        type: STRING,
-        allowNull: false,
-    },
-    total_quantity: {
-        type: BIGINT,
-        allowNull: false,
-    },
-    total_amount: {
-        type: DOUBLE,
-        allowNull: false,
-    },
-    total_weight: {
-        type: DOUBLE,
-        allowNull: false,
-    },
-    average_amount: {
-        type: DOUBLE,
-        allowNull: false,
-    },
-    return_total_quantity: {
-        type: BIGINT,
-        allowNull: false,
-    },
-    return_total_amount: {
-        type: DOUBLE,
-        allowNull: false,
-    },
-    return_total_weight: {
-        type: DOUBLE,
-        allowNull: false,
-    },
-    return_average_amount: {
-        type: DOUBLE,
-        allowNull: false,
-    },
+    return_details: {
+        type: JSON,
+    }
 })
 
 StockTransfer.belongsTo(AppUser, { foreignKey: "accepted_by", as: "accepted" })

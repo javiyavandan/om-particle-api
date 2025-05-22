@@ -4,7 +4,7 @@ import {
   getInitialPaginationFromQuery,
   getLocalDate,
   prepareMessageFromParams,
-  refreshMaterializedDiamondListView,
+  refreshMaterializedViews,
   resNotFound,
   resSuccess,
 } from "../../utils/shared-functions";
@@ -274,7 +274,7 @@ export const userVerify = async (req: Request) => {
       if (status === UserVerification.Admin_Verified) {
         await mailUserVerified(mailPayload);
       }
-      await refreshMaterializedDiamondListView();
+      await refreshMaterializedViews();
       return resSuccess({
         message:
           status === UserVerification.User_Verified
@@ -314,7 +314,7 @@ export const updateUserStatus = async (req: Request) => {
       { where: { id: user.dataValues.id } }
     );
 
-    await refreshMaterializedDiamondListView();
+    await refreshMaterializedViews();
     return resSuccess({
       message: prepareMessageFromParams(UPDATE, [
         ["field_name", "User Status"],
@@ -539,7 +539,7 @@ export const updateUserDetail = async (req: Request) => {
       );
 
       await trn.commit();
-      await refreshMaterializedDiamondListView();
+      await refreshMaterializedViews();
       return resSuccess({ message: RECORD_UPDATE });
     } catch (error) {
       await trn.rollback();
