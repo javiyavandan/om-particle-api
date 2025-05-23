@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
 import { ActiveStatus, DeleteStatus, Discount_Type, Master_type, Memo_Invoice_Type, MEMO_STATUS, Memo_Invoice_creation, StockStatus, UserVerification, Log_Type } from "../../utils/app-enumeration";
-import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getCurrencyPrice, getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { CUSTOMER_NOT_VERIFIED, ERROR_NOT_FOUND, PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR } from "../../utils/app-messages";
 import dbContext from "../../config/dbContext";
 import Company from "../../model/companys.model";
@@ -569,7 +569,7 @@ export const memoCreation = async (data: any) => {
             await mailCustomerMemo(customerMail);
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
             return resSuccess()
         } catch (error) {
@@ -1079,7 +1079,7 @@ export const returnMemoStock = async (req: Request) => {
             }
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
             return resSuccess()
         } catch (error) {

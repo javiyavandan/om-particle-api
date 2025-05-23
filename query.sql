@@ -1821,9 +1821,25 @@ ALTER TABLE IF EXISTS public.app_users
     ADD COLUMN "limit" character varying;
 
 -------------------------------- Stock transfer -------------------------------------
-CREATE TYPE TRANSFER_TYPE AS ENUM('created', 'accepted', 'rejected', 'close');
+DROP TYPE IF EXISTS public.transfer_stock_status;
 
-CREATE TABLE IF NOT EXISTS public.stock_transfer
+CREATE TYPE public.transfer_stock_status AS ENUM
+    ('return', 'sold');
+
+ALTER TYPE public.transfer_stock_status
+    OWNER TO postgres;
+
+DROP TYPE IF EXISTS public.transfer_type;
+
+CREATE TYPE public.transfer_type AS ENUM
+    ('created', 'accepted', 'rejected', 'close', 'return');
+
+ALTER TYPE public.transfer_type
+    OWNER TO postgres;
+
+DROP TABLE IF EXISTS public.stock_transfers;
+
+CREATE TABLE IF NOT EXISTS public.stock_transfers
 (
     id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
     receiver bigint NOT NULL,
@@ -1838,17 +1854,10 @@ CREATE TABLE IF NOT EXISTS public.stock_transfer
     close_by bigint,
     duration character varying COLLATE pg_catalog."default",
     status transfer_type DEFAULT 'created'::transfer_type,
-    delivery_challan_no character varying COLLATE pg_catalog."default" NOT NULL,
-    pre_carriage character varying COLLATE pg_catalog."default" NOT NULL,
-    vessels_flight_no character varying COLLATE pg_catalog."default" NOT NULL,
-    hsn_code character varying COLLATE pg_catalog."default" NOT NULL,
-    description character varying COLLATE pg_catalog."default" NOT NULL,
-    diamond_description character varying COLLATE pg_catalog."default" NOT NULL,
-    consignment_remarks character varying COLLATE pg_catalog."default" NOT NULL,
-    total_quantity bigint NOT NULL,
-    total_amount double precision NOT NULL,
-    total_weight double precision NOT NULL,
-    average_amount double precision NOT NULL,
+    consignment_details json NOT NULL,
+    return_details json,
+    return_at timestamp with time zone,
+    return_by bigint,
     CONSTRAINT stock_transfer_pkey PRIMARY KEY (id),
     CONSTRAINT fk_accepted_by FOREIGN KEY (accepted_by)
         REFERENCES public.app_users (id) MATCH SIMPLE
@@ -1861,6 +1870,11 @@ CREATE TABLE IF NOT EXISTS public.stock_transfer
         ON DELETE NO ACTION
         NOT VALID,
     CONSTRAINT fk_created_by FOREIGN KEY (created_by)
+        REFERENCES public.app_users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT fk_reaturn FOREIGN KEY (return_by)
         REFERENCES public.app_users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
@@ -1884,10 +1898,10 @@ CREATE TABLE IF NOT EXISTS public.stock_transfer
 
 TABLESPACE pg_default;
 
-ALTER TABLE IF EXISTS public.stock_transfer
+ALTER TABLE IF EXISTS public.stock_transfers
     OWNER to postgres;
 
-CREATE TYPE TRANSFER_STOCK_STATUS AS ENUM('return', 'sold');
+DROP TABLE IF EXISTS public.transfer_details;
 
 CREATE TABLE IF NOT EXISTS public.transfer_details
 (
@@ -1903,7 +1917,7 @@ CREATE TABLE IF NOT EXISTS public.transfer_details
         ON UPDATE NO ACTION
         ON DELETE NO ACTION,
     CONSTRAINT fk_transfer_id FOREIGN KEY (transfer_id)
-        REFERENCES public.stock_transfer (id) MATCH SIMPLE
+        REFERENCES public.stock_transfers (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 )
@@ -1912,3 +1926,54 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.transfer_details
     OWNER to postgres;
+
+DROP MATERIALIZED VIEW IF EXISTS public.stock_transfer_list;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS public.stock_transfer_list
+TABLESPACE pg_default
+AS
+ SELECT st.id,
+    st.receiver,
+    st.sender,
+    st.created_at,
+    st.created_by,
+    st.accepted_at,
+    st.accepted_by,
+    st.rejected_at,
+    st.rejected_by,
+    st.close_at,
+    st.close_by,
+    st.duration,
+    st.status,
+    st.consignment_details,
+    st.return_details,
+    st.return_at,
+    st.return_by,
+    sc.name AS sender_name,
+    rc.name AS receiver_name,
+    (cu.first_name::text || ' '::text) || COALESCE(cu.last_name, ''::character varying)::text AS created_by_name,
+    (au.first_name::text || ' '::text) || COALESCE(au.last_name, ''::character varying)::text AS accepted_by_name,
+    (ru.first_name::text || ' '::text) || COALESCE(ru.last_name, ''::character varying)::text AS rejected_by_name,
+    (rtu.first_name::text || ' '::text) || COALESCE(rtu.last_name, ''::character varying)::text AS return_by_name,
+    (clu.first_name::text || ' '::text) || COALESCE(clu.last_name, ''::character varying)::text AS close_by_name,
+    json_agg(jsonb_build_object('id', td.id, 'transfer_stock_status', td.status, 'sender_price', td.sender_price, 'receiver_price', td.receiver_price, 'stock_id', d.stock_id, 'shape', sm.name, 'color', cm.name, 'weight', d.weight, 'clarity', cl.name, 'rate', d.rate, 'lab', lm.name, 'local_location', d.local_location, 'quantity', d.quantity, 'company', com.name, 'created_at', d.created_at)) AS transfer_details
+   FROM stock_transfers st
+     LEFT JOIN companys sc ON sc.id = st.sender
+     LEFT JOIN companys rc ON rc.id = st.receiver
+     LEFT JOIN app_users cu ON cu.id = st.created_by
+     LEFT JOIN app_users au ON au.id = st.accepted_by
+     LEFT JOIN app_users ru ON ru.id = st.rejected_by
+     LEFT JOIN app_users rtu ON rtu.id = st.return_by
+     LEFT JOIN app_users clu ON clu.id = st.close_by
+     JOIN transfer_details td ON td.transfer_id = st.id
+     JOIN diamonds d ON d.id = td.stock_id
+     LEFT JOIN masters sm ON sm.id = d.shape
+     LEFT JOIN masters cm ON cm.id = d.color
+     LEFT JOIN masters cl ON cl.id = d.clarity
+     LEFT JOIN masters lm ON lm.id = d.lab
+     LEFT JOIN companys com ON com.id = d.company_id
+  GROUP BY st.id, sc.name, rc.name, cu.first_name, cu.last_name, au.first_name, au.last_name, ru.first_name, ru.last_name, rtu.first_name, rtu.last_name, clu.first_name, clu.last_name
+WITH DATA;
+
+ALTER TABLE IF EXISTS public.stock_transfer_list
+    OWNER TO postgres;

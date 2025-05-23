@@ -6,7 +6,7 @@ import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from "../../utils/app-constants";
 import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus, Memo_Invoice_creation } from "../../utils/app-enumeration";
 import { FILE_NOT_FOUND, PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE, PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE, DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, INVALID_HEADER, REQUIRED_ERROR_MESSAGE } from "../../utils/app-messages";
-import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
+import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews } from "../../utils/shared-functions";
 import { Op } from "sequelize";
 import PacketDiamonds from "../../model/packet-diamond.model";
 import MemoDetail from "../../model/memo-detail.model";
@@ -313,7 +313,7 @@ const deleteGroupToDB = async (list: any) => {
         await PacketDiamonds.bulkCreate(list, {
             updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
         });
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess({ data: list });
     } catch (e) {

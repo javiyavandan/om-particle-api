@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages";
-import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
+import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery, refreshMaterializedViews } from "../../utils/shared-functions";
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import { Op, Sequelize } from "sequelize";
 import Company from "../../model/companys.model";
@@ -68,7 +68,7 @@ export const addCompany = async (req: Request) => {
             created_by: req.body.session_res.id,
         });
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess();
 
@@ -154,7 +154,7 @@ export const updateCompany = async (req: Request) => {
             }
         });
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ message: RECORD_UPDATE });
 
     } catch (error) {
@@ -204,7 +204,7 @@ export const deleteCompany = async (req: Request) => {
             })
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
             return resSuccess({ message: RECORD_DELETED });
 
         } catch (error) {
@@ -411,7 +411,7 @@ export const updateCompanyStatus = async (req: Request) => {
             })
 
             trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
             return resSuccess({ message: RECORD_UPDATE });
         } catch (error) {
             trn.rollback();

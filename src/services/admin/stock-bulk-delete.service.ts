@@ -10,7 +10,7 @@ import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from "../../utils/app-constants";
 import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus } from "../../utils/app-enumeration";
 import { FILE_NOT_FOUND, PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE, PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE, DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, INVALID_HEADER, REQUIRED_ERROR_MESSAGE } from "../../utils/app-messages";
-import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
+import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView } from "../../utils/shared-functions";
 import { Op } from "sequelize";
 const readXlsxFile = require("read-excel-file/node");
 
@@ -290,7 +290,8 @@ const deleteGroupToDB = async (list: any) => {
         await Diamonds.bulkCreate(list, {
             updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
         });
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
 
         return resSuccess({ data: list });
     } catch (e) {

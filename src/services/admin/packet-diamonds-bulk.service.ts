@@ -2,7 +2,7 @@ import { Request } from "express";
 import {
     getLocalDate,
     prepareMessageFromParams,
-    refreshMaterializedDiamondListView,
+    refreshMaterializedViews,
     resNotFound,
     resSuccess,
     resUnknownError,
@@ -213,9 +213,7 @@ const validateHeaders = async (headers: string[]) => {
         "report",
         "polish",
         "symmetry",
-        "measurement height",
-        "measurement width",
-        "measurement depth",
+        "measurement",
         "table %",
         "depth %",
         "ratio",
@@ -528,9 +526,15 @@ const getPacketFromRows = async (rows: any, idAppUser: any) => {
                     }
                 }
 
-                let measurement_height: any = row["measurement height"];
-                let measurement_width: any = row["measurement width"];
-                let measurement_depth: any = row["measurement depth"];
+                let measurement: any = row.measurement;
+                let measurement_height: any;
+                let measurement_width: any;
+                let measurement_depth: any;
+                if (measurement) {
+                    measurement_height = measurement?.split("x")[0];
+                    measurement_width = measurement?.split("x")[1];
+                    measurement_depth = measurement?.split("x")[2];
+                }
                 let table_per: any = row["table %"];
                 let depth_per: any = row["depth %"];
                 let ratio: any = row.ratio;
@@ -597,17 +601,17 @@ const getPacketFromRows = async (rows: any, idAppUser: any) => {
                         packet_id: row["packet #"],
                         shape,
                         quantity: quantity !=
-                        findPacket.dataValues.remain_quantity
-                        ? Number(findPacket.dataValues.quantity) +
-                        Number(quantity) -
-                        Number(findPacket.dataValues.remain_quantity)
+                            findPacket.dataValues.remain_quantity
+                            ? Number(findPacket.dataValues.quantity) +
+                            Number(quantity) -
+                            Number(findPacket.dataValues.remain_quantity)
                             : findPacket.dataValues.quantity,
                         remain_quantity: quantity,
                         weight: weight !=
-                        findPacket.dataValues.remain_weight
-                        ? Number(findPacket.dataValues.weight) +
-                        Number(weight) -
-                        Number(findPacket.dataValues.remain_weight)
+                            findPacket.dataValues.remain_weight
+                            ? Number(findPacket.dataValues.weight) +
+                            Number(weight) -
+                            Number(findPacket.dataValues.remain_weight)
                             : findPacket.dataValues.weight,
                         remain_weight: weight,
                         carat_rate,
@@ -751,7 +755,7 @@ const addGroupToDB = async (list: any) => {
             });
         }
         await trn.commit();
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess({ data: list });
     } catch (e) {
@@ -811,7 +815,7 @@ export const updateBulkPacketStatus = async (req: Request) => {
                 updateOnDuplicate: ["is_active", "modified_by", "modified_at"],
             })
         }
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess({ message: RECORD_UPDATE })
 
@@ -877,7 +881,7 @@ export const deleteBulkPacket = async (req: Request) => {
                 updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
             })
         }
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
 
         return resSuccess({ message: RECORD_DELETED })
 

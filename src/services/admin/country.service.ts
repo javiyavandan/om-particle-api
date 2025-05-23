@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Country from "../../model/country.model";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, RECORD_UPDATE } from "../../utils/app-messages";
-import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery, refreshMaterializedDiamondListView } from "../../utils/shared-functions";
+import { resBadRequest, prepareMessageFromParams, getLocalDate, resSuccess, resNotFound, getInitialPaginationFromQuery, refreshMaterializedViews } from "../../utils/shared-functions";
 import { ActiveStatus, DeleteStatus } from "../../utils/app-enumeration";
 import { Op } from "sequelize";
 
@@ -36,7 +36,7 @@ export const addCountry = async (req: Request) => {
         });
 
 
-        await refreshMaterializedDiamondListView();
+        await refreshMaterializedViews();
         return resSuccess();
 
     } catch (error) {
@@ -93,7 +93,7 @@ export const updateCountry = async (req: Request) => {
             }
         });
 
-        await refreshMaterializedDiamondListView();
+        await refreshMaterializedViews();
         return resSuccess({ message: RECORD_UPDATE });
 
     } catch (error) {
@@ -128,7 +128,7 @@ export const deleteCountry = async (req: Request) => {
         });
 
 
-        await refreshMaterializedDiamondListView();
+        await refreshMaterializedViews();
         return resSuccess({ message: RECORD_DELETED });
     } catch (error) {
         throw error;

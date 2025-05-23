@@ -4,7 +4,6 @@ export const createApiRules = [
     fieldIntegerChain("Company", "company_id"),
     fieldIntegerChain("Customer", "customer_id"),
     fieldUniqueValueArrayChain("Column", "column_array", 1),
-    fieldUniqueValueKeyArrayChain("Stock", "stock_list", 1, "stock_id"),
 ]
 
 export const updateApiRules = [

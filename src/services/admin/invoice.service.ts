@@ -8,7 +8,7 @@ import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
 import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type, Memo_Invoice_creation, Memo_Invoice_Type, Log_Type } from "../../utils/app-enumeration";
 import { ERROR_NOT_FOUND, PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
+import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedViews, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
@@ -731,7 +731,7 @@ export const invoiceCreation = async (data: any) => {
             await mailCustomerInvoice(customerMail);
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
             return resSuccess()
         } catch (error) {
@@ -819,7 +819,7 @@ export const closeInvoice = async (req: Request) => {
             })
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
             return resSuccess()
 

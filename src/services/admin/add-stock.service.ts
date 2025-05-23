@@ -1,12 +1,16 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedDiamondListView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
-import { ActiveStatus, DeleteStatus, Is_loose_diamond, Master_type, StockStatus } from "../../utils/app-enumeration";
+import { ActiveStatus, DeleteStatus, Is_loose_diamond, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
+import StockLogs from "../../model/stock-logs.model";
+import AppUser from "../../model/app_user.model";
+import Apis from "../../model/apis";
+import ApiStockDetails from "../../model/api-stock-details";
 
 export const addStock = async (req: Request) => {
     try {
@@ -135,7 +139,8 @@ export const addStock = async (req: Request) => {
             created_at: getLocalDate(),
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -297,7 +302,8 @@ export const updateStock = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -333,7 +339,8 @@ export const deleteStock = async (req: Request) => {
                 id: findDiamond.dataValues.id
             }
         })
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -379,10 +386,10 @@ export const getAllStock = async (req: Request) => {
         const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const customer = query.customer ? (query.customer as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const certified = query.certified ? query.certified === '1' ? true : false : "";
 
-        const totalItems = await dbContext.query(
-            `
-                SELECT
+        const sqlQuery = `
+            SELECT
                     *
                 FROM
                     diamond_list
@@ -412,6 +419,7 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
+                            ${certified === "" ? "" : certified ? `AND certificate is not null AND certificate != '' AND report is not null` : `AND certificate is null AND report is null`}
                             ${shapes ? `AND shape IN (${shapes})` : ""}
                             ${colors ? `AND color IN (${colors})` : ""}
                             ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
@@ -454,6 +462,11 @@ export const getAllStock = async (req: Request) => {
                 ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
                 : ""}
                     ORDER BY ${pagination.sort_by} ${pagination.order_by}
+        `
+
+        const totalItems = await dbContext.query(
+            `
+                ${sqlQuery}
                 `,
             { type: QueryTypes.SELECT }
         )
@@ -469,78 +482,7 @@ export const getAllStock = async (req: Request) => {
 
         const diamondList = await dbContext.query(
             `
-                SELECT
-                    *
-                FROM
-                    diamond_list
-                WHERE
-                CASE WHEN '${pagination.search_text}' = '0' THEN TRUE ELSE 
-                            shape_name ILIKE '%${pagination.search_text}%'
-                            OR clarity_name ILIKE '%${pagination.search_text}%'
-                            OR color_name ILIKE '%${pagination.search_text}%'
-                            OR color_intensity_name ILIKE '%${pagination.search_text}%'
-                            OR stock_id ILIKE '%${pagination.search_text}%'
-                            OR local_location ILIKE '%${pagination.search_text}%'
-                            OR user_comments ILIKE '%${pagination.search_text}%'
-                            OR admin_comments ILIKE '%${pagination.search_text}%'
-                            OR ratio ILIKE '%${pagination.search_text}%'
-                            OR customer_name ILIKE '%${pagination.search_text}%'
-                            OR lab_name ILIKE '%${pagination.search_text}%'
-                            OR company_name ILIKE '%${pagination.search_text}%'
-                            OR first_name ILIKE '%${pagination.search_text}%'
-                            OR last_name ILIKE '%${pagination.search_text}%'
-                            OR CAST(quantity AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(weight AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(rate AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(report AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(table_value AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(depth_value AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(measurement_height AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
-                            OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
-                        END
-                            ${shapes ? `AND shape IN (${shapes})` : ""}
-                            ${colors ? `AND color IN (${colors})` : ""}
-                            ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
-                            ${clarity ? `AND clarity IN (${clarity})` : ""}
-                            ${polish ? `AND polish IN (${polish})` : ""}
-                            ${symmetry ? `AND symmetry IN (${symmetry})` : ""}
-                            ${labs ? `AND lab IN (${labs})` : ""}
-                            ${fluorescence ? `AND fluorescence IN (${fluorescence})` : ""}
-                            ${customer ? `AND customer_id IN (${customer})` : ""}
-                            ${req.body.session_res.id_role != 0 && query.stock_search !== "1" ? `AND company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND company_id = ${query.company}` : ""}`}
-                            ${query.status ? `AND status = '${query.status}' ` : ""}
-                            ${query.min_rate && query.max_rate ? `AND rate BETWEEN ${query.min_rate} AND ${query.max_rate}` : ""}
-                            ${query.min_rate && !query.max_rate ? `AND rate >= ${query.min_rate}` : ""}
-                            ${!query.min_rate && query.max_rate ? `AND rate <= ${query.max_rate}` : ""}
-                            ${query.min_weight && query.max_weight ? `AND weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
-                            ${query.min_weight && !query.max_weight ? `AND weight >= ${query.min_weight}` : ""}
-                            ${!query.min_weight && query.max_weight ? `AND weight <= ${query.max_weight}` : ""}
-                            ${query.min_depth_value && query.max_depth_value ? `AND depth_value BETWEEN ${query.min_depth_value} AND ${query.max_depth_value}` : ""}
-                            ${query.min_depth_value && !query.max_depth_value ? `AND depth_value >= ${query.min_depth_value}` : ""}
-                            ${!query.min_depth_value && query.max_depth_value ? `AND depth_value <= ${query.max_depth_value}` : ""}
-                            ${query.min_table_value && query.max_table_value ? `AND table_value BETWEEN ${query.min_table_value} AND ${query.max_table_value}` : ""}
-                            ${query.min_table_value && !query.max_table_value ? `AND table_value >= ${query.min_table_value}` : ""}
-                            ${!query.min_table_value && query.max_table_value ? `AND table_value <= ${query.max_table_value}` : ""}
-                            ${query.min_measurement_height && query.max_measurement_height ? `AND measurement_height BETWEEN ${query.min_measurement_height} AND ${query.max_measurement_height}` : ""}
-                            ${query.min_measurement_height && !query.max_measurement_height ? `AND measurement_height >= ${query.min_measurement_height}` : ""}
-                            ${!query.min_measurement_height && query.max_measurement_height ? `AND measurement_height <= ${query.max_measurement_height}` : ""}
-                            ${query.min_measurement_width && query.max_measurement_width ? `AND measurement_width BETWEEN ${query.min_measurement_width} AND ${query.max_measurement_width}` : ""}
-                            ${query.min_measurement_width && !query.max_measurement_width ? `AND measurement_width >= ${query.min_measurement_width}` : ""}
-                            ${!query.min_measurement_width && query.max_measurement_width ? `AND measurement_width <= ${query.max_measurement_width}` : ""}
-                            ${query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth BETWEEN ${query.min_measurement_depth} AND ${query.max_measurement_depth}` : ""}
-                            ${query.min_measurement_depth && !query.max_measurement_depth ? `AND measurement_depth >= ${query.min_measurement_depth}` : ""}
-                            ${!query.min_measurement_depth && query.max_measurement_depth ? `AND measurement_depth <= ${query.max_measurement_depth}` : ""}
-                            ${query.start_date && query.end_date
-                ? `AND created_at BETWEEN '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0, 0)).toISOString()}' AND '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                : ""}
-                              ${query.start_date && !query.end_date
-                ? `AND created_at >= '${new Date(new Date(query.start_date as string).setUTCHours(0, 0, 0)).toISOString()}'`
-                : ""}
-                              ${!query.start_date && query.end_date
-                ? `AND created_at <= '${new Date(new Date(query.end_date as string).setUTCHours(23, 59, 59, 999)).toISOString()}'`
-                : ""}
-                    ORDER BY ${pagination.sort_by} ${pagination.order_by}
+               ${sqlQuery}
                     OFFSET
                       ${(pagination.current_page - 1) * pagination.per_page_rows} ROWS
                       FETCH NEXT ${pagination.per_page_rows} ROWS ONLY
@@ -582,8 +524,176 @@ export const updateStockStatus = async (req: Request) => {
             },
         })
 
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
         return resSuccess({ message: RECORD_UPDATE })
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const TransferStockByCompany = async (req: Request) => {
+    let trn;
+    try {
+        const { company_id } = req.params;
+        const { stock_list, sender_id, session_res } = req.body;
+        const stockError: string[] = [];
+        const stockArray: any[] = [];
+
+        const findCompany = await Company.findOne({
+            where: {
+                id: company_id,
+                is_deleted: DeleteStatus.No,
+            },
+        })
+
+        if (!(findCompany && findCompany.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Company"]])
+            })
+        }
+
+        if (!Boolean(session_res?.company_id)) {
+            if (!Boolean(sender_id)) {
+                return resBadRequest({
+                    message: "Sender id is required"
+                })
+            }
+        }
+
+        if (sender_id) {
+            const findSender = await Company.findOne({
+                where: {
+                    id: sender_id,
+                    is_deleted: DeleteStatus.No,
+                },
+            })
+
+            if (!(findSender && findSender.dataValues)) {
+                return resNotFound({
+                    message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Sender"]])
+                })
+            }
+        }
+
+        const allStock = await Diamonds.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                status: StockStatus.AVAILABLE,
+                company_id: session_res.company_id ? session_res.company_id : sender_id
+            }
+        })
+
+        for (let i = 0; i < stock_list.length; i++) {
+            const stock = stock_list[i];
+            const findStock = allStock.find((data) => {
+                return data.dataValues.stock_id === stock
+            })
+
+            if (!(findStock && findStock?.dataValues)) {
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `Stock ${stock}`]]))
+                continue;
+            } else {
+                stockArray.push({
+                    ...findStock.dataValues,
+                    company_id: findCompany.dataValues.id,
+                })
+            }
+        }
+
+        if (stockError.length > 0) {
+            return resBadRequest({
+                data: stockError
+            })
+        }
+
+        const admin = await AppUser.findOne({
+            where: {
+                id: session_res?.id,
+                is_deleted: DeleteStatus.No,
+            },
+        })
+
+        trn = await dbContext.transaction();
+
+        await Diamonds.bulkCreate(stockArray, {
+            updateOnDuplicate: ["company_id"],
+            transaction: trn
+        });
+
+        const findApi = await Apis.findAll({
+            where: {
+                company_id: findCompany.dataValues.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            transaction: trn
+        })
+
+        if (findApi?.length > 0) {
+            let apiDetail: any[] = [];
+            for (let i = 0; i < findApi.length; i++) {
+                const api = findApi[i];
+                apiDetail = apiDetail.concat(stockArray?.map((item) => {
+                    return {
+                        stock_id: item?.id,
+                        api_id: api?.dataValues?.id,
+                        price: item?.rate
+                    }
+                }))
+            }
+            await ApiStockDetails.bulkCreate(apiDetail, { transaction: trn })
+        }
+
+        const findSenderApi = await Apis.findAll({
+            where: {
+                company_id: session_res.company_id ? session_res.company_id : sender_id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            transaction: trn
+        })
+
+        if (findSenderApi?.length > 0) {
+            const apiDetail = await ApiStockDetails.findAll({
+                transaction: trn
+            })
+            let stockIds = [];
+            let apiIds = [];
+            for (let i = 0; i < findSenderApi.length; i++) {
+                const api = findSenderApi[i];
+                const apiStockList = apiDetail?.filter((item) => stockArray?.find((stock) => stock?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+                stockIds?.push(...apiStockList?.map((item) => item?.dataValues?.stock_id))
+                apiIds?.push(api?.dataValues?.id)
+            }
+
+            await ApiStockDetails.destroy({
+                where: {
+                    stock_id: {
+                        [Op.in]: stockIds
+                    },
+                    api_id: {
+                        [Op.in]: apiIds
+                    }
+                },
+                transaction: trn
+            })
+        }
+
+        await StockLogs.create({
+            change_at: getLocalDate(),
+            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+            change_by_id: admin?.dataValues?.id,
+            reference_id: findCompany.dataValues.id,
+            description: `Stock transfer to ${findCompany.dataValues.name} and stock is ${stock_list?.join(", ")}`,
+            log_type: Log_Type.StockTransfer
+        })
+
+        await trn.commit();
+        await refreshMaterializedViews()
+        await refreshStockTransferMaterializedView()
+        return resSuccess({ message: `Stock transfer successfully to ${findCompany.dataValues.name}` })
 
     } catch (error) {
         throw error

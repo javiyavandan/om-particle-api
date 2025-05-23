@@ -170,8 +170,6 @@ export const registerUser = async (req: Request, res: Response) => {
           { transaction: trn }
         );
         pdfId = fileResult.map((item) => item.dataValues.id);
-      } else {
-        return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Document is required"]]) })
       }
 
 
