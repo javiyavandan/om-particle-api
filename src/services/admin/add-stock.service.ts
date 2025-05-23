@@ -386,7 +386,7 @@ export const getAllStock = async (req: Request) => {
         const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const customer = query.customer ? (query.customer as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
-        const certified = query.certified ? query.certified === '1' ? true : false : false;
+        const certified = query.certified ? query.certified === '1' ? true : false : "";
 
         const sqlQuery = `
             SELECT
@@ -419,7 +419,7 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
-                            ${certified ? `AND certificate is not null AND certificate != '' AND lab is not null` : ""}
+                            ${certified === "" ? "" : certified ? `AND certificate is not null AND certificate != '' AND report is not null` : `AND certificate is null AND report is null`}
                             ${shapes ? `AND shape IN (${shapes})` : ""}
                             ${colors ? `AND color IN (${colors})` : ""}
                             ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
@@ -561,7 +561,7 @@ export const TransferStockByCompany = async (req: Request) => {
                 })
             }
         }
-        
+
         if (sender_id) {
             const findSender = await Company.findOne({
                 where: {

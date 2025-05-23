@@ -105,7 +105,7 @@ export const createApi = async (req: Request) => {
                         { [Op.ne]: '' }
                     ]
                 },
-                lab: {
+                report: {
                     [Op.ne]: null
                 }
             },
@@ -169,7 +169,7 @@ export const updateApi = async (req: Request) => {
                         { [Op.ne]: '' }
                     ]
                 },
-                lab: {
+                report: {
                     [Op.ne]: null
                 }
             },
