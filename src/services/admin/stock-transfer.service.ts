@@ -7,7 +7,9 @@ import Diamonds from "../../model/diamond.model";
 import dbContext from "../../config/dbContext";
 import StockTransfer from "../../model/stock-transfer.model";
 import TransferDetails from "../../model/transfer-details.model";
-import { QueryTypes } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
+import Apis from "../../model/apis";
+import ApiStockDetails from "../../model/api-stock-details";
 
 export const CreateTransferRequest = async (req: Request) => {
     let trn;
@@ -71,7 +73,7 @@ export const CreateTransferRequest = async (req: Request) => {
             const stock = stock_list[i];
             const findStock = allStock?.find((item) => item.dataValues?.stock_id === stock?.stock_id)
             if (!(findStock && findStock?.dataValues)) {
-                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stock} Stock`]]))
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stock?.stock_id} Stock`]]))
 
                 continue;
             } else {
@@ -244,6 +246,65 @@ export const AcceptStockTransferRequest = async (req: Request) => {
             transaction: trn
         })
 
+        const findApi = await Apis.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active,
+                company_id: transfer.dataValues.receiver
+            },
+            transaction: trn
+        })
+
+        const findSenderApi = await Apis.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active,
+                company_id: transfer.dataValues.sender
+            },
+            transaction: trn
+        })
+
+        if (findSenderApi?.length > 0) {
+            const apiDetail = await ApiStockDetails.findAll({
+                transaction: trn
+            })
+            let stockIds = [];
+            let apiIds = [];
+            for (let i = 0; i < findSenderApi.length; i++) {
+                const api = findSenderApi[i];
+                const apiStockList = apiDetail?.filter((item) => stockUpdateArray?.find((stock) => stock?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+                stockIds?.push(...apiStockList?.map((item) => item?.dataValues?.stock_id))
+                apiIds?.push(api?.dataValues?.id)
+            }
+
+            await ApiStockDetails.destroy({
+                where: {
+                    stock_id: {
+                        [Op.in]: stockIds
+                    },
+                    api_id: {
+                        [Op.in]: apiIds
+                    }
+                },
+                transaction: trn
+            })
+        }
+
+        if (findApi?.length > 0) {
+            let apiDetail: any[] = [];
+            for (let i = 0; i < findApi.length; i++) {
+                const api = findApi[i];
+                apiDetail = apiDetail.concat(stockUpdateArray?.map((item) => {
+                    return {
+                        stock_id: item?.id,
+                        api_id: api?.dataValues?.id,
+                        price: item?.rate
+                    }
+                }))
+            }
+            await ApiStockDetails.bulkCreate(apiDetail, { transaction: trn })
+        }
+
         await trn.commit();
         await refreshMaterializedViews()
         await refreshStockTransferMaterializedView()
@@ -375,7 +436,6 @@ export const ReturnStockTransferRequest = async (req: Request) => {
         let returnTotalWeight = 0;
         let returnTotalQuantity = 0;
         let returnTotalPrice = 0;
-
         const transfer = await StockTransfer.findOne({
             where: {
                 id: transfer_id,
@@ -604,6 +664,66 @@ export const CloseTransferRequest = async (req: Request) => {
             transaction: trn
         })
 
+        
+        const findApi = await Apis.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active,
+                company_id: transfer.dataValues.sender
+            },
+            transaction: trn
+        })
+
+        const findSenderApi = await Apis.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active,
+                company_id: transfer.dataValues.receiver
+            },
+            transaction: trn
+        })
+
+        if (findSenderApi?.length > 0) {
+            const apiDetail = await ApiStockDetails.findAll({
+                transaction: trn
+            })
+            let stockIds = [];
+            let apiIds = [];
+            for (let i = 0; i < findSenderApi.length; i++) {
+                const api = findSenderApi[i];
+                const apiStockList = apiDetail?.filter((item) => stockUpdateArray?.find((stock) => stock?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+                stockIds?.push(...apiStockList?.map((item) => item?.dataValues?.stock_id))
+                apiIds?.push(api?.dataValues?.id)
+            }
+
+            await ApiStockDetails.destroy({
+                where: {
+                    stock_id: {
+                        [Op.in]: stockIds
+                    },
+                    api_id: {
+                        [Op.in]: apiIds
+                    }
+                },
+                transaction: trn
+            })
+        }
+
+        if (findApi?.length > 0) {
+            let apiDetail: any[] = [];
+            for (let i = 0; i < findApi.length; i++) {
+                const api = findApi[i];
+                apiDetail = apiDetail.concat(stockUpdateArray?.map((item) => {
+                    return {
+                        stock_id: item?.id,
+                        api_id: api?.dataValues?.id,
+                        price: item?.rate
+                    }
+                }))
+            }
+            await ApiStockDetails.bulkCreate(apiDetail, { transaction: trn })
+        }
+
         await trn.commit();
         await refreshMaterializedViews()
         await refreshStockTransferMaterializedView()
@@ -693,7 +813,7 @@ export const GetTransferRequestById = async (req: Request) => {
         const result = await dbContext.query(`
                 SELECT * FROM stock_transfer_list WHERE id = ${transfer_id}
             `,
-            {type: QueryTypes.SELECT}
+            { type: QueryTypes.SELECT }
         )
 
         if (!result[0]) {
