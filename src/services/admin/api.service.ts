@@ -17,7 +17,7 @@ import { invoiceCreation } from "./invoice.service"
 export const createApi = async (req: Request) => {
     let trn;
     try {
-        const { customer_id, column_array, stock_list, company_id, session_res } = req.body
+        const { customer_id, column_array, company_id, session_res } = req.body
         const stockError: string[] = [];
         const detailList = [];
 
@@ -99,28 +99,26 @@ export const createApi = async (req: Request) => {
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
                 status: StockStatus.AVAILABLE,
+                certificate: {
+                    [Op.and]: [
+                        { [Op.ne]: null },
+                        { [Op.ne]: '' }
+                    ]
+                },
+                lab: {
+                    [Op.ne]: null
+                }
             },
-            attributes: ["stock_id", "company_id", "is_deleted", "is_active", "status", "id"]
+            attributes: ["stock_id", "company_id", "is_deleted", "is_active", "status", "id", "rate"]
         })
 
-        for (let i = 0; i < stock_list.length; i++) {
-            const stock: {
-                stock_id: string,
-                price: number
-            } = stock_list[i];
-
-            const findStock = stockList.find((item) => item.dataValues?.stock_id === stock.stock_id)
-
-            if (!(findStock && findStock.dataValues)) {
-                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stock.stock_id} Stock`]]))
-                continue;
-            } else {
-                detailList.push({
-                    stock_id: findStock?.dataValues?.id,
-                    price: stock.price,
-                    api_id: apiCreation.dataValues.id
-                })
-            }
+        for (let i = 0; i < stockList.length; i++) {
+            const findStock = stockList[i];
+            detailList.push({
+                stock_id: findStock?.dataValues?.id,
+                price: findStock.dataValues.rate,
+                api_id: apiCreation.dataValues.id
+            })
         }
 
         await ApiStockDetails.bulkCreate(detailList, { transaction: trn })
@@ -165,6 +163,15 @@ export const updateApi = async (req: Request) => {
                 company_id: findApi.dataValues?.company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
+                certificate: {
+                    [Op.and]: [
+                        { [Op.ne]: null },
+                        { [Op.ne]: '' }
+                    ]
+                },
+                lab: {
+                    [Op.ne]: null
+                }
             },
             attributes: ["stock_id", "company_id", "is_deleted", "is_active", "status", "id"]
         })
@@ -559,6 +566,62 @@ export const getStockListApiForCustomer = async (req: Request) => {
 
         return resSuccess({
             data: noPagination ? totalItems : { pagination, result }
+        })
+
+    } catch (error) {
+        throw error
+    }
+}
+
+export const getStockDetailApiForCustomer = async (req: Request) => {
+    try {
+        const { api_key, stock_id } = req.params
+
+        const findApi = await Apis.findOne({
+            where: {
+                api_key,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            }
+        })
+
+        if (!(findApi && findApi.dataValues)) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Api"]])
+            })
+        }
+
+        const column = findApi?.dataValues?.column_array?.map((item: string) => {
+            return `elem->>'${item}' AS ${item}`
+        })
+
+        const result = await dbContext.query(
+            `
+                SELECT
+                    ${column?.map((item: string) => item)}
+                FROM api_list,
+                        LATERAL json_array_elements(api_list.stock_details) AS elem
+                WHERE api_list.id = :id
+                    AND elem->>'stock_id' = :stock_id
+            `,
+            {
+                replacements: {
+                    id: findApi?.dataValues?.id,
+                    stock_id
+                },
+                type: QueryTypes.SELECT
+            }
+        )
+
+        if (result.length === 0) {
+            return resNotFound({
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]])
+            })
+
+        }
+
+        return resSuccess({
+            data: result[0]
         })
 
     } catch (error) {

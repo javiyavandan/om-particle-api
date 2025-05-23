@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import { callServiceMethod } from "../base.controller";
-import { checkStockStatusApi, createApi, deleteApi, getAllApi, getApiDetails, getStockListApiForCustomer, updateApi, updateStatus, updateStockStatusFromCustomer } from "../../services/admin/api.service";
+import { checkStockStatusApi, createApi, deleteApi, getAllApi, getApiDetails, getStockDetailApiForCustomer, getStockListApiForCustomer, updateApi, updateStatus, updateStockStatusFromCustomer } from "../../services/admin/api.service";
 
 export const createApiFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, createApi(req), "createApiFn")
@@ -28,6 +28,10 @@ export const getApiDetailsFn: RequestHandler = (req, res) => {
 
 export const getStockListApiForCustomerFn: RequestHandler = (req, res) => {
     callServiceMethod(req, res, getStockListApiForCustomer(req), "getStockListApiForCustomerFn")
+}
+
+export const getStockDetailApiForCustomerFn: RequestHandler = (req, res) => {
+    callServiceMethod(req, res, getStockDetailApiForCustomer(req), "getStockDetailApiForCustomerFn")
 }
 
 export const checkStockStatusApiFn: RequestHandler = (req, res) => {

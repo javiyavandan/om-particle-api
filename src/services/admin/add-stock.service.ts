@@ -9,6 +9,8 @@ import { Op, QueryTypes, Sequelize } from "sequelize";
 import dbContext from "../../config/dbContext";
 import StockLogs from "../../model/stock-logs.model";
 import AppUser from "../../model/app_user.model";
+import Apis from "../../model/apis";
+import ApiStockDetails from "../../model/api-stock-details";
 
 export const addStock = async (req: Request) => {
     try {
@@ -384,6 +386,7 @@ export const getAllStock = async (req: Request) => {
         const labs = query.lab ? (query.lab as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const customer = query.customer ? (query.customer as string).split(",").map(id => `${id.trim()}`).join(",") : "";
         const fluorescence = query.fluorescence ? (query.fluorescence as string).split(",").map(id => `${id.trim()}`).join(",") : "";
+        const certified = query.certified ? query.certified === '1' ? true : false : false;
 
         const sqlQuery = `
             SELECT
@@ -416,6 +419,7 @@ export const getAllStock = async (req: Request) => {
                             OR CAST(measurement_width AS TEXT) ILIKE '%${pagination.search_text}%'
                             OR CAST(measurement_depth AS TEXT) ILIKE '%${pagination.search_text}%'
                         END
+                            ${certified ? `AND certificate is not null AND certificate != '' AND lab is not null` : ""}
                             ${shapes ? `AND shape IN (${shapes})` : ""}
                             ${colors ? `AND color IN (${colors})` : ""}
                             ${color_intensity ? `AND color_intensity IN (${color_intensity})` : ""}
@@ -534,8 +538,8 @@ export const TransferStockByCompany = async (req: Request) => {
     try {
         const { company_id } = req.params;
         const { stock_list, sender_id, session_res } = req.body;
-        const stockError = [];
-        const stockArray = [];
+        const stockError: string[] = [];
+        const stockArray: any[] = [];
 
         const findCompany = await Company.findOne({
             where: {
@@ -617,6 +621,65 @@ export const TransferStockByCompany = async (req: Request) => {
             updateOnDuplicate: ["company_id"],
             transaction: trn
         });
+
+        const findApi = await Apis.findAll({
+            where: {
+                company_id: findCompany.dataValues.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            transaction: trn
+        })
+
+        if (findApi?.length > 0) {
+            let apiDetail: any[] = [];
+            for (let i = 0; i < findApi.length; i++) {
+                const api = findApi[i];
+                apiDetail = apiDetail.concat(stockArray?.map((item) => {
+                    return {
+                        stock_id: item?.id,
+                        api_id: api?.dataValues?.id,
+                        price: item?.rate
+                    }
+                }))
+            }
+            await ApiStockDetails.bulkCreate(apiDetail, { transaction: trn })
+        }
+
+        const findSenderApi = await Apis.findAll({
+            where: {
+                company_id: session_res.company_id ? session_res.company_id : sender_id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            transaction: trn
+        })
+
+        if (findSenderApi?.length > 0) {
+            const apiDetail = await ApiStockDetails.findAll({
+                transaction: trn
+            })
+            let stockIds = [];
+            let apiIds = [];
+            for (let i = 0; i < findSenderApi.length; i++) {
+                const api = findSenderApi[i];
+                const apiStockList = apiDetail?.filter((item) => stockArray?.find((stock) => stock?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+                stockIds?.push(...apiStockList?.map((item) => item?.dataValues?.stock_id))
+                apiIds?.push(api?.dataValues?.id)
+            }
+
+            await ApiStockDetails.destroy({
+                where: {
+                    stock_id: {
+                        [Op.in]: stockIds
+                    },
+                    api_id: {
+                        [Op.in]: apiIds
+                    }
+                },
+                transaction: trn
+            })
+        }
 
         await StockLogs.create({
             change_at: getLocalDate(),
