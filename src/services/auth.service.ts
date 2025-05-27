@@ -629,7 +629,21 @@ export const resetPassword = async (req: Request) => {
 export const customerList = async () => {
   try {
     const customer = await Customer.findAll({
-      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode", "registration_number", [Sequelize.literal(`"user"."first_name"`), "first_name"], [Sequelize.literal(`"user"."last_name"`), "last_name"],
+      attributes: [
+        "id",
+        "company_name",
+        "company_website",
+        "company_email",
+        "address",
+        "city",
+        "state",
+        "country",
+        "postcode",
+        "registration_number",
+        [Sequelize.literal(`"user"."first_name"`), "first_name"],
+        [Sequelize.literal(`"user"."last_name"`), "last_name"],
+        [Sequelize.literal(`"user"."phone_number"`), "phone_number"],
+        [Sequelize.literal(`"user"."email"`), "email"],
       ],
       include: [{
         model: AppUser,
