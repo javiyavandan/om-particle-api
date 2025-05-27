@@ -733,7 +733,9 @@ export const invoiceCreation = async (data: any) => {
             await trn.commit();
             await refreshMaterializedViews()
 
-            return resSuccess()
+            return resSuccess({
+                 data: invoiceId
+            })
         } catch (error) {
             console.log(error)
             await trn.rollback();
