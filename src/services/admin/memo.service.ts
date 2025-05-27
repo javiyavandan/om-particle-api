@@ -571,7 +571,9 @@ export const memoCreation = async (data: any) => {
             await trn.commit();
             await refreshMaterializedViews()
 
-            return resSuccess()
+            return resSuccess({
+                 data: memoId
+            })
         } catch (error) {
             await trn.rollback();
             throw error
