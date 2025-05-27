@@ -644,6 +644,7 @@ export const customerList = async () => {
         [Sequelize.literal(`"user"."last_name"`), "last_name"],
         [Sequelize.literal(`"user"."phone_number"`), "phone_number"],
         [Sequelize.literal(`"user"."email"`), "email"],
+        [Sequelize.literal(`"user"."id"`), "user_id"],
       ],
       include: [{
         model: AppUser,
