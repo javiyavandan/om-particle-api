@@ -1,7 +1,7 @@
 import { Request } from "express"
 import Customer from "../../model/customer.modal"
 import AppUser from "../../model/app_user.model"
-import { ActiveStatus, DeleteStatus, Memo_Invoice_creation, StockStatus, UserVerification } from "../../utils/app-enumeration"
+import { ActiveStatus, APiStockStatus, DeleteStatus, Memo_Invoice_creation, StockStatus, UserVerification } from "../../utils/app-enumeration"
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resErrorDataExit, resNotFound, resSuccess } from "../../utils/shared-functions"
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_DELETED, STATUS_UPDATED } from "../../utils/app-messages"
 import { generateRandomKey, statusUpdateValue } from "../../helpers/helper"
@@ -18,7 +18,6 @@ export const createApi = async (req: Request) => {
     let trn;
     try {
         const { customer_id, column_array, company_id, session_res } = req.body
-        const stockError: string[] = [];
         const detailList = [];
 
         const findCustomer = await Customer.findOne({
@@ -117,7 +116,8 @@ export const createApi = async (req: Request) => {
             detailList.push({
                 stock_id: findStock?.dataValues?.id,
                 price: findStock.dataValues.rate,
-                api_id: apiCreation.dataValues.id
+                api_id: apiCreation.dataValues.id,
+                status: APiStockStatus.SELECTED
             })
         }
 
@@ -204,7 +204,8 @@ export const updateApi = async (req: Request) => {
                     detailList.push({
                         stock_id: findStock?.dataValues?.id,
                         price: stock.price,
-                        api_id: findApi.dataValues.id
+                        api_id: findApi.dataValues.id,
+                        status: APiStockStatus.SELECTED
                     })
                 }
             }
@@ -218,7 +219,10 @@ export const updateApi = async (req: Request) => {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${remove} Stock`]]) + "from remove list")
                 continue;
             } else {
-                removeStock.push(apiDetail?.dataValues?.id)
+                removeStock.push({
+                    ...apiDetail?.dataValues,
+                    status: APiStockStatus.UNSELECTED
+                })
             }
         }
 
@@ -247,13 +251,11 @@ export const updateApi = async (req: Request) => {
             })
         }
 
-        await ApiStockDetails.destroy({
-            where: {
-                id: {
-                    [Op.in]: removeStock
-                }
-            },
-            transaction: trn
+        await ApiStockDetails.bulkCreate(removeStock, {
+            transaction: trn,
+            updateOnDuplicate: [
+                "status",
+            ],
         })
 
         await trn.commit();
