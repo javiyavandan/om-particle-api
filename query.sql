@@ -1977,3 +1977,21 @@ WITH DATA;
 
 ALTER TABLE IF EXISTS public.stock_transfer_list
     OWNER TO postgres;
+
+    ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN company_website DROP NOT NULL;
+
+ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN address DROP NOT NULL;
+
+ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN city DROP NOT NULL;
+
+ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN state DROP NOT NULL;
+
+ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN country DROP NOT NULL;
+
+ALTER TABLE IF EXISTS public.customers
+    ALTER COLUMN postcode DROP NOT NULL;
