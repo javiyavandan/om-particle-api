@@ -1995,3 +1995,150 @@ ALTER TABLE IF EXISTS public.customers
 
 ALTER TABLE IF EXISTS public.customers
     ALTER COLUMN postcode DROP NOT NULL;
+
+----------------------------- Add status column in api_stock_details -----------------------------
+
+CREATE TYPE api_stock_status AS ENUM(
+	'selected',
+	'un_selected'
+);
+
+ALTER TABLE IF EXISTS api_stock_details
+    ADD COLUMN status api_stock_status DEFAULT 'selected'::api_stock_status;
+
+DROP MATERIALIZED VIEW IF EXISTS PUBLIC.API_LIST;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS PUBLIC.API_LIST TABLESPACE PG_DEFAULT AS
+SELECT
+	AP.ID,
+	AP.CUSTOMER_ID,
+	AP.API_KEY,
+	AP.COLUMN_ARRAY,
+	AP.IS_ACTIVE,
+	AP.CREATED_AT,
+	AP.CREATED_BY,
+	AP.MODIFIED_AT,
+	AP.MODIFIED_BY,
+	AP.IS_DELETED,
+	AP.DELETED_AT,
+	AP.DELETED_BY,
+	AP.COMPANY_ID,
+	ACOM.NAME AS COMPANY_NAME,
+	ACUM.COMPANY_NAME AS CUSTOMER_NAME,
+	JSON_AGG(
+		JSONB_BUILD_OBJECT(
+			'id',
+			ASD.ID,
+			'rate',
+			ASD.PRICE,
+			'default_rate',
+			DS.RATE,
+			'stock',
+			DS.ID,
+			'stock_id',
+			DS.STOCK_ID,
+			'shape',
+			DS.SHAPE,
+			'shape_name',
+			SM.NAME,
+			'quantity',
+			DS.QUANTITY,
+			'weight',
+			DS.WEIGHT,
+			'color',
+			DS.COLOR,
+			'color_name',
+			CM.NAME,
+			'color_intensity',
+			DS.COLOR_INTENSITY,
+			'color_intensity_name',
+			CIM.NAME,
+			'clarity',
+			DS.CLARITY,
+			'clarity_name',
+			CL.NAME,
+			'video',
+			DS.VIDEO,
+			'image',
+			DS.IMAGE,
+			'certificate',
+			DS.CERTIFICATE,
+			'lab',
+			DS.LAB,
+			'lab_name',
+			LM.NAME,
+			'report',
+			DS.REPORT,
+			'polish',
+			DS.POLISH,
+			'polish_name',
+			PM.NAME,
+			'symmetry',
+			DS.SYMMETRY,
+			'symmetry_name',
+			SM.NAME,
+			'table_value',
+			DS.TABLE_VALUE,
+			'depth_value',
+			DS.DEPTH_VALUE,
+			'ratio',
+			DS.RATIO,
+			'company_id',
+			DS.COMPANY_ID,
+			'company_name',
+			COM.NAME,
+			'user_comments',
+			DS.USER_COMMENTS,
+			'created_at',
+			DS.CREATED_AT,
+			'created_by',
+			DS.CREATED_BY,
+			'is_active',
+			DS.IS_ACTIVE,
+			'fluorescence',
+			DS.FLUORESCENCE,
+			'fluorescence_name',
+			FM.NAME,
+			'admin_comments',
+			DS.ADMIN_COMMENTS,
+			'measurement_height',
+			DS.MEASUREMENT_HEIGHT,
+			'measurement_width',
+			DS.MEASUREMENT_WIDTH,
+			'measurement_depth',
+			DS.MEASUREMENT_DEPTH,
+			'local_location',
+			DS.LOCAL_LOCATION,
+			'status',
+			DS.STATUS,
+			'color_over_tone',
+			DS.COLOR_OVER_TONE,
+			'api_stock_status',
+			ASD.STATUS
+		)
+	) AS STOCK_DETAILS
+FROM
+	APIS AP
+	JOIN COMPANYS ACOM ON ACOM.ID = AP.COMPANY_ID
+	JOIN CUSTOMERS ACUM ON ACUM.ID = AP.CUSTOMER_ID
+	JOIN API_STOCK_DETAILS ASD ON ASD.API_ID = AP.ID
+	JOIN DIAMONDS DS ON DS.ID = ASD.STOCK_ID
+	LEFT JOIN MASTERS SM ON SM.ID = DS.SHAPE
+	LEFT JOIN MASTERS CM ON CM.ID = DS.COLOR
+	LEFT JOIN MASTERS CL ON CL.ID = DS.CLARITY
+	LEFT JOIN MASTERS CIM ON CIM.ID = DS.COLOR_INTENSITY
+	LEFT JOIN MASTERS LM ON LM.ID = DS.LAB
+	LEFT JOIN MASTERS PM ON PM.ID = DS.POLISH
+	LEFT JOIN MASTERS SYMM ON SYMM.ID = DS.SYMMETRY
+	LEFT JOIN COMPANYS COM ON COM.ID = DS.COMPANY_ID
+	LEFT JOIN MASTERS FM ON FM.ID = DS.FLUORESCENCE
+WHERE
+	AP.IS_DELETED = '0'::"bit"
+GROUP BY
+	AP.ID,
+	ACUM.COMPANY_NAME,
+	ACOM.NAME
+WITH
+	DATA;
+
+ALTER TABLE IF EXISTS PUBLIC.API_LIST OWNER TO POSTGRES;
