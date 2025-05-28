@@ -2,7 +2,6 @@ import { checkObjectNotRequired, fieldIntegerChain, fieldUniqueValueKeyArrayChai
 
 export const addStockTransferRules = [
     fieldIntegerChain("Receiver", "receiver"),
-    fieldIntegerChain("Sender", "sender"),
     checkObjectNotRequired("consignment_details", [
         "delivery_challan_no",
         "pre_carriage",
