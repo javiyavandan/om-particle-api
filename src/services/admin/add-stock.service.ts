@@ -3,9 +3,9 @@ import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
-import { ActiveStatus, DeleteStatus, Is_loose_diamond, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
+import { ActiveStatus, APiStockStatus, DeleteStatus, Is_loose_diamond, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
-import { Op, QueryTypes, Sequelize } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
 import StockLogs from "../../model/stock-logs.model";
 import AppUser from "../../model/app_user.model";
@@ -13,6 +13,7 @@ import Apis from "../../model/apis";
 import ApiStockDetails from "../../model/api-stock-details";
 
 export const addStock = async (req: Request) => {
+    let trn;
     try {
         const {
             stock_id,
@@ -102,7 +103,9 @@ export const addStock = async (req: Request) => {
             })
         }
 
-        await Diamonds.create({
+        trn = await dbContext.transaction();
+
+        const diamond = await Diamonds.create({
             stock_id: stock_id,
             status: status,
             is_active: ActiveStatus.Active,
@@ -137,18 +140,51 @@ export const addStock = async (req: Request) => {
             loose_diamond: loose_diamond ?? Is_loose_diamond.No,
             created_by: session_res.id,
             created_at: getLocalDate(),
+        }, {
+            transaction: trn
         })
 
+        if (diamond?.dataValues?.certificate && diamond?.dataValues?.report) {
+            const findApi = await Apis.findAll({
+                where: {
+                    is_deleted: DeleteStatus.No,
+                    company_id: diamond?.dataValues?.company_id
+                }
+            })
+            const apiDetail = [];
+
+            if (findApi?.length > 0) {
+                for (let i = 0; i < findApi.length; i++) {
+                    const apiData = findApi[i];
+                    apiDetail.push({
+                        api_id: apiData?.dataValues?.id,
+                        diamond_id: diamond?.dataValues?.id,
+                        price: diamond?.dataValues?.rate,
+                        status: APiStockStatus.SELECTED,
+                    })
+                }
+            }
+
+            await ApiStockDetails.bulkCreate(apiDetail, {
+                transaction: trn
+            });
+        }
+
+        await trn.commit();
         await refreshMaterializedViews()
         await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw error;
     }
 }
 
 export const updateStock = async (req: Request) => {
+    let trn;
     try {
         const {
             stock_id,
@@ -258,6 +294,8 @@ export const updateStock = async (req: Request) => {
             });
         }
 
+        trn = await dbContext.transaction();
+
         await Diamonds.update({
             stock_id: stock_id,
             available: available,
@@ -302,11 +340,56 @@ export const updateStock = async (req: Request) => {
                 id: diamond.dataValues.id
             }
         })
+
+        if (certificate && report) {
+            const findApi = await Apis.findAll({
+                where: {
+                    is_deleted: DeleteStatus.No,
+                    company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                },
+                include: [
+                    {
+                        model: ApiStockDetails,
+                        as: "api_detail",
+                        where: {
+                            stock_id: diamond_id
+                        }
+                    }
+                ]
+            })
+
+            const apiDetail = [];
+
+            if (findApi.length > 0) {
+                for (let i = 0; i < findApi.length; i++) {
+                    const apiData = findApi[i];
+                    if (apiData?.dataValues?.api_detail?.length === 0) {
+                        apiDetail.push({
+                            api_id: apiData?.dataValues?.id,
+                            stock_id: diamond_id,
+                            price: rate,
+                            status: APiStockStatus.SELECTED
+                        })
+                    }
+                }
+            }
+
+            if (apiDetail.length > 0) {
+                await ApiStockDetails.bulkCreate(apiDetail, {
+                    transaction: trn
+                })
+            }
+        }
+
+        await trn.commit()
         await refreshMaterializedViews()
         await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw error;
     }
 }
@@ -617,7 +700,7 @@ export const TransferStockByCompany = async (req: Request) => {
 
         trn = await dbContext.transaction();
 
-        await Diamonds.bulkCreate(stockArray, {
+        const stocks = await Diamonds.bulkCreate(stockArray, {
             updateOnDuplicate: ["company_id"],
             transaction: trn
         });
@@ -635,11 +718,11 @@ export const TransferStockByCompany = async (req: Request) => {
             let apiDetail: any[] = [];
             for (let i = 0; i < findApi.length; i++) {
                 const api = findApi[i];
-                apiDetail = apiDetail.concat(stockArray?.map((item) => {
+                apiDetail = apiDetail.concat(stocks?.filter((item) => item?.dataValues?.certificate !== null && item?.dataValues?.certificate !== "" && item?.dataValues?.report !== null)?.map((item) => {
                     return {
-                        stock_id: item?.id,
+                        stock_id: item?.dataValues?.id,
                         api_id: api?.dataValues?.id,
-                        price: item?.rate
+                        price: item?.dataValues?.rate
                     }
                 }))
             }
@@ -663,8 +746,10 @@ export const TransferStockByCompany = async (req: Request) => {
             let apiIds = [];
             for (let i = 0; i < findSenderApi.length; i++) {
                 const api = findSenderApi[i];
-                const apiStockList = apiDetail?.filter((item) => stockArray?.find((stock) => stock?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+                const apiStockList = apiDetail?.filter((item) => stocks?.find((stock) => stock?.dataValues?.id === item?.dataValues?.stock_id) && item?.dataValues?.api_id === api?.dataValues?.id)
+
                 stockIds?.push(...apiStockList?.map((item) => item?.dataValues?.stock_id))
+
                 apiIds?.push(api?.dataValues?.id)
             }
 

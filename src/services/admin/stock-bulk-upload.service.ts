@@ -30,6 +30,7 @@ import { PRODUCT_CSV_FOLDER_PATH } from "../../config/env.var";
 import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import {
     ActiveStatus,
+    APiStockStatus,
     DeleteStatus,
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
@@ -43,6 +44,8 @@ import dbContext from "../../config/dbContext";
 import Diamonds from "../../model/diamond.model";
 import Company from "../../model/companys.model";
 import { Op } from "sequelize";
+import Apis from "../../model/apis";
+import ApiStockDetails from "../../model/api-stock-details";
 const readXlsxFile = require("read-excel-file/node");
 
 export const addStockCSVFile = async (req: Request) => {
@@ -443,7 +446,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let quantity: any = row.quantity ?? 1;
 
-                
+
                 let weight: any = row["weight"];
 
                 let rate: any = row.rate;
@@ -601,8 +604,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     } else {
                         fluorescence = null;
                     }
-
-
                 }
 
                 let company: any = getIdFromName(
@@ -642,17 +643,16 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     (t: any) => t.dataValues.stock_id == row["stock #"]
                 );
 
-
                 if (findStock && findStock !== undefined && findStock != null) {
                     updatedStockList.push({
                         id: findStock.dataValues.id,
                         stock_id: row["stock #"],
                         shape,
                         quantity: quantity !=
-                        findStock.dataValues.remain_quantity
-                        ? Number(findStock.dataValues.quantity) +
-                        Number(quantity) -
-                        Number(findStock.dataValues.remain_quantity)
+                            findStock.dataValues.remain_quantity
+                            ? Number(findStock.dataValues.quantity) +
+                            Number(quantity) -
+                            Number(findStock.dataValues.remain_quantity)
                             : findStock.dataValues.quantity,
                         remain_quantity: quantity,
                         weight,
@@ -750,10 +750,41 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 const addGroupToDB = async (list: any) => {
     const trn = await dbContext.transaction();
     try {
+        const api = await Apis.findAll({
+            where: {
+                is_deleted: DeleteStatus.No,
+            },
+            include: [
+                {
+                    model: ApiStockDetails,
+                    as: "api_detail"
+                }
+            ]
+        })
+
+        let apiDetail = [];
+
         if (list.create.length > 0) {
-            await Diamonds.bulkCreate(list.create, {
+            const create = await Diamonds.bulkCreate(list.create, {
                 transaction: trn,
             });
+            for (let i = 0; i < create.length; i++) {
+                const stock = create[i];
+                if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null) {
+                    const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
+                    if (findApi?.length > 0) {
+                        for (let j = 0; j < findApi.length; j++) {
+                            const apiData = findApi[j];
+                            apiDetail.push({
+                                api_id: apiData?.dataValues?.id,
+                                stock_id: stock?.dataValues?.id,
+                                price: stock?.dataValues?.rate,
+                                status: APiStockStatus.SELECTED
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         if (list.update.length > 0) {
@@ -793,7 +824,33 @@ const addGroupToDB = async (list: any) => {
                     "remain_quantity",
                 ],
             });
+
+            for (let i = 0; i < list.update.length; i++) {
+                const stock = list.update[i];
+                const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
+                if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null && findApi?.length > 0) {
+                    for (let j = 0; j < findApi.length; j++) {
+                        const apiData = findApi[j];
+                        const apiDetailList = apiData?.dataValues?.api_detail?.some((item: any) => item.stock_id === stock?.dataValues?.id);
+                        if (!apiDetailList) {
+                            apiDetail.push({
+                                api_id: apiData?.dataValues?.id,
+                                stock_id: stock?.dataValues?.id,
+                                price: stock?.dataValues?.rate,
+                                status: APiStockStatus.SELECTED
+                            });
+                        }
+                    }
+                }
+            }
         }
+
+        if (apiDetail?.length > 0) {
+            await ApiStockDetails.bulkCreate(apiDetail, {
+                transaction: trn,
+            });
+        }
+        
         await trn.commit();
         await refreshMaterializedViews()
         await refreshStockTransferMaterializedView()
