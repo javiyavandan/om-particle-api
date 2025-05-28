@@ -15,17 +15,23 @@ export const CreateTransferRequest = async (req: Request) => {
     let trn;
     try {
         const {
+            session_res,
             receiver,
-            sender,
+            sender = session_res?.company_id,
             consignment_details,
             stock_list,
-            session_res
         } = req.body
         const stockArray: any = [];
         const stockError = [];
         let totalWeight = 0;
         let totalQuantity = 0;
         let totalPrice = 0;
+
+        if (!sender) {
+            return resBadRequest({
+                message: "Sender is required"
+            })
+        }
 
         if (receiver == sender) {
             return resBadRequest({
