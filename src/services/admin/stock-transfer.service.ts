@@ -15,17 +15,23 @@ export const CreateTransferRequest = async (req: Request) => {
     let trn;
     try {
         const {
+            session_res,
             receiver,
-            sender,
+            sender = session_res?.company_id,
             consignment_details,
             stock_list,
-            session_res
         } = req.body
         const stockArray: any = [];
         const stockError = [];
         let totalWeight = 0;
         let totalQuantity = 0;
         let totalPrice = 0;
+
+        if (!sender) {
+            return resBadRequest({
+                message: "Sender is required"
+            })
+        }
 
         if (receiver == sender) {
             return resBadRequest({
@@ -523,6 +529,18 @@ export const ReturnStockTransferRequest = async (req: Request) => {
             }
         }
 
+        const transferDetailStockIds = transferDetails?.map((item: any) => item.dataValues?.stock_id);
+        const remainStock: any[] = stockArray?.filter((item) => !transferDetailStockIds?.includes(item?.stock_id));
+        if (remainStock?.length > 0) {
+            for (let j = 0; j < remainStock.length; j++) {
+                const stock = remainStock[j];
+                stockArray.push({
+                    ...stock,
+                    status: TransferStockStatus.Sold
+                })
+            }
+        }
+
         const returnAverageAmount = returnTotalPrice / returnTotalWeight;
 
         if (stockError.length > 0) {
@@ -664,7 +682,7 @@ export const CloseTransferRequest = async (req: Request) => {
             transaction: trn
         })
 
-        
+
         const findApi = await Apis.findAll({
             where: {
                 is_deleted: DeleteStatus.No,

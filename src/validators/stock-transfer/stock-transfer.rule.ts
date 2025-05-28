@@ -1,9 +1,8 @@
-import { checkObject, fieldIntegerChain, fieldUniqueValueKeyArrayChain } from "../common-validation-rules";
+import { checkObjectNotRequired, fieldIntegerChain, fieldUniqueValueKeyArrayChain } from "../common-validation-rules";
 
 export const addStockTransferRules = [
     fieldIntegerChain("Receiver", "receiver"),
-    fieldIntegerChain("Sender", "sender"),
-    checkObject("consignment_details", [
+    checkObjectNotRequired("consignment_details", [
         "delivery_challan_no",
         "pre_carriage",
         "vessels_flight_no",
@@ -16,7 +15,7 @@ export const addStockTransferRules = [
 ]
 
 export const returnStockTransferRules = [
-    checkObject("consignment_details", [
+    checkObjectNotRequired("consignment_details", [
         "delivery_challan_no",
         "pre_carriage",
         "vessels_flight_no",

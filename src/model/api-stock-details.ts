@@ -1,4 +1,4 @@
-import { BIGINT, DOUBLE } from "sequelize";
+import { BIGINT, DOUBLE, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import Diamonds from "./diamond.model";
 import Apis from "./apis";
@@ -21,6 +21,9 @@ const ApiStockDetails = dbContext.define("api_stock_details", {
     api_id: {
         type: BIGINT,
         allowNull: false
+    },
+    status: {
+        type: STRING,
     }
 })
 

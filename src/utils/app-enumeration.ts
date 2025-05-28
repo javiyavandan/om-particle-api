@@ -321,3 +321,8 @@ export enum TransferStockStatus {
   Return = 'return',
   Sold = 'sold',
 }
+
+export enum APiStockStatus {
+  SELECTED = "selected",
+  UNSELECTED = "un_selected",
+}
