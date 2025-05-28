@@ -401,3 +401,21 @@ export const checkObject = (field: string, keyArray: string[]) =>
       }
       return true;
     })
+
+export const checkObjectNotRequired = (field: string, keyArray: string[]) =>
+  body(field)
+    .optional()
+    .isObject()
+    .withMessage(`${field} must be an object`)
+    .custom((value) => {
+      const requiredFields = keyArray;
+      for (const field of requiredFields) {
+        if (
+          typeof value[field] !== "string" ||
+          value[field].trim().length === 0
+        ) {
+          throw new Error(`${field} is required and must be a non-empty string`);
+        }
+      }
+      return true;
+    })

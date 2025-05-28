@@ -523,6 +523,18 @@ export const ReturnStockTransferRequest = async (req: Request) => {
             }
         }
 
+        const transferDetailStockIds = transferDetails?.map((item: any) => item.dataValues?.stock_id);
+        const remainStock: any[] = stockArray?.filter((item) => !transferDetailStockIds?.includes(item?.stock_id));
+        if (remainStock?.length > 0) {
+            for (let j = 0; j < remainStock.length; j++) {
+                const stock = remainStock[j];
+                stockArray.push({
+                    ...stock,
+                    status: TransferStockStatus.Sold
+                })
+            }
+        }
+
         const returnAverageAmount = returnTotalPrice / returnTotalWeight;
 
         if (stockError.length > 0) {
@@ -664,7 +676,7 @@ export const CloseTransferRequest = async (req: Request) => {
             transaction: trn
         })
 
-        
+
         const findApi = await Apis.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
