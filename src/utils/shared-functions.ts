@@ -229,13 +229,21 @@ export const getMethodFromRequest = (method: string) => {
   }
 };
 
-export const refreshMaterializedDiamondListView = async () => {
+export const refreshMaterializedViews = async () => {
   try {
-    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list;");
+    return await dbContext.query("REFRESH MATERIALIZED VIEW diamond_list; REFRESH MATERIALIZED VIEW memo_list;  REFRESH MATERIALIZED VIEW invoice_list; REFRESH MATERIALIZED VIEW packet_diamond_list; REFRESH MATERIALIZED VIEW api_list;");
   } catch (error) {
     throw error;
   }
 };
+
+export const refreshStockTransferMaterializedView = async () => {
+  try {
+    return await dbContext.query("REFRESH MATERIALIZED VIEW stock_transfer_list;");
+  } catch (error) {
+    throw error;
+  }
+}
 
 const getDateString = (date: Date) => date.toISOString().slice(0, 10);
 

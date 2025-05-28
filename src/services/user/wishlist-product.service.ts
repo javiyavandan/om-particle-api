@@ -5,7 +5,7 @@ import {
   getCurrencyPrice,
   getLocalDate,
   prepareMessageFromParams,
-  refreshMaterializedDiamondListView,
+  refreshMaterializedViews,
   resBadRequest,
   resNotFound,
   resSuccess,
@@ -171,7 +171,7 @@ export const wishlistProduct = async (req: Request) => {
       });
 
       await trn.commit();
-      await refreshMaterializedDiamondListView()
+      await refreshMaterializedViews()
       return resSuccess({ data: { count } });
     } catch (error) {
       await trn.rollback();
@@ -205,7 +205,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         await trn.commit();
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         await trn.rollback();
@@ -246,7 +246,7 @@ export const deleteWishlist = async (req: Request) => {
         });
 
         await trn.commit();
-        await refreshMaterializedDiamondListView()
+        await refreshMaterializedViews()
         return resSuccess({ data: { count }, message: RECORD_DELETED });
       } catch (error) {
         await trn.rollback();
@@ -271,7 +271,7 @@ export const deleteWishlist = async (req: Request) => {
     });
     const count = await Wishlist.count({ where: { user_id: user_id } });
 
-    await refreshMaterializedDiamondListView()
+    await refreshMaterializedViews()
     return resSuccess({ data: { count }, message: RECORD_DELETED });
   } catch (error) {
     throw error;

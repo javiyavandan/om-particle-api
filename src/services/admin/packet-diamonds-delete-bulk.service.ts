@@ -1,20 +1,19 @@
 import { Request } from "express";
-import dbContext from "../../config/dbContext";
 import { PRODUCT_CSV_FOLDER_PATH } from "../../config/env.var";
 import { TResponseReturn } from "../../data/interfaces/common/common.interface";
 import { moveFileToLocation } from "../../helpers/file-helper";
-import Company from "../../model/companys.model";
-import Diamonds from "../../model/diamond.model";
-import Master from "../../model/masters.model";
 import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from "../../utils/app-constants";
-import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus } from "../../utils/app-enumeration";
+import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus, Memo_Invoice_creation } from "../../utils/app-enumeration";
 import { FILE_NOT_FOUND, PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE, PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE, DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, INVALID_HEADER, REQUIRED_ERROR_MESSAGE } from "../../utils/app-messages";
-import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView } from "../../utils/shared-functions";
+import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews } from "../../utils/shared-functions";
 import { Op } from "sequelize";
+import PacketDiamonds from "../../model/packet-diamond.model";
+import MemoDetail from "../../model/memo-detail.model";
+import Memo from "../../model/memo.model";
 const readXlsxFile = require("read-excel-file/node");
 
-export const deleteStockCSVFile = async (req: Request) => {
+export const deletePacketCSVFile = async (req: Request) => {
     try {
         if (!req.file) {
             return resUnprocessableEntity({
@@ -53,7 +52,7 @@ export const deleteStockCSVFile = async (req: Request) => {
             created_date: getLocalDate(),
         });
 
-        const resPDBUF = await processStockBulkUploadFile(
+        const resPDBUF = await processPacketBulkUploadFile(
             resPBUF.dataValues.id,
             resMFTL.data,
             req.body.session_res.id
@@ -79,7 +78,7 @@ const parseError = (error: any) => {
     return errorDetail;
 };
 
-const processStockBulkUploadFile = async (
+const processPacketBulkUploadFile = async (
     id: number,
     path: string,
     idAppUser: number
@@ -142,7 +141,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
         //     });
         //   }
 
-        const resProducts = await getStockFromRows(
+        const resProducts = await getPacketFromRows(
             resRows.data.results,
             idAppUser
         );
@@ -181,7 +180,7 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
                     //Data
                     rows.forEach((row: any) => {
                         let data = {
-                            "stock #": row[0],
+                            "packet #": row[0],
                         };
 
                         batchSize++;
@@ -201,7 +200,7 @@ const getArrayOfRowsFromCSVFile = async (path: string) => {
 
 const validateHeaders = async (headers: string[]) => {
     const STOCK_BULK_UPLOAD_HEADERS = [
-        "stock #",
+        "packet #",
     ];
 
     let errors: {
@@ -228,43 +227,67 @@ const validateHeaders = async (headers: string[]) => {
     return resSuccess();
 };
 
-const getStockFromRows = async (rows: any, idAppUser: any) => {
+const getPacketFromRows = async (rows: any, idAppUser: any) => {
     let currentGroupIndex = -1;
     try {
         let errors: {
             row_id: number;
             error_message: string;
         }[] = [];
-        const stockList = await Diamonds.findAll({
+        const packetList = await PacketDiamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
-                status: {
-                    [Op.ne]: StockStatus.MEMO
-                }
             },
         });
 
-        let deleteStockList = [];
+        const memoDetailList = await MemoDetail.findAll({
+            where: [
+                {
+                    is_return: DeleteStatus.No,
+                },
+                {
+                    weight: { [Op.ne]: 0 }
+                },
+                {
+                    quantity: { [Op.ne]: 0 }
+                },
+            ],
+            include: [
+                {
+                    model: Memo,
+                    as: "memo",
+                    where: {
+                        creation_type: Memo_Invoice_creation.Packet
+                    },
+                    attributes: []
+                }
+            ]
+        })
+
+        const memoPacketList = memoDetailList?.map((item) => item.dataValues?.stock_id)
+        const filteredPacketList = packetList?.filter((item) => !memoPacketList?.includes(item?.dataValues?.id))
+
+        let deletePacketList = [];
         for (const row of rows) {
             currentGroupIndex++;
-            if (row["stock #"]) {
+            if (row["packet #"]) {
 
-                const findStock = await stockList.find(
-                    (t: any) => t.dataValues.stock_id == row["stock #"]
+                const findPacket = await filteredPacketList.find(
+                    (t: any) => t.dataValues.packet_id == row["packet #"]
                 );
 
-                if (!(findStock && findStock.dataValues)) {
+                if (!(findPacket && findPacket.dataValues)) {
                     errors.push({
                         row_id: currentGroupIndex + 1,
                         error_message: prepareMessageFromParams(ERROR_NOT_FOUND,
-                            [["field_name", `${row["stock #"]} is`]]
+                            [["field_name", `${row["packet #"]} is`]]
                         ),
                     });
                 }
 
-                if (findStock && findStock !== undefined && findStock != null) {
-                    deleteStockList.push({
-                        ...findStock.dataValues,
+                if (findPacket && findPacket !== undefined && findPacket != null) {
+                    deletePacketList.push({
+                        ...findPacket.dataValues,
                         is_deleted: DeleteStatus.Yes,
                         deleted_by: idAppUser,
                         deleted_at: getLocalDate(),
@@ -278,7 +301,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         }
 
         return resSuccess({
-            data: deleteStockList,
+            data: deletePacketList,
         });
     } catch (e) {
         throw e;
@@ -287,11 +310,10 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
 const deleteGroupToDB = async (list: any) => {
     try {
-        await Diamonds.bulkCreate(list, {
+        await PacketDiamonds.bulkCreate(list, {
             updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
         });
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ data: list });
     } catch (e) {

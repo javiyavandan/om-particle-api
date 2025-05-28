@@ -277,6 +277,39 @@ export const fieldUniqueValueArrayChain = (
       ])
     );
 
+
+export const fieldUniqueValueKeyArrayChain = (
+  name: string,
+  field: string,
+  min: number,
+  key: string,
+) =>
+  body(field)
+    .exists()
+    .withMessage(
+      prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [["field_name", name]])
+    )
+    .isArray({ min })
+    .withMessage(
+      prepareMessageFromParams(
+        min > 0 ? TYPE_ARRAY_NON_EMPTY_ERROR_MESSAGE : TYPE_ARRAY_ERROR_MESSAGE,
+        [["field_name", name]]
+      )
+    )
+    .custom((value) => {
+      const keys = value.map((item: any) => item[key]);
+      const uniqueKeys = new Set(keys);
+      if (keys.length !== uniqueKeys.size) {
+        return false;
+      }
+      return true;
+    })
+    .withMessage(
+      prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+        ["field_name", name],
+      ])
+    );
+
 export const fieldBitChain = (name: string, field: string) =>
   body(field)
     .exists()
@@ -349,3 +382,40 @@ export const isActiveChain = body("is_active")
   .withMessage(IS_ACTIVE_EXPECTED_TYPE_STRING)
   .isIn(BIT_FIELD_VALUES)
   .withMessage(IS_ACTIVE_EXPECTED_TYPE_STRING);
+
+export const checkObject = (field: string, keyArray: string[]) =>
+  body(field)
+    .exists()
+    .withMessage(`${field} is required`)
+    .isObject()
+    .withMessage(`${field} must be an object`)
+    .custom((value) => {
+      const requiredFields = keyArray;
+      for (const field of requiredFields) {
+        if (
+          typeof value[field] !== "string" ||
+          value[field].trim().length === 0
+        ) {
+          throw new Error(`${field} is required and must be a non-empty string`);
+        }
+      }
+      return true;
+    })
+
+export const checkObjectNotRequired = (field: string, keyArray: string[]) =>
+  body(field)
+    .optional()
+    .isObject()
+    .withMessage(`${field} must be an object`)
+    .custom((value) => {
+      const requiredFields = keyArray;
+      for (const field of requiredFields) {
+        if (
+          typeof value[field] !== "string" ||
+          value[field].trim().length === 0
+        ) {
+          throw new Error(`${field} is required and must be a non-empty string`);
+        }
+      }
+      return true;
+    })

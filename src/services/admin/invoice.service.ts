@@ -6,19 +6,31 @@ import Customer from "../../model/customer.modal";
 import Diamonds from "../../model/diamond.model";
 import InvoiceDetail from "../../model/invoice-detail.model";
 import Invoice from "../../model/invoice.model";
-import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type } from "../../utils/app-enumeration";
-import { ERROR_NOT_FOUND } from "../../utils/app-messages";
-import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedDiamondListView, getCurrencyPrice } from "../../utils/shared-functions";
+import { DeleteStatus, ActiveStatus, UserVerification, StockStatus, MEMO_STATUS, Master_type, INVOICE_STATUS, Discount_Type, Memo_Invoice_creation, Memo_Invoice_Type, Log_Type } from "../../utils/app-enumeration";
+import { ERROR_NOT_FOUND, PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR } from "../../utils/app-messages";
+import { resNotFound, prepareMessageFromParams, getLocalDate, resSuccess, resBadRequest, getInitialPaginationFromQuery, refreshMaterializedViews, getCurrencyPrice } from "../../utils/shared-functions";
 import Master from "../../model/masters.model";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import Memo from "../../model/memo.model";
 import MemoDetail from "../../model/memo-detail.model";
 import { ADMIN_MAIL } from "../../config/env.var";
 import { mailAdminInvoice, mailCustomerInvoice } from "../mail.service";
+import PacketDiamonds from "../../model/packet-diamond.model";
+import StockLogs from "../../model/stock-logs.model";
 
 export const createInvoice = async (req: Request) => {
     try {
-        const { company_id, customer_id, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount } = req.body
+        const data = await invoiceCreation(req.body)
+
+        return data
+    } catch (error) {
+        throw error
+    }
+}
+
+export const invoiceCreation = async (data: any) => {
+    try {
+        const { company_id, customer_id, invoice_creation_type = Memo_Invoice_creation.Single, stock_list, memo_id, remarks, contact, salesperson, ship_via, report_date, cust_order, tracking, shipping_charge = 0, discount = 0, discount_type = Discount_Type.Amount, session_res } = data
         const stockError = [];
         const stockList: any = [];
         let totalItemPrice = 0
@@ -28,6 +40,23 @@ export const createInvoice = async (req: Request) => {
 
         const shipping_charge_value = Number(shipping_charge)
         const discount_value = Number(discount)
+
+        let findMemo;
+
+        if (memo_id) {
+            findMemo = await Memo.findOne({
+                where: {
+                    id: memo_id,
+                    status: MEMO_STATUS.Active,
+                }
+            })
+
+            if (!(findMemo && findMemo?.dataValues)) {
+                return resNotFound({
+                    message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Memo"]])
+                })
+            }
+        }
 
         if (report_date) {
             const inputDate = new Date(report_date);
@@ -55,7 +84,7 @@ export const createInvoice = async (req: Request) => {
 
         const findCompany = await Company.findOne({
             where: {
-                id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+                id: session_res.company_id ? session_res.company_id : company_id,
                 is_deleted: DeleteStatus.No,
                 is_active: ActiveStatus.Active,
             }
@@ -99,84 +128,284 @@ export const createInvoice = async (req: Request) => {
             })
         }
 
-        const allStock = await Diamonds.findAll({
-            where: {
-                status: { [Op.ne]: StockStatus.SOLD },
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
-            },
-            attributes: [
-                "id",
-                "stock_id",
-                "status",
-                "is_active",
-                "is_deleted",
-                "shape",
-                "quantity",
-                "weight",
-                "rate",
-                "color",
-                "color_intensity",
-                "color_over_tone",
-                "clarity",
-                "lab",
-                "report",
-                "polish",
-                "symmetry",
-                "video",
-                "image",
-                "certificate",
-                "local_location",
-                "measurement_height",
-                "measurement_width",
-                "measurement_depth",
-                "table_value",
-                "depth_value",
-                "ratio",
-                "fluorescence",
-                "company_id",
-                "user_comments",
-                "admin_comments",
-                "loose_diamond",
-                "created_by",
-                "created_at",
-                "modified_by",
-                "modified_at",
-                "deleted_by",
-                "deleted_at",
-                [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
-                [Sequelize.literal(`"color_master"."name"`), 'color_name'],
-                [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']],
-            include: [
-                {
-                    model: Master,
-                    as: 'shape_master',
-                    attributes: []
+        let allStock: any;
+
+        if (invoice_creation_type === Memo_Invoice_creation.Single) {
+            allStock = await Diamonds.findAll({
+                where: [
+                    memo_id ? { status: StockStatus.MEMO } : { status: StockStatus.AVAILABLE },
+                    { company_id: session_res.company_id ? session_res.company_id : company_id }
+                ],
+                attributes: [
+                    "id",
+                    "stock_id",
+                    "status",
+                    "is_active",
+                    "is_deleted",
+                    "shape",
+                    "quantity",
+                    "remain_quantity",
+                    "weight",
+                    "rate",
+                    "color",
+                    "color_intensity",
+                    "color_over_tone",
+                    "clarity",
+                    "lab",
+                    "report",
+                    "polish",
+                    "symmetry",
+                    "video",
+                    "image",
+                    "certificate",
+                    "local_location",
+                    "measurement_height",
+                    "measurement_width",
+                    "measurement_depth",
+                    "table_value",
+                    "depth_value",
+                    "ratio",
+                    "fluorescence",
+                    "company_id",
+                    "user_comments",
+                    "admin_comments",
+                    "loose_diamond",
+                    "created_by",
+                    "created_at",
+                    "modified_by",
+                    "modified_at",
+                    "deleted_by",
+                    "deleted_at",
+                    [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                    [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                    [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
+                ],
+                include: [
+                    {
+                        model: Master,
+                        as: 'shape_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'color_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'clarity_master',
+                        attributes: []
+                    }
+                ]
+            })
+        } else {
+            allStock = await PacketDiamonds.findAll({
+                where: {
+                    status: StockStatus.AVAILABLE,
+                    company_id: session_res.company_id ? session_res.company_id : company_id
                 },
-                {
-                    model: Master,
-                    as: 'color_master',
-                    attributes: []
+                attributes: [
+                    "id",
+                    ["packet_id", "stock_id"],
+                    "status",
+                    "is_active",
+                    "is_deleted",
+                    "shape",
+                    "quantity",
+                    "remain_quantity",
+                    "weight",
+                    "remain_weight",
+                    "carat_rate",
+                    "rate",
+                    "color",
+                    "color_intensity",
+                    "color_over_tone",
+                    "clarity",
+                    "lab",
+                    "report",
+                    "polish",
+                    "symmetry",
+                    "video",
+                    "image",
+                    "certificate",
+                    "local_location",
+                    "measurement_height",
+                    "measurement_width",
+                    "measurement_depth",
+                    "table_value",
+                    "depth_value",
+                    "ratio",
+                    "fluorescence",
+                    "company_id",
+                    "user_comments",
+                    "admin_comments",
+                    "created_by",
+                    "created_at",
+                    "modified_by",
+                    "modified_at",
+                    "deleted_by",
+                    "deleted_at",
+                    [Sequelize.literal(`"shape_master"."name"`), 'shape_name'],
+                    [Sequelize.literal(`"color_master"."name"`), 'color_name'],
+                    [Sequelize.literal(`"clarity_master"."name"`), 'clarity_name']
+                ],
+                include: [
+                    {
+                        model: Master,
+                        as: 'shape_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'color_master',
+                        attributes: []
+                    },
+                    {
+                        model: Master,
+                        as: 'clarity_master',
+                        attributes: []
+                    }
+                ]
+            })
+        }
+
+        let memoDetail = null;
+        if (memo_id) {
+            const detail = await MemoDetail.findAll({
+                where: {
+                    memo_id,
+                    is_deleted: DeleteStatus.No,
+                    is_return: DeleteStatus.No
                 },
-                {
-                    model: Master,
-                    as: 'clarity_master',
-                    attributes: []
+                attributes: ["quantity", "weight", "stock_id"],
+            });
+            const memoDetailCheck = detail?.map((item) => {
+                const stock = allStock?.find((s: any) => s.dataValues?.id == item?.dataValues?.stock_id)
+                return {
+                    is_deleted: stock?.dataValues?.is_deleted,
+                    status: stock?.dataValues?.status
                 }
-            ]
-        })
+            })
+            memoDetail = memoDetailCheck?.filter((item) => item.is_deleted == DeleteStatus.No && item.status == StockStatus.MEMO)
+        }
 
         for (let index = 0; index < stock_list.length; index++) {
             const stockId = stock_list[index].stock_id;
-            const findStock = allStock.find((stock) => stock.dataValues.stock_id === stockId)
+            const findStock = allStock.find((stock: any) => stock.dataValues.stock_id == stockId);
+            const invoice_type = (Number(findStock?.dataValues?.quantity) < 2) ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity;
+            const quantity = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.remain_quantity : stock_list[index].quantity;
+            const weight = invoice_type === Memo_Invoice_Type.carat && invoice_creation_type === Memo_Invoice_creation.Single ? findStock?.dataValues?.weight : stock_list[index].weight;
+
+            if (memo_id) {
+                const findMemoStock: any = memoDetail?.find((item: any) => item.dataValues?.stock_id === findStock?.dataValues?.id)
+                if (quantity > findMemoStock?.dataValues?.quantity) {
+                    stockError.push(`Quantity is grater then memo stock ${stockId}`)
+                }
+                if (weight > findMemoStock?.dataValues?.weight) {
+                    stockError.push(`Weight (carat) is grater then memo stock ${stockId}`)
+                }
+            }
+
+            if (invoice_creation_type === Memo_Invoice_creation.Packet) {
+
+                const findMemoExist = await Memo.count({
+                    where: { creation_type: Memo_Invoice_creation.Packet },
+                    include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: { memo_type: { [Op.ne]: invoice_type }, stock_id: findStock?.dataValues.id } }],
+                });
+
+                if (findMemoExist && findMemoExist > 0) {
+                    stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "memo"], ["type_1", "invoice"], ["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${invoice_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                }
+
+                const findInvoiceExist = await Invoice.count({
+                    where: { creation_type: Memo_Invoice_creation.Packet },
+                    include: [{ model: InvoiceDetail, as: "invoice_details", attributes: ["id", "stock_id", "invoice_type"], where: { invoice_type: { [Op.ne]: invoice_type }, stock_id: findStock?.dataValues.id } }],
+                });
+
+                if (findInvoiceExist && findInvoiceExist > 0) {
+                    stockError.push(prepareMessageFromParams(PACKET_MEMO_CREATE_WITH_DIFFERENT_MEMO_TYPE_ERROR, [["type", "invoice"], ["type_1", "invoice"], ["stock_id", `${stock_list[index].stock_id}`], ["memo_type", `${invoice_type == Memo_Invoice_Type.quantity ? Memo_Invoice_Type.carat : Memo_Invoice_Type.quantity}`]]))
+                }
+
+            }
+
             if (!(findStock && findStock.dataValues)) {
                 stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${stockId} stock`]]))
+            } else if (!Object.values(Memo_Invoice_Type).includes(invoice_type)) {
+                stockError.push(prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", `${invoice_type} memo type`]]))
             } else {
-                totalItemPrice += (stock_list[index].rate * findStock.dataValues.weight * findStock.dataValues.quantity),
-                    totalWeight += (findStock.dataValues.weight * findStock.dataValues.quantity),
+                if (!memo_id) {
+                    if (invoice_type === Memo_Invoice_Type.carat) {
+                        if (!weight) {
+                            stockError.push(`${stockId} stock weight is required`)
+                        } else if (weight > findStock.dataValues.remain_weight) {
+                            stockError.push(`${stockId} stock weight is greater than available weight`)
+                        } else if (weight <= 0) {
+                            stockError.push(`${stockId} stock weight should be greater than zero`)
+                        } else {
+                            totalItemPrice += (stock_list[index].rate * weight);
+                            totalWeight += weight;
+
+                            stockList.push({
+                                stock: findStock?.dataValues?.stock_id,
+                                stock_id: findStock.dataValues.id,
+                                stock_original_price: findStock.dataValues.rate,
+                                stock_price: stock_list[index].rate,
+                                quantity: quantity ?? findStock.dataValues.quantity,
+                                weight,
+                                invoice_type: invoice_type,
+                                created_at: getLocalDate(),
+                                created_by: session_res.id,
+                                is_deleted: DeleteStatus.No,
+                            })
+                        }
+                    } else {
+                        if (!quantity) {
+                            stockError.push(`${stockId} stock quantity is required`)
+                        } else if (quantity > findStock.dataValues.remain_quantity) {
+                            stockError.push(`${stockId} stock quantity is greater than available quantity`)
+                        } else if (quantity <= 0) {
+                            stockError.push(`${stockId} stock quantity should be greater than zero`)
+                        } else if (!weight) {
+                            stockError.push(`${stockId} stock weight is required`)
+                        } else if (weight > findStock.dataValues.remain_weight) {
+                            stockError.push(`${stockId} stock weight is greater than available weight`)
+                        } else if (weight <= 0) {
+                            stockError.push(`${stockId} stock weight should be greater than zero`)
+                        } else {
+                            totalItemPrice += (stock_list[index].rate * weight);
+                            totalWeight += weight;
+
+                            stockList.push({
+                                stock: findStock?.dataValues?.stock_id,
+                                stock_id: findStock.dataValues.id,
+                                stock_original_price: findStock.dataValues.rate,
+                                stock_price: stock_list[index].rate,
+                                quantity,
+                                weight,
+                                invoice_type: invoice_type,
+                                created_at: getLocalDate(),
+                                created_by: session_res.id,
+                                is_deleted: DeleteStatus.No,
+                            })
+                        }
+                    }
+                } else {
+                    totalItemPrice += (stock_list[index].rate * weight);
+                    totalWeight += weight;
+
                     stockList.push({
+                        stock: findStock?.dataValues?.stock_id,
                         stock_id: findStock.dataValues.id,
+                        stock_original_price: findStock.dataValues.rate,
                         stock_price: stock_list[index].rate,
+                        quantity: quantity ?? findStock.dataValues.quantity,
+                        weight,
+                        invoice_type: invoice_type,
+                        created_at: getLocalDate(),
+                        created_by: session_res.id,
+                        is_deleted: DeleteStatus.No,
                     })
+                }
             }
         }
 
@@ -211,7 +440,7 @@ export const createInvoice = async (req: Request) => {
 
         const lastInvoice = await Invoice.findOne({
             where: {
-                company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id
+                company_id: session_res.company_id ? session_res.company_id : company_id
             },
             order: [["invoice_number", "DESC"]],
             transaction: trn,
@@ -229,7 +458,7 @@ export const createInvoice = async (req: Request) => {
                 company_id: findCompany.dataValues.id,
                 customer_id: findCustomer.dataValues.id,
                 created_at: getLocalDate(),
-                created_by: req.body.session_res.id,
+                created_by: session_res.id,
                 total_item_price: Number(totalItemPrice.toFixed(2)),
                 total_tax_price: Number(totalTaxPrice.toFixed(2)),
                 total_weight: Number(totalWeight.toFixed(2)),
@@ -246,8 +475,20 @@ export const createInvoice = async (req: Request) => {
                 ship_via,
                 cust_order,
                 tracking,
-                report_date: report_date ? new Date(report_date) : null
+                report_date: report_date ? new Date(report_date) : null,
+                creation_type: invoice_creation_type
             };
+
+            const admin = await AppUser.findOne({
+                where: {
+                    id_role: session_res.id_role,
+                    id: session_res.id,
+                    is_deleted: DeleteStatus.No,
+                    is_active: ActiveStatus.Active
+                },
+                attributes: ["first_name", "last_name", "email", "phone_number", "id"],
+                transaction: trn,
+            })
 
             const invoiceData = await Invoice.create(invoicePayload, {
                 transaction: trn,
@@ -264,67 +505,169 @@ export const createInvoice = async (req: Request) => {
                 transaction: trn,
             })
 
-            const stockUpdate = allStock.filter((stock) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map(stock => ({
-                ...stock.dataValues,
-                status: StockStatus.SOLD
-            }))
-
-            await Diamonds.bulkCreate(stockUpdate, {
-                updateOnDuplicate: [
-                    "status"
-                ],
-                transaction: trn,
-            })
-
-            if (memo_id) {
-
-                const memoDetail = await MemoDetail.findAll({
-                    where: {
-                        memo_id,
-                        is_deleted: DeleteStatus.No,
-                        is_return: DeleteStatus.No
-                    },
-                    attributes: [],
-                    include: [
-                        {
-                            model: Diamonds,
-                            as: "stocks",
-                            where: [
-                                {
-                                    is_deleted: DeleteStatus.No,
-                                    status: StockStatus.MEMO
-                                }
-                            ],
-                            attributes: []
-                        }
+            let stockUpdate: any
+            if (invoice_creation_type === Memo_Invoice_creation.Single) {
+                stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => ({
+                    ...stock.dataValues,
+                    status: StockStatus.SOLD,
+                    remain_quantity: stock.dataValues.remain_quantity - stockList.find((data: any) => data.stock_id == stock.dataValues.id).quantity
+                }))
+                await Diamonds.bulkCreate(stockUpdate, {
+                    updateOnDuplicate: [
+                        "remain_quantity",
+                        "status"
                     ],
                     transaction: trn,
                 })
+            } else {
+                if (!memo_id) {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
+                        const findStock = stockList.find((data: any) => data.stock_id == stock.dataValues.id)
 
-                if (memoDetail.length === 0) {
-                    await Memo.update({
-                        status: MEMO_STATUS.Close,
-                    }, {
-                        where: {
-                            id: memo_id
+                        return {
+                            ...stock.dataValues,
+                            packet_id: stock.dataValues.stock_id,
+                            remain_quantity: stock.dataValues.remain_quantity - findStock.quantity,
+                            remain_weight: stock.dataValues.remain_weight - findStock.weight,
+                        }
+
+                    })
+                    await PacketDiamonds.bulkCreate(stockUpdate, {
+                        updateOnDuplicate: [
+                            "remain_quantity",
+                            "remain_weight",
+                        ],
+                        transaction: trn,
+                    })
+                } else {
+                    stockUpdate = allStock.filter((stock: any) => stockList.map((data: any) => data.stock_id).includes(stock.dataValues.id)).map((stock: any) => {
+                        return {
+                            ...stock.dataValues,
+                            packet_id: stock.dataValues.stock_id,
                         }
                     })
                 }
             }
 
-            const admin = await AppUser.findOne({
-                where: {
-                    id_role: req.body.session_res.id_role,
-                    id: req.body.session_res.id,
-                    is_deleted: DeleteStatus.No,
-                    is_active: ActiveStatus.Active
-                },
-                attributes: ["first_name", "last_name", "email", "phone_number"],
-                transaction: trn,
-            })
+            if (memo_id) {
+                if (invoice_creation_type === Memo_Invoice_creation.Single) {
+                    const memoDetail = await MemoDetail.findAll({
+                        where: {
+                            memo_id,
+                            is_deleted: DeleteStatus.No,
+                            is_return: DeleteStatus.No
+                        },
+                        transaction: trn,
+                    })
+                    const allStock = await Diamonds?.findAll({
+                        where: {
+                            is_deleted: DeleteStatus.No,
+                            status: StockStatus.MEMO
+                        },
+                        transaction: trn
+                    })
+                    const memoDetailCheck = allStock?.map((item) => {
+                        const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
+                        return stock
+                    })
+
+                    if (memoDetailCheck?.length === 0) {
+                        await Memo.update({
+                            status: MEMO_STATUS.Close,
+                        }, {
+                            where: {
+                                id: memo_id
+                            }, transaction: trn
+                        })
+
+                        await StockLogs.create({
+                            change_at: getLocalDate(),
+                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by_id: admin?.dataValues?.id,
+                            log_type: Log_Type.MEMO,
+                            reference_id: memo_id,
+                            description: `Memo closed and created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                        }, { transaction: trn })
+                    }
+                } else {
+                    let totalMemoWeight = 0;
+                    let totalMemoItemPrice = 0;
+
+                    const memoDetail = await MemoDetail.findAll({
+                        where: {
+                            memo_id: findMemo?.dataValues?.id,
+                            is_deleted: DeleteStatus.No,
+                            is_return: DeleteStatus.No
+                        },
+                        transaction: trn
+                    })
+
+                    const memoDetailUpdate: any = memoDetail?.map((item) => {
+                        const findStock = stockList?.find((stock: any) => stock?.stock_id == item?.dataValues?.stock_id)
+
+                        if (findStock) {
+                            const updatedWeight = Number(item?.dataValues?.weight) - Number(findStock?.weight)
+                            totalMemoWeight += Number(findStock?.weight);
+                            totalMemoItemPrice += updatedWeight * Number(item?.dataValues?.stock_price)
+                        } else {
+                            totalMemoWeight += Number(item?.dataValues?.weight);
+                            totalMemoItemPrice += Number(item?.dataValues?.weight) * Number(item?.dataValues?.stock_price)
+                        }
+
+                        return {
+                            ...item.dataValues,
+                            weight: Number(item?.dataValues?.weight) - Number(findStock?.weight),
+                            quantity: Number(item?.dataValues?.quantity) - Number(findStock?.quantity)
+                        }
+                    })
+
+                    const totalMemoPrice = ((totalMemoItemPrice - Number(findMemo?.dataValues?.discount ?? 0)) + Number(findMemo?.dataValues?.shipping_charge ?? 0))
+
+                    const memoStatus = (Number(findMemo?.dataValues?.total_weight) - totalMemoWeight) === 0 ? MEMO_STATUS.Close : MEMO_STATUS.Active
+
+                    await Memo.update({
+                        total_item_price: totalMemoItemPrice,
+                        total_price: totalMemoPrice,
+                        total_weight: Number(findMemo?.dataValues?.total_weight) - totalMemoWeight,
+                        status: memoStatus
+                    }, {
+                        where: {
+                            id: findMemo?.dataValues?.id
+                        }, transaction: trn
+                    })
+
+                    await MemoDetail.bulkCreate(memoDetailUpdate, {
+                        updateOnDuplicate: [
+                            "weight",
+                            "quantity"
+                        ],
+                        transaction: trn
+                    })
+
+                    if (memoStatus === MEMO_STATUS.Close) {
+                        await StockLogs.create({
+                            change_at: getLocalDate(),
+                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by_id: admin?.dataValues?.id,
+                            log_type: Log_Type.MEMO,
+                            reference_id: memo_id,
+                            description: `Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                        }, { transaction: trn })
+                    }
+
+                    await StockLogs.create({
+                        change_at: getLocalDate(),
+                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by_id: admin?.dataValues?.id,
+                        log_type: Log_Type.INVOICE,
+                        reference_id: invoiceId,
+                        description: `Created invoice with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+                    }, { transaction: trn })
+                }
+            }
 
             const adminMail = {
-                toEmailAddress: req.body.session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
+                toEmailAddress: session_res.id_role == 0 ? ADMIN_MAIL : admin?.dataValues.email,
                 contentTobeReplaced: {
                     admin_name: admin?.dataValues.first_name,
                     customer_name: findCustomer.dataValues.user.dataValues.first_name + " " + findCustomer.dataValues.user.dataValues.last_name,
@@ -338,9 +681,9 @@ export const createInvoice = async (req: Request) => {
                     total_diamond: invoiceData.dataValues.total_diamond_count,
                     total_tax: Number(invoiceData.dataValues.total_tax_price).toFixed(2),
                     created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                    data: stockUpdate.map((diamond) => ({
+                    data: stockUpdate.map((diamond: any) => ({
                         shape: diamond.shape_name,
-                        weight: diamond.weight,
+                        weight: diamond.remain_weight,
                         color: diamond.color_name,
                         clarity: diamond.clarity_name,
                         rate: stockListWithInvoiceId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
@@ -365,7 +708,7 @@ export const createInvoice = async (req: Request) => {
                     created_at: new Date(invoiceData.dataValues.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                     data: stockUpdate.map((diamond: any) => ({
                         shape: diamond.shape_name,
-                        weight: diamond.weight,
+                        weight: diamond.remain_weight,
                         color: diamond.color_name,
                         clarity: diamond.clarity_name,
                         rate: stockListWithInvoiceId.find((stock: { stock_id: any; }) => stock.stock_id === diamond.id)?.stock_price,
@@ -375,16 +718,26 @@ export const createInvoice = async (req: Request) => {
                 },
             }
 
-            console.log(adminMail, customerMail)
+            await StockLogs.create({
+                change_at: getLocalDate(),
+                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by_id: admin?.dataValues?.id,
+                log_type: Log_Type.INVOICE,
+                reference_id: invoiceId,
+                description: `Invoice created with ${stockList?.map((item: any) => item?.stock)?.join(", ")}`
+            }, { transaction: trn })
 
             await mailAdminInvoice(adminMail);
             await mailCustomerInvoice(customerMail);
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
-            return resSuccess()
+            return resSuccess({
+                 data: invoiceId
+            })
         } catch (error) {
+            console.log(error)
             await trn.rollback();
             throw error
         }
@@ -468,7 +821,7 @@ export const closeInvoice = async (req: Request) => {
             })
 
             await trn.commit();
-            await refreshMaterializedDiamondListView()
+            await refreshMaterializedViews()
 
             return resSuccess()
 
@@ -492,8 +845,18 @@ export const getInvoice = async (req: Request) => {
             `SELECT * FROM invoice_list WHERE id = ${invoice_id}`, { type: QueryTypes.SELECT }
         )
 
+        const logs = await StockLogs.findAll({
+            where: {
+                reference_id: invoice_id,
+                log_type: Log_Type.INVOICE,
+            }
+        })
+
         return resSuccess({
-            data: invoice[0]
+            data: {
+                ...invoice[0],
+                logs: logs
+            }
         })
 
     } catch (error) {
@@ -563,6 +926,7 @@ export const getAllInvoice = async (req: Request) => {
             END
             ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
+            ${query.creation_type ? `AND invoice_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail
@@ -618,6 +982,7 @@ export const getAllInvoice = async (req: Request) => {
                 ${query.min_weight && query.max_weight ? `AND invoice_list.total_weight BETWEEN ${query.min_weight} AND ${query.max_weight}` : ""}
                 ${query.min_weight && !query.max_weight ? `AND invoice_list.total_weight >= ${query.min_weight}` : ""}
                 ${!query.min_weight && query.max_weight ? `AND invoice_list.total_weight <= ${query.max_weight}` : ""}
+                ORDER BY ${pagination.sort_by} ${pagination.order_by}
         `, { type: QueryTypes.SELECT });
 
         if (!noPagination) {
@@ -672,6 +1037,7 @@ export const getAllInvoice = async (req: Request) => {
             END
             ${customer ? `AND invoice_list.customer_id IN (${customer})` : ""}
             ${req.body.session_res.id_role != 0 ? `AND invoice_list.company_id = ${req.body.session_res.company_id}` : `${query.company ? `AND invoice_list.company_id = ${query.company}` : ""}`}
+            ${query.creation_type ? `AND invoice_list.creation_type = '${query.creation_type}'` : ''}
             ${labs ? `AND EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(invoice_list.invoice_details) AS detail

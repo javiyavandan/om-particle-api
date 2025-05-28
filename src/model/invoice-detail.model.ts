@@ -1,4 +1,4 @@
-import { BIGINT, DATE, STRING } from "sequelize";
+import { BIGINT, DATE, DOUBLE, STRING } from "sequelize";
 import dbContext from "../config/dbContext";
 import Diamonds from "./diamond.model";
 import Invoice from "./invoice.model";
@@ -20,6 +20,12 @@ const InvoiceDetail = dbContext.define("invoice_details", {
     },
     is_return: {
         type: STRING,
+    },
+    quantity: {
+        type: BIGINT
+    },
+    weight: {
+        type: DOUBLE
     }
 })
 

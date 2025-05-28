@@ -38,6 +38,8 @@ import {
   HUBSPOT_ASSOCIATION,
   IMAGE_TYPE,
   Image_type,
+  Memo_Invoice_Type,
+  Memo_Invoice_creation,
   StockStatus,
   UserType,
   UserVerification,
@@ -71,12 +73,19 @@ import Image from "../model/image.model";
 import { QueryTypes, Sequelize } from "sequelize";
 import { moveFileToS3ByType } from "../helpers/file-helper";
 import File from "../model/files.model";
+import Company from "../model/companys.model";
+import Country from "../model/country.model";
+import Memo from "../model/memo.model";
+import MemoDetail from "../model/memo-detail.model";
 
 export const test = async (req: Request) => {
 
   try {
-
-    return resSuccess({ data: `<meta name="copyright" content="TCC Technologies" />` });
+    const findMemoExist = await Memo.count({
+      where: { creation_type: Memo_Invoice_creation.Packet },
+      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: { memo_type: Memo_Invoice_Type.carat } }],
+    });
+    return resSuccess({ data: findMemoExist });
   } catch (error) {
     console.log(error)
     throw error;
@@ -103,6 +112,9 @@ export const registerUser = async (req: Request, res: Response) => {
       verification = UserVerification.NotVerified,
       remarks,
       registration_number,
+      memo_terms,
+      credit_terms,
+      limit
     } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
@@ -158,8 +170,6 @@ export const registerUser = async (req: Request, res: Response) => {
           { transaction: trn }
         );
         pdfId = fileResult.map((item) => item.dataValues.id);
-      } else {
-        return resNotFound({ message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Document is required"]]) })
       }
 
 
@@ -179,6 +189,9 @@ export const registerUser = async (req: Request, res: Response) => {
           id_pdf: pdfId,
           remarks,
           one_time_pass: OTP,
+          memo_terms,
+          credit_terms,
+          limit
         },
         { transaction: trn }
       );
@@ -258,12 +271,14 @@ export const registerUser = async (req: Request, res: Response) => {
           app_name: APP_NAME,
         },
       };
-      await mailRegistationOtp(mailPayload);
+      if (verification !== UserVerification.Admin_Verified) {
+        await mailRegistationOtp(mailPayload)
+      };
 
       await trn.commit();
       return resSuccess({
         data: { id: createUser.dataValues.id },
-        message: OTP_SENT + " " + email,
+        message: verification === UserVerification.Admin_Verified ? "User Created" : OTP_SENT + " " + email,
       });
     } catch (error) {
       await trn.rollback();
@@ -322,7 +337,7 @@ export const login = async (req: Request, res: Response) => {
     const { user_type = UserType.Customer } = req.query
     const appUser = await AppUser.findOne({
       where: {
-        email: columnValueLowerCase("email", email),
+        email: columnValueLowerCase("app_users.email", email),
         is_deleted: DeleteStatus.No,
         is_active: ActiveStatus.Active,
         user_type
@@ -335,17 +350,22 @@ export const login = async (req: Request, res: Response) => {
         "first_name",
         "last_name",
         "id",
-        "email",
+        [Sequelize.literal("app_users.email"), "email"],
         "id_image",
         "phone_number",
         "user_type",
         "id_role",
         "is_active",
         "company_id",
+        "memo_terms",
+        "credit_terms",
+        "limit",
         [
           Sequelize.literal(`CASE WHEN "image"."image_path" IS NOT NULL THEN CONCAT('${IMAGE_URL}', "image"."image_path") ELSE NULL END`),
           "image_path",
         ],
+        [Sequelize.literal(`"company->country"."name"`), "country_name"],
+        [Sequelize.literal(`"company->country"."id"`), "country_id"],
       ],
       include: [
         {
@@ -354,6 +374,20 @@ export const login = async (req: Request, res: Response) => {
           attributes: [],
           as: "image",
         },
+        {
+          required: false,
+          model: Company,
+          attributes: [],
+          as: "company",
+          include: [
+            {
+              required: false,
+              model: Country,
+              attributes: [],
+              as: "country",
+            }
+          ]
+        }
       ],
     });
 
@@ -595,7 +629,23 @@ export const resetPassword = async (req: Request) => {
 export const customerList = async () => {
   try {
     const customer = await Customer.findAll({
-      attributes: ["id", "company_name", "company_website", "company_email", "address", "city", "state", "country", "postcode", "registration_number"],
+      attributes: [
+        "id",
+        "company_name",
+        "company_website",
+        "company_email",
+        "address",
+        "city",
+        "state",
+        "country",
+        "postcode",
+        "registration_number",
+        [Sequelize.literal(`"user"."first_name"`), "first_name"],
+        [Sequelize.literal(`"user"."last_name"`), "last_name"],
+        [Sequelize.literal(`"user"."phone_number"`), "phone_number"],
+        [Sequelize.literal(`"user"."email"`), "email"],
+        [Sequelize.literal(`"user"."id"`), "user_id"],
+      ],
       include: [{
         model: AppUser,
         as: "user",

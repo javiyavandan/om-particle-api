@@ -3,8 +3,6 @@ import {
     getLocalDate,
     prepareMessageFromParams,
     refreshMaterializedViews,
-    refreshStockTransferMaterializedView,
-    resBadRequest,
     resNotFound,
     resSuccess,
     resUnknownError,
@@ -30,49 +28,44 @@ import { PRODUCT_CSV_FOLDER_PATH } from "../../config/env.var";
 import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import {
     ActiveStatus,
-    APiStockStatus,
     DeleteStatus,
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
-    Is_loose_diamond,
     Master_type,
     StockStatus,
 } from "../../utils/app-enumeration";
-import { TResponseReturn } from "../../data/interfaces/common/common.interface";
 import Master from "../../model/masters.model";
 import dbContext from "../../config/dbContext";
-import Diamonds from "../../model/diamond.model";
+import PacketDiamonds from "../../model/packet-diamond.model";
 import Company from "../../model/companys.model";
 import { Op } from "sequelize";
-import Apis from "../../model/apis";
-import ApiStockDetails from "../../model/api-stock-details";
 const readXlsxFile = require("read-excel-file/node");
 
-export const addStockCSVFile = async (req: Request) => {
+const validateFile = (file: Express.Multer.File) => {
+    if (!file) {
+        return resUnprocessableEntity({ message: FILE_NOT_FOUND });
+    }
+    if (file.mimetype !== PRODUCT_BULK_UPLOAD_FILE_MIMETYPE) {
+        return resUnprocessableEntity({ message: PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE });
+    }
+    if (file.size > PRODUCT_BULK_UPLOAD_FILE_SIZE * 1024 * 1024) {
+        return resUnprocessableEntity({ message: PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE });
+    }
+    return null;
+};
+
+export const addPacketCSVFile = async (req: Request) => {
     try {
-        if (!req.file) {
-            return resUnprocessableEntity({
-                message: FILE_NOT_FOUND,
-            });
-        }
+        const file = req?.file as Express.Multer.File;
 
-        if (req.file.mimetype !== PRODUCT_BULK_UPLOAD_FILE_MIMETYPE) {
-            return resUnprocessableEntity({
-                message: PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE,
-            });
-        }
-
-        if (req.file.size > PRODUCT_BULK_UPLOAD_FILE_SIZE * 1024 * 1024) {
-            return resUnprocessableEntity({
-                message: PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE,
-            });
-        }
+        const fileValidationError = validateFile(file);
+        if (fileValidationError) return fileValidationError;
 
         const resMFTL = moveFileToLocation(
-            req.file.filename,
-            req.file.destination,
+            file.filename,
+            file.destination,
             PRODUCT_CSV_FOLDER_PATH,
-            req.file.originalname
+            file.originalname
         );
 
         if (resMFTL.code !== DEFAULT_STATUS_CODE_SUCCESS) {
@@ -83,11 +76,11 @@ export const addStockCSVFile = async (req: Request) => {
             file_path: resMFTL.data,
             status: FILE_STATUS.Uploaded,
             file_type: FILE_BULK_UPLOAD_TYPE.StockUpload,
-            created_by: req.body.session_res.id_app_user,
+            created_by: req.body.session_res.id,
             created_date: getLocalDate(),
         });
 
-        const resPDBUF = await processStockBulkUploadFile(
+        const resPDBUF = await processPacketBulkUploadFile(
             resPBUF.dataValues.id,
             resMFTL.data,
             req.body.session_res.id
@@ -99,21 +92,7 @@ export const addStockCSVFile = async (req: Request) => {
     }
 };
 
-const parseError = (error: any) => {
-    let errorDetail = "";
-    try {
-        if (error) {
-            if (error instanceof Error) {
-                errorDetail = error.toString();
-            } else {
-                errorDetail = JSON.stringify(error);
-            }
-        }
-    } catch (e) { }
-    return errorDetail;
-};
-
-const processStockBulkUploadFile = async (
+const processPacketBulkUploadFile = async (
     id: number,
     path: string,
     idAppUser: number
@@ -121,70 +100,48 @@ const processStockBulkUploadFile = async (
     try {
         const data = await processCSVFile(path, idAppUser);
 
-        if (data.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-            await ProductBulkUploadFile.update(
-                {
-                    status: FILE_STATUS.ProcessedError,
-                    error: JSON.stringify({
-                        ...data,
-                        data: parseError(data.data),
-                    }),
-                    modified_date: getLocalDate(),
-                },
-                { where: { id } }
-            );
-        } else {
-            await ProductBulkUploadFile.update(
-                {
-                    status: FILE_STATUS.ProcessedSuccess,
-                    modified_date: getLocalDate(),
-                },
-                { where: { id } }
-            );
-        }
+        const status = data.code === DEFAULT_STATUS_CODE_SUCCESS
+            ? FILE_STATUS.ProcessedSuccess
+            : FILE_STATUS.ProcessedError;
+
+        await ProductBulkUploadFile.update(
+            {
+                status,
+                error: status === FILE_STATUS.ProcessedError ? JSON.stringify(data.data) : null,
+                modified_date: getLocalDate(),
+            },
+            { where: { id } }
+        );
 
         return data;
     } catch (e) {
-        try {
-            await ProductBulkUploadFile.update(
-                {
-                    status: FILE_STATUS.ProcessedError,
-                    error: JSON.stringify(parseError(e)),
-                    modified_date: getLocalDate(),
-                },
-                { where: { id } }
-            );
-        } catch (e) { }
+        await ProductBulkUploadFile.update(
+            {
+                status: FILE_STATUS.ProcessedError,
+                error: JSON.stringify(e),
+                modified_date: getLocalDate(),
+            },
+            { where: { id } }
+        );
+        throw e;
     }
 };
 
 const processCSVFile = async (path: string, idAppUser: number) => {
     try {
         const resRows = await getArrayOfRowsFromCSVFile(path);
-        if (resRows.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-            return resRows;
-        }
+        if (resRows.code !== DEFAULT_STATUS_CODE_SUCCESS) return resRows;
 
-        if (resRows.data.headers.length !== 28) {
-            return resUnprocessableEntity()
-        }
+        const { headers, results } = resRows.data;
 
-        const resVH = await validateHeaders(resRows.data.headers);
-        if (resVH.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-            return resVH;
-        }
-        const resProducts = await getStockFromRows(
-            resRows.data.results,
-            idAppUser
-        );
-        if (resProducts.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-            return resProducts;
-        }
+        const resVH = await validateHeaders(headers);
+        if (resVH.code !== DEFAULT_STATUS_CODE_SUCCESS) return resVH;
+
+        const resProducts = await getPacketFromRows(results, idAppUser);
+        if (resProducts.code !== DEFAULT_STATUS_CODE_SUCCESS) return resProducts;
 
         const resAPTD = await addGroupToDB(resProducts.data);
-        if (resAPTD.code !== DEFAULT_STATUS_CODE_SUCCESS) {
-            return resAPTD;
-        }
+        if (resAPTD.code !== DEFAULT_STATUS_CODE_SUCCESS) return resAPTD;
 
         return resSuccess({ data: resProducts.data });
     } catch (e) {
@@ -238,11 +195,12 @@ const getIdFromName = (
 };
 
 const validateHeaders = async (headers: string[]) => {
-    const STOCK_BULK_UPLOAD_HEADERS = [
-        "stock #",
+    const PACKET_BULK_UPLOAD_HEADERS = [
+        "packet #",
         "shape",
         "quantity",
         "weight",
+        "price per carat",
         "rate",
         "color",
         "color intensity",
@@ -255,9 +213,7 @@ const validateHeaders = async (headers: string[]) => {
         "report",
         "polish",
         "symmetry",
-        "measurement height",
-        "measurement width",
-        "measurement depth",
+        "measurement",
         "table %",
         "depth %",
         "ratio",
@@ -265,27 +221,19 @@ const validateHeaders = async (headers: string[]) => {
         "location",
         "local location",
         "user comment",
-        "admin comment",
-        "loose diamond"
+        "admin comment"
     ];
 
-    let errors: {
-        row_id: number;
-        column_id: number;
-        column_name: string;
-        error_message: string;
-    }[] = [];
-    let i;
-    for (i = 0; i < headers.length; i++) {
-        if (headers[i].trim() != STOCK_BULK_UPLOAD_HEADERS[i]) {
-            errors.push({
+    const errors = headers.map((header, index) => {
+        if (header.trim() !== PACKET_BULK_UPLOAD_HEADERS[index]) {
+            return {
                 row_id: 1,
-                column_id: i,
-                column_name: headers[i],
+                column_id: index,
+                column_name: header,
                 error_message: INVALID_HEADER,
-            });
+            };
         }
-    }
+    }).filter(Boolean);
 
     if (errors.length > 0) {
         return resUnprocessableEntity({ data: errors });
@@ -293,11 +241,11 @@ const validateHeaders = async (headers: string[]) => {
     return resSuccess();
 };
 
-const getStockFromRows = async (rows: any, idAppUser: any) => {
+const getPacketFromRows = async (rows: any, idAppUser: any) => {
     let currentGroupIndex = -1;
     try {
         let errors: {
-            stock_id: string;
+            packet_id: string;
             row_id: number;
             error_message: string;
         }[] = [];
@@ -354,30 +302,30 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 is_deleted: DeleteStatus.No,
             },
         })
-        const stockList = await Diamonds.findAll({
+        const packetList = await PacketDiamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
             },
         });
 
-        let updatedStockList = [];
-        let createdStockList = [];
-        const seenStockNumbers = new Set<string>();
+        let updatedPacketList = [];
+        let createdPacketList = [];
+        const seenPacketNumbers = new Set<string>();
         for (const row of rows) {
             currentGroupIndex++;
-            const stockNumber = row["stock #"];
-            if (stockNumber) {
-                if (seenStockNumbers.has(stockNumber)) {
+            const packetNumber = row["packet #"];
+            if (packetNumber) {
+                if (seenPacketNumbers.has(packetNumber)) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
-                        error_message: "Duplicate stock number",
+                        error_message: "Duplicate packet number",
                     });
                 }
-                seenStockNumbers.add(stockNumber);
+                seenPacketNumbers.add(packetNumber);
                 if (row.shape == null) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "shape"],
@@ -386,25 +334,25 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.weight == null) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "Weight"],
                         ]),
                     });
                 }
-                if (row.rate == null) {
+                if (row["price per carat"] == null) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                            ["field_name", "rate"],
+                            ["field_name", "Price per carat"],
                         ]),
                     });
                 }
                 if (row.color == null) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "color"],
@@ -413,15 +361,17 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
                 if (row.location == null) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
                             ["field_name", "location"],
                         ]),
                     });
                 }
-                if (row["loose diamond"] == null) {
-                    row["loose diamond"] = Is_loose_diamond.No
+                if (row.rate == null) {
+                    if (!(row["price per carat"] == null || row.weight == null)) {
+                        row.rate = row["price per carat"] * row.weight;
+                    }
                 }
 
                 let shape: any;
@@ -434,7 +384,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 if (shape && shape.error != undefined) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: shape.error,
                     });
@@ -446,8 +396,9 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 let quantity: any = row.quantity ?? 1;
 
-
                 let weight: any = row["weight"];
+
+                let carat_rate: any = row["price per carat"];
 
                 let rate: any = row.rate;
 
@@ -462,7 +413,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
                 if (color && color.error != undefined) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: color.error,
                     });
@@ -477,7 +428,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     color_intensity = getIdFromName(row["color intensity"], colorIntensityList, "name", "color intensity");
                     if (color_intensity && color_intensity.error != undefined) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: color_intensity.error,
                         });
@@ -500,7 +451,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     );
                     if (clarity && clarity.error != undefined) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: clarity.error,
                         });
@@ -520,7 +471,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     lab = getIdFromName(row.lab, labList, "name", "lab");
                     if (lab && lab.error != undefined) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: lab.error,
                         });
@@ -543,7 +494,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     );
                     if (polish && polish.error != undefined) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: polish.error,
                         });
@@ -564,7 +515,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     );
                     if (symmetry && symmetry.error != undefined) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: symmetry.error,
                         });
@@ -575,9 +526,15 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     }
                 }
 
-                let measurement_height: any = row["measurement height"];
-                let measurement_width: any = row["measurement width"];
-                let measurement_depth: any = row["measurement depth"];
+                let measurement: any = row.measurement;
+                let measurement_height: any;
+                let measurement_width: any;
+                let measurement_depth: any;
+                if (measurement) {
+                    measurement_height = measurement?.split("x")[0];
+                    measurement_width = measurement?.split("x")[1];
+                    measurement_depth = measurement?.split("x")[2];
+                }
                 let table_per: any = row["table %"];
                 let depth_per: any = row["depth %"];
                 let ratio: any = row.ratio;
@@ -595,7 +552,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         fluorescence.error != undefined
                     ) {
                         errors.push({
-                            stock_id: row["stock #"],
+                            packet_id: row["packet #"],
                             row_id: currentGroupIndex + 1 + 1,
                             error_message: fluorescence.error,
                         });
@@ -604,6 +561,8 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     } else {
                         fluorescence = null;
                     }
+
+
                 }
 
                 let company: any = getIdFromName(
@@ -617,7 +576,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                     company.error != undefined
                 ) {
                     errors.push({
-                        stock_id: row["stock #"],
+                        packet_id: row["packet #"],
                         row_id: currentGroupIndex + 1 + 1,
                         error_message: company.error,
                     });
@@ -630,32 +589,32 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 let local_location: any = row["local location"];
                 let user_comments: any = row["user comment"];
                 let admin_comments: any = row["admin comment"];
-                let loose_diamond: any = row["loose diamond"].charAt(0).toUpperCase() + row["loose diamond"].slice(1).toLowerCase();
-                if (!(Object.values(Is_loose_diamond).includes(loose_diamond))) {
-                    errors.push({
-                        stock_id: row["stock #"],
-                        row_id: currentGroupIndex + 1 + 1,
-                        error_message: `Loose Diamond value ${loose_diamond} is not valid. Valid values are ${Object.values(Is_loose_diamond).join("and ")}.`,
-                    });
-                }
 
-                const findStock = await stockList.find(
-                    (t: any) => t.dataValues.stock_id == row["stock #"]
+                const findPacket = await packetList.find(
+                    (t: any) => t.dataValues.packet_id == row["packet #"]
                 );
 
-                if (findStock && findStock !== undefined && findStock != null) {
-                    updatedStockList.push({
-                        id: findStock.dataValues.id,
-                        stock_id: row["stock #"],
+
+                if (findPacket && findPacket !== undefined && findPacket != null) {
+                    updatedPacketList.push({
+                        id: findPacket.dataValues.id,
+                        packet_id: row["packet #"],
                         shape,
                         quantity: quantity !=
-                            findStock.dataValues.remain_quantity
-                            ? Number(findStock.dataValues.quantity) +
+                            findPacket.dataValues.remain_quantity
+                            ? Number(findPacket.dataValues.quantity) +
                             Number(quantity) -
-                            Number(findStock.dataValues.remain_quantity)
-                            : findStock.dataValues.quantity,
+                            Number(findPacket.dataValues.remain_quantity)
+                            : findPacket.dataValues.quantity,
                         remain_quantity: quantity,
-                        weight,
+                        weight: weight !=
+                            findPacket.dataValues.remain_weight
+                            ? Number(findPacket.dataValues.weight) +
+                            Number(weight) -
+                            Number(findPacket.dataValues.remain_weight)
+                            : findPacket.dataValues.weight,
+                        remain_weight: weight,
+                        carat_rate,
                         rate,
                         color,
                         color_intensity,
@@ -679,19 +638,21 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
-                        loose_diamond,
-                        status: findStock.dataValues.status,
+                        status: findPacket.dataValues.status,
                         modified_by: idAppUser,
                         modified_at: getLocalDate(),
                         created_at: getLocalDate(),
                         created_by: idAppUser,
                     });
                 } else {
-                    createdStockList.push({
-                        stock_id: row["stock #"],
+                    createdPacketList.push({
+                        packet_id: row["packet #"],
                         shape,
                         quantity,
+                        remain_quantity: quantity,
                         weight,
+                        remain_weight: weight,
+                        carat_rate,
                         rate,
                         color,
                         color_intensity,
@@ -715,8 +676,6 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         local_location,
                         user_comments,
                         admin_comments,
-                        loose_diamond,
-                        remain_quantity: quantity,
                         status: StockStatus.AVAILABLE,
                         is_active: ActiveStatus.Active,
                         is_deleted: DeleteStatus.No,
@@ -726,10 +685,10 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 }
             } else {
                 errors.push({
-                    stock_id: "",
+                    packet_id: "",
                     row_id: currentGroupIndex + 1 + 1,
                     error_message: prepareMessageFromParams(REQUIRED_ERROR_MESSAGE, [
-                        ["field_name", "Stock #"],
+                        ["field_name", "packet #"],
                     ]),
                 });
             }
@@ -740,7 +699,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         }
 
         return resSuccess({
-            data: { create: createdStockList, update: updatedStockList },
+            data: { create: createdPacketList, update: updatedPacketList },
         });
     } catch (e) {
         throw e;
@@ -750,51 +709,23 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 const addGroupToDB = async (list: any) => {
     const trn = await dbContext.transaction();
     try {
-        const api = await Apis.findAll({
-            where: {
-                is_deleted: DeleteStatus.No,
-            },
-            include: [
-                {
-                    model: ApiStockDetails,
-                    as: "api_detail"
-                }
-            ]
-        })
-
-        let apiDetail = [];
-
         if (list.create.length > 0) {
-            const create = await Diamonds.bulkCreate(list.create, {
+            await PacketDiamonds.bulkCreate(list.create, {
                 transaction: trn,
             });
-            for (let i = 0; i < create.length; i++) {
-                const stock = create[i];
-                if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null) {
-                    const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
-                    if (findApi?.length > 0) {
-                        for (let j = 0; j < findApi.length; j++) {
-                            const apiData = findApi[j];
-                            apiDetail.push({
-                                api_id: apiData?.dataValues?.id,
-                                stock_id: stock?.dataValues?.id,
-                                price: stock?.dataValues?.rate,
-                                status: APiStockStatus.SELECTED
-                            });
-                        }
-                    }
-                }
-            }
         }
 
         if (list.update.length > 0) {
-            await Diamonds.bulkCreate(list.update, {
+            await PacketDiamonds.bulkCreate(list.update, {
                 transaction: trn,
                 updateOnDuplicate: [
-                    "stock_id",
+                    "packet_id",
                     "shape",
                     "quantity",
+                    "remain_quantity",
                     "weight",
+                    "remain_weight",
+                    "carat_rate",
                     "rate",
                     "color",
                     "color_intensity",
@@ -818,42 +749,13 @@ const addGroupToDB = async (list: any) => {
                     "local_location",
                     "user_comments",
                     "admin_comments",
-                    "loose_diamond",
                     "modified_by",
                     "modified_at",
-                    "remain_quantity",
                 ],
             });
-
-            for (let i = 0; i < list.update.length; i++) {
-                const stock = list.update[i];
-                const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
-                if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null && findApi?.length > 0) {
-                    for (let j = 0; j < findApi.length; j++) {
-                        const apiData = findApi[j];
-                        const apiDetailList = apiData?.dataValues?.api_detail?.some((item: any) => item.stock_id === stock?.dataValues?.id);
-                        if (!apiDetailList) {
-                            apiDetail.push({
-                                api_id: apiData?.dataValues?.id,
-                                stock_id: stock?.dataValues?.id,
-                                price: stock?.dataValues?.rate,
-                                status: APiStockStatus.SELECTED
-                            });
-                        }
-                    }
-                }
-            }
         }
-
-        if (apiDetail?.length > 0) {
-            await ApiStockDetails.bulkCreate(apiDetail, {
-                transaction: trn,
-            });
-        }
-        
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ data: list });
     } catch (e) {
@@ -863,44 +765,44 @@ const addGroupToDB = async (list: any) => {
     }
 };
 
-export const updateBulkStockStatus = async (req: Request) => {
-    const { stock_id, status } = req.body
+export const updateBulkPacketStatus = async (req: Request) => {
+    const { packet_id, status } = req.body
     try {
         const error = [];
 
-        const stock = await Diamonds.findAll({
+        const packets = await PacketDiamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No
             }
         });
 
-        if (stock_id.length > 0) {
-            for (let index = 0; index < stock_id.length; index++) {
-                const number = stock_id[index];
-                const findStock = stock.find((data) => {
-                    return data.dataValues.stock_id === number
+        if (packet_id.length > 0) {
+            for (let index = 0; index < packet_id.length; index++) {
+                const number = packet_id[index];
+                const findPacket = packets.find((data) => {
+                    return data.dataValues.packet_id === number
                 })
 
-                if (!(findStock && findStock.dataValues)) {
-                    error.push(`${number} stock not found`)
+                if (!(findPacket && findPacket.dataValues)) {
+                    error.push(`${number} Packet not found`)
                 }
             }
         }
 
         if (error.length > 0) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Packet"]]),
                 data: error.map(err => err)
             })
         }
 
-        const updatedStockList = [];
-        for (let index = 0; index < stock_id.length; index++) {
-            const number = stock_id[index];
-            const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
-            if (findStock && findStock.dataValues) {
-                updatedStockList.push({
-                    ...findStock.dataValues,
+        const updatedPacketList = [];
+        for (let index = 0; index < packet_id.length; index++) {
+            const number = packet_id[index];
+            const findPacket = packets.find((packet) => packet.dataValues.packet_id == number);
+            if (findPacket && findPacket.dataValues) {
+                updatedPacketList.push({
+                    ...findPacket.dataValues,
                     is_active: status,
                     modified_at: getLocalDate(),
                     modified_by: req.body.session_res.id,
@@ -908,13 +810,12 @@ export const updateBulkStockStatus = async (req: Request) => {
             }
         }
 
-        if (updatedStockList.length > 0) {
-            await Diamonds.bulkCreate(updatedStockList, {
+        if (updatedPacketList.length > 0) {
+            await PacketDiamonds.bulkCreate(updatedPacketList, {
                 updateOnDuplicate: ["is_active", "modified_by", "modified_at"],
             })
         }
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ message: RECORD_UPDATE })
 
@@ -925,14 +826,14 @@ export const updateBulkStockStatus = async (req: Request) => {
 
 }
 
-export const deleteBulkStock = async (req: Request) => {
-    const { stock_id } = req.params
+export const deleteBulkPacket = async (req: Request) => {
+    const { packet_id } = req.params
     try {
-        const stockList = stock_id.split(",");
+        const packetList = packet_id.split(",");
 
         const error = [];
 
-        const stock = await Diamonds.findAll({
+        const packets = await PacketDiamonds.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
                 status: {
@@ -941,33 +842,33 @@ export const deleteBulkStock = async (req: Request) => {
             }
         });
 
-        if (stockList.length > 0) {
-            for (let index = 0; index < stockList.length; index++) {
-                const number = stockList[index];
-                const findStock = stock.find((data) => {
-                    return data.dataValues.stock_id === number
+        if (packetList.length > 0) {
+            for (let index = 0; index < packetList.length; index++) {
+                const number = packetList[index];
+                const findPacket = packets.find((data) => {
+                    return data.dataValues.packet_id === number
                 })
 
-                if (!(findStock && findStock.dataValues)) {
-                    error.push(`${number} stock not found`)
+                if (!(findPacket && findPacket.dataValues)) {
+                    error.push(`${number} Packet not found`)
                 }
             }
         }
 
         if (error.length > 0) {
             return resNotFound({
-                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Stock"]]),
+                message: prepareMessageFromParams(ERROR_NOT_FOUND, [["field_name", "Packet"]]),
                 data: error.map(err => err)
             })
         }
 
-        const updatedStockList = [];
-        for (let index = 0; index < stockList.length; index++) {
-            const number = stockList[index];
-            const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
-            if (findStock && findStock.dataValues) {
-                updatedStockList.push({
-                    ...findStock.dataValues,
+        const updatedPacketList = [];
+        for (let index = 0; index < packetList.length; index++) {
+            const number = packetList[index];
+            const findPacket = packets.find((packet) => packet.dataValues.packet_id == number);
+            if (findPacket && findPacket.dataValues) {
+                updatedPacketList.push({
+                    ...findPacket.dataValues,
                     is_deleted: DeleteStatus.Yes,
                     deleted_at: getLocalDate(),
                     deleted_by: req.body.session_res.id,
@@ -975,13 +876,12 @@ export const deleteBulkStock = async (req: Request) => {
             }
         }
 
-        if (updatedStockList.length > 0) {
-            await Diamonds.bulkCreate(updatedStockList, {
+        if (updatedPacketList.length > 0) {
+            await PacketDiamonds.bulkCreate(updatedPacketList, {
                 updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
             })
         }
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ message: RECORD_DELETED })
 

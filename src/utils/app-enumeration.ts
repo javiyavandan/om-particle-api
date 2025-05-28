@@ -7,6 +7,7 @@ export enum StockStatus {
   AVAILABLE = 'available',
   SOLD = 'sold',
   MEMO = 'memo',
+  ONHOLD = 'on_hold'
 }
 
 export enum AffiliateStatus {
@@ -290,4 +291,38 @@ export enum Alignment_Enum {
 export enum Discount_Type {
   Percentage = 'percentage',
   Amount = 'amount',
+}
+
+export enum Memo_Invoice_creation {
+  Single = 'single',
+  Packet = 'packet',
+}
+
+export enum Memo_Invoice_Type {
+  carat = 'carat',
+  quantity = 'quantity',
+}
+
+export enum Log_Type {
+   MEMO = 'memo',
+   INVOICE = 'invoice',
+   StockTransfer = "stock_transfer"
+}
+
+export enum TransferStatus {
+  Created = 'created',
+  Accepted = 'accepted',
+  Rejected = 'rejected',
+  Return = 'return',
+  Closed = 'close',
+}
+
+export enum TransferStockStatus {
+  Return = 'return',
+  Sold = 'sold',
+}
+
+export enum APiStockStatus {
+  SELECTED = "selected",
+  UNSELECTED = "un_selected",
 }

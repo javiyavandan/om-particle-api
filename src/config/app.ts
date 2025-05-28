@@ -7,6 +7,7 @@ import dbConnection from "./dbContext";
 import { tokenVerification } from "../middlewares/authenticate";
 import adminRouter from "../routes/admin/index.route";
 import userRouter from "../routes/user/index.route";
+import publicRouter from "../routes/public/index.route"
 import { scheduleCurrencyFetch } from "../utils/shared-functions";
 const cors = require("cors");
 
@@ -23,6 +24,7 @@ export default ({ app }: { app: express.Application }) => {
   app.use("/api/v1", [bodyDecipher, tokenVerification], routes());
   app.use("/api/v1/admin", [bodyDecipher, tokenVerification], adminRouter());
   app.use("/api/v1/user", [bodyDecipher, tokenVerification], userRouter());
+  app.use("/public", publicRouter())
 
   scheduleCurrencyFetch()
 
