@@ -198,7 +198,8 @@ export const updateApi = async (req: Request) => {
                         id: findInDetail.dataValues?.id,
                         stock_id: findStock?.dataValues?.id,
                         price: stock.price,
-                        api_id: findApi.dataValues.id
+                        api_id: findApi.dataValues.id,
+                        status: APiStockStatus.SELECTED
                     })
                 } else {
                     detailList.push({
@@ -247,6 +248,7 @@ export const updateApi = async (req: Request) => {
                 transaction: trn,
                 updateOnDuplicate: [
                     "price",
+                    "status"
                 ]
             })
         }
