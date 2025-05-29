@@ -2142,3 +2142,73 @@ WITH
 	DATA;
 
 ALTER TABLE IF EXISTS PUBLIC.API_LIST OWNER TO POSTGRES;
+
+------------------------------ 29-05-2025 blog --------------------------------
+CREATE TABLE public.blog_category
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY,
+    name character varying NOT NULL,
+    slug character varying NOT NULL,
+    is_active bit NOT NULL DEFAULT '1',
+    created_at timestamp with time zone NOT NULL,
+    created_by bigint NOT NULL,
+    modified_at timestamp with time zone,
+    modified_by bigint,
+    sort_order bigint NOT NULL,
+    is_deleted bit NOT NULL DEFAULT '0',
+    deleted_at timestamp with time zone,
+    deleted_by bigint,
+    PRIMARY KEY (id)
+);
+
+ALTER TABLE IF EXISTS public.blog_category
+    OWNER to postgres;
+
+CREATE TABLE IF NOT EXISTS public.blogs
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    meta_title character varying COLLATE pg_catalog."default" NOT NULL,
+    meta_description character varying COLLATE pg_catalog."default",
+    meta_keywords character varying COLLATE pg_catalog."default",
+    title character varying COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default" NOT NULL,
+    sort_description character varying COLLATE pg_catalog."default",
+    id_image bigint NOT NULL,
+    id_banner_image bigint NOT NULL,
+    author character varying COLLATE pg_catalog."default" NOT NULL,
+    slug character varying COLLATE pg_catalog."default" NOT NULL,
+    id_category bigint,
+    is_active bit(1) NOT NULL DEFAULT '1'::"bit",
+    created_at timestamp with time zone NOT NULL,
+    created_by bigint NOT NULL,
+    modified_at timestamp with time zone,
+    modified_by bigint,
+    sort_order bigint NOT NULL,
+    is_deleted bit(1) NOT NULL DEFAULT '0'::"bit",
+    deleted_at timestamp with time zone,
+    deleted_by bigint,
+    CONSTRAINT blogs_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_banner FOREIGN KEY (id_banner_image)
+        REFERENCES public.images (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT fk_category FOREIGN KEY (id_category)
+        REFERENCES public.blog_categories (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT fk_image FOREIGN KEY (id_image)
+        REFERENCES public.images (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.blogs
+    OWNER to postgres;
+
+ALTER TYPE public.image_type
+    ADD VALUE 'blog_image' AFTER 'concierge';

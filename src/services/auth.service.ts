@@ -77,15 +77,94 @@ import Company from "../model/companys.model";
 import Country from "../model/country.model";
 import Memo from "../model/memo.model";
 import MemoDetail from "../model/memo-detail.model";
+import MenuItem from "../model/menu-items.model";
+import RoleApiPermission from "../model/role-api-permission.model";
 
 export const test = async (req: Request) => {
 
   try {
-    const findMemoExist = await Memo.count({
-      where: { creation_type: Memo_Invoice_creation.Packet },
-      include: [{ model: MemoDetail, as: "memo_details", attributes: ["id", "stock_id", "memo_type"], where: { memo_type: Memo_Invoice_Type.carat } }],
-    });
-    return resSuccess({ data: findMemoExist });
+    const { list } = req.body
+    const without_parent = list.filter((item: { id_parent_menu: any; }) => !item?.id_parent_menu)
+    const with_child_child = without_parent.map((item: { name: any; }) => {
+      const child = list.filter((childItem: { id_parent_menu: any; }) => childItem?.id_parent_menu == item?.name)
+      for (let j = 0; j < child.length; j++) {
+        const element = child[j];
+        const subChild = list.filter((subChildItem: { id_parent_menu: any; }) => subChildItem?.id_parent_menu == element?.name)
+        child[j] = { ...element, child: subChild }
+      }
+      return { ...item, child }
+    })
+    for (let i = 0; i < without_parent.length; i++) {
+      const item = without_parent[i];
+      const child = list.filter((childItem: { id_parent_menu: any; }) => childItem?.id_parent_menu == item?.name)
+
+      //parent
+      const menu = await MenuItem.create({
+        ...item,
+        menu_location: child?.length > 0 ? 3 : 1
+      })
+
+      //parent api
+      if (item.api && item.api.length > 0) {
+        await RoleApiPermission.bulkCreate(
+          item.api.map((api: any) => ({
+            ...api,
+            id_menu_item: menu.dataValues.id
+          }))
+        )
+      }
+
+      if (child?.length > 0) {
+        for (let k = 0; k < child.length; k++) {
+          const childItem = child[k];
+          const subChild = list.filter((subChildItem: { id_parent_menu: any; }) => subChildItem?.id_parent_menu == childItem?.name)
+
+          // child 
+          const childMenu = await MenuItem.create({
+            ...childItem,
+            id_parent_menu: menu.dataValues.id,
+            menu_location: subChild?.length > 0 ? 2 : 1
+          })
+
+          // child api
+          if (childItem.api && childItem.api.length > 0) {
+            await RoleApiPermission.bulkCreate(
+              childItem.api.map((api: any) => ({
+                ...api,
+                id_menu_item: childMenu.dataValues.id
+              }))
+            )
+          }
+
+          if (subChild?.length > 0) {
+            for (let l = 0; l < subChild.length; l++) {
+              const subChildItem = subChild[l];
+
+              // sub child
+              const subChildMenu = await MenuItem.create({
+                ...subChildItem,
+                id_parent_menu: childMenu.dataValues.id,
+                menu_location: 1
+              })
+
+              // sub child api
+              if (subChildItem.api && subChildItem.api.length > 0) {
+                await RoleApiPermission.bulkCreate(
+                  subChildItem.api.map((api: any) => ({
+                    ...api,
+                    id_menu_item: subChildMenu.dataValues.id
+                  }))
+                )
+              }
+            }
+          }
+        }
+      }
+
+    }
+
+
+    return resSuccess({ data: with_child_child });
   } catch (error) {
     console.log(error)
     throw error;
