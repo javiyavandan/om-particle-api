@@ -3,7 +3,6 @@ import {
     getLocalDate,
     prepareMessageFromParams,
     refreshMaterializedViews,
-    refreshStockTransferMaterializedView,
     resBadRequest,
     resNotFound,
     resSuccess,
@@ -853,7 +852,6 @@ const addGroupToDB = async (list: any) => {
         
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ data: list });
     } catch (e) {
@@ -914,7 +912,6 @@ export const updateBulkStockStatus = async (req: Request) => {
             })
         }
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ message: RECORD_UPDATE })
 
@@ -981,7 +978,6 @@ export const deleteBulkStock = async (req: Request) => {
             })
         }
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess({ message: RECORD_DELETED })
 
