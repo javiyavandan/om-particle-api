@@ -1,6 +1,6 @@
 import { Request } from "express";
 import Diamonds from "../../model/diamond.model";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
 import { ActiveStatus, APiStockStatus, DeleteStatus, Is_loose_diamond, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
@@ -172,7 +172,6 @@ export const addStock = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -383,7 +382,6 @@ export const updateStock = async (req: Request) => {
 
         await trn.commit()
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
 
         return resSuccess()
     } catch (error) {
@@ -423,7 +421,6 @@ export const deleteStock = async (req: Request) => {
             }
         })
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess()
     } catch (error) {
         throw error;
@@ -608,7 +605,6 @@ export const updateStockStatus = async (req: Request) => {
         })
 
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: RECORD_UPDATE })
 
     } catch (error) {
@@ -777,7 +773,6 @@ export const TransferStockByCompany = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: `Stock transfer successfully to ${findCompany.dataValues.name}` })
 
     } catch (error) {
