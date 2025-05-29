@@ -1,7 +1,7 @@
 import { Request } from "express";
 import Company from "../../model/companys.model";
 import { ActiveStatus, DeleteStatus, StockStatus, TransferStatus, TransferStockStatus } from "../../utils/app-enumeration";
-import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, refreshStockTransferMaterializedView, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
+import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { ERROR_NOT_FOUND } from "../../utils/app-messages";
 import Diamonds from "../../model/diamond.model";
 import dbContext from "../../config/dbContext";
@@ -150,7 +150,6 @@ export const CreateTransferRequest = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: "Transfer Request Created Successfully" })
 
     } catch (error) {
@@ -313,7 +312,6 @@ export const AcceptStockTransferRequest = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: "Transfer Request Accepted Successfully" })
 
     } catch (error) {
@@ -416,7 +414,6 @@ export const RejectStockTransferRequest = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: "Transfer Request Rejected Successfully" })
 
     } catch (error) {
@@ -587,7 +584,6 @@ export const ReturnStockTransferRequest = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: "Transfer Request Returned Successfully" })
 
     } catch (error) {
@@ -750,7 +746,6 @@ export const CloseTransferRequest = async (req: Request) => {
 
         await trn.commit();
         await refreshMaterializedViews()
-        await refreshStockTransferMaterializedView()
         return resSuccess({ message: "Transfer Request Closed Successfully" })
 
     } catch (error) {
