@@ -564,12 +564,12 @@ export const invoiceCreation = async (data: any) => {
                             is_deleted: DeleteStatus.No,
                             status: StockStatus.MEMO
                         },
+                        attributes: ['id'],
                         transaction: trn
                     })
-                    const memoDetailCheck = allStock?.map((item) => {
-                        const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
-                        return stock
-                    })
+                    const stockIdList = allStock?.map((item) => item?.dataValues?.id)
+
+                    const memoDetailCheck = memoDetail?.filter((item) => stockIdList?.includes(item?.dataValues?.stock_id))
 
                     if (memoDetailCheck?.length === 0) {
                         await Memo.update({
@@ -734,7 +734,7 @@ export const invoiceCreation = async (data: any) => {
             await refreshMaterializedViews()
 
             return resSuccess({
-                 data: invoiceId
+                data: invoiceId
             })
         } catch (error) {
             console.log(error)
