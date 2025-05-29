@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { contactUsFn, getCurrencyFn, getUserDetailFn, updateUserDetailFn } from "../../controllers/user/user.controller";
+import { contactUsFn, getAllBlogsFn, getBlogDetailFn, getCurrencyFn, getUserDetailFn, updateUserDetailFn } from "../../controllers/user/user.controller";
 import { contactUsValidator } from "../../validators/user/user.validator";
 import { userAuthorization } from "../../middlewares/authenticate";
 import { reqMultiImageParser } from "../../middlewares/multipart-file-parser";
@@ -14,4 +14,6 @@ export default (app: Router) => {
     [userAuthorization, reqMultiImageParser(["image", "pdf"]), updateCustomerValidator],
     updateUserDetailFn
   );
+  app.get("/blog", getAllBlogsFn);
+  app.get("/blog/:slug", getBlogDetailFn);
 }

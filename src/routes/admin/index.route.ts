@@ -17,6 +17,7 @@ import blogRoute from "./blog.route";
 import packetRoute from "./packet.route";
 import apiRoute from "./api.route";
 import stockTransferRoute from "./stock-transfer.route";
+import blogCategoryRoute from "./blog-category.route";
 
 export default function adminRouter() {
   const app = Router();
@@ -35,6 +36,7 @@ export default function adminRouter() {
   currencyRoute(app);
   homePageRoute(app);
   blogRoute(app);
+  blogCategoryRoute(app);
   packetRoute(app);
   apiRoute(app);
   stockTransferRoute(app);
