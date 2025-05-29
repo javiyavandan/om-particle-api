@@ -158,7 +158,7 @@ export const addStock = async (req: Request) => {
                     const apiData = findApi[i];
                     apiDetail.push({
                         api_id: apiData?.dataValues?.id,
-                        diamond_id: diamond?.dataValues?.id,
+                        stock_id: diamond?.dataValues?.id,
                         price: diamond?.dataValues?.rate,
                         status: APiStockStatus.SELECTED,
                     })

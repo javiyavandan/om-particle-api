@@ -1956,7 +1956,7 @@ AS
     (ru.first_name::text || ' '::text) || COALESCE(ru.last_name, ''::character varying)::text AS rejected_by_name,
     (rtu.first_name::text || ' '::text) || COALESCE(rtu.last_name, ''::character varying)::text AS return_by_name,
     (clu.first_name::text || ' '::text) || COALESCE(clu.last_name, ''::character varying)::text AS close_by_name,
-    json_agg(jsonb_build_object('id', td.id, 'transfer_stock_status', td.status, 'sender_price', td.sender_price, 'receiver_price', td.receiver_price, 'stock_id', d.stock_id, 'shape', sm.name, 'color', cm.name, 'weight', d.weight, 'clarity', cl.name, 'rate', d.rate, 'lab', lm.name, 'local_location', d.local_location, 'quantity', d.quantity, 'company', com.name, 'created_at', d.created_at)) AS transfer_details
+    json_agg(jsonb_build_object('id', td.id, 'transfer_stock_status', td.status, 'sender_price', td.sender_price, 'receiver_price', td.receiver_price, 'stock_id', d.stock_id, 'shape', sm.name, 'color', cm.name, 'weight', d.weight, 'clarity', cl.name, 'rate', d.rate, 'status', d.status, 'lab', lm.name, 'local_location', d.local_location, 'quantity', d.quantity, 'company', com.name, 'created_at', d.created_at)) AS transfer_details
    FROM stock_transfers st
      LEFT JOIN companys sc ON sc.id = st.sender
      LEFT JOIN companys rc ON rc.id = st.receiver
