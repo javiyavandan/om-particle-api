@@ -515,10 +515,16 @@ export const ReturnStockTransferRequest = async (req: Request) => {
                     })
 
                     if (stock?.status === TransferStockStatus.Return) {
-                        stockUpdateArray.push({
-                            ...findStock?.dataValues,
-                            status: StockStatus.ONHOLD,
-                        })
+                        if (findStock?.dataValues?.status === StockStatus.MEMO) {
+                            stockError.push(`Stock ${stock?.stock_id} is on memo`);
+                        } else if (findStock?.dataValues?.status === StockStatus.SOLD) {
+                            stockError.push(`Stock ${stock?.stock_id} is already sold`);
+                        } else {
+                            stockUpdateArray.push({
+                                ...findStock?.dataValues,
+                                status: StockStatus.ONHOLD,
+                            })
+                        }
                         returnTotalQuantity += Number(findStock?.dataValues?.quantity);
                         returnTotalWeight += Number(findStock?.dataValues?.weight);
                         returnTotalPrice += (Number(findStockFromTransfer?.dataValues?.sender_price) * Number(findStock?.dataValues?.weight)) * Number(findStock?.dataValues?.quantity);
