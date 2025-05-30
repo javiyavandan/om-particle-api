@@ -17,7 +17,7 @@ import { invoiceCreation } from "./invoice.service"
 export const createApi = async (req: Request) => {
     let trn;
     try {
-        const { customer_id, column_array, company_id, session_res } = req.body
+        const { session_res, customer_id, column_array, company_id = session_res?.company_id } = req.body
         const detailList = [];
 
         const findCustomer = await Customer.findOne({
