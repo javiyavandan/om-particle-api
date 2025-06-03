@@ -25,6 +25,9 @@ const StockLogs = dbContext.define("stock_logs", {
     log_type: {
         type: STRING
     },
+    action_type: {
+        type: STRING
+    },
 })
 
 export default StockLogs

@@ -34,6 +34,8 @@ import {
     FILE_BULK_UPLOAD_TYPE,
     FILE_STATUS,
     Is_loose_diamond,
+    Log_action_type,
+    Log_Type,
     Master_type,
     StockStatus,
 } from "../../utils/app-enumeration";
@@ -45,6 +47,8 @@ import Company from "../../model/companys.model";
 import { Op } from "sequelize";
 import Apis from "../../model/apis";
 import ApiStockDetails from "../../model/api-stock-details";
+import AppUser from "../../model/app_user.model";
+import StockLogs from "../../model/stock-logs.model";
 const readXlsxFile = require("read-excel-file/node");
 
 export const addStockCSVFile = async (req: Request) => {
@@ -180,7 +184,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
             return resProducts;
         }
 
-        const resAPTD = await addGroupToDB(resProducts.data);
+        const resAPTD = await addGroupToDB(resProducts.data, idAppUser);
         if (resAPTD.code !== DEFAULT_STATUS_CODE_SUCCESS) {
             return resAPTD;
         }
@@ -361,6 +365,11 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 
         let updatedStockList = [];
         let createdStockList = [];
+
+        const updateStockLogs = [];
+        const newStockLog = [];
+        const getNameFromId = (list: any[], id: any) => list.find((item: any) => item.dataValues.id == id)?.dataValues?.name;
+
         const seenStockNumbers = new Set<string>();
         for (const row of rows) {
             currentGroupIndex++;
@@ -643,6 +652,139 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 );
 
                 if (findStock && findStock !== undefined && findStock != null) {
+                    const updatedFields: any = {};
+                    const original = findStock.dataValues;
+
+                    function shouldInclude(oldVal: any, newVal: null) {
+                        const isNullOrUndef = (val: null | undefined) => val === null || val === undefined;
+
+                        if (isNullOrUndef(oldVal) && isNullOrUndef(newVal)) {
+                            return false;
+                        }
+
+                        if (newVal === null) {
+                            return true;
+                        }
+
+                        return String(oldVal) !== String(newVal);
+                    }
+
+                    const fieldsToCheck = [
+                        "quantity",
+                        "remain_quantity",
+                        "weight",
+                        "rate",
+                        "color",
+                        "color_intensity",
+                        "color_over_tone",
+                        "clarity",
+                        "video",
+                        "image",
+                        "certificate",
+                        "lab",
+                        "report",
+                        "polish",
+                        "symmetry",
+                        "measurement_height",
+                        "measurement_width",
+                        "measurement_depth",
+                        "table_value",
+                        "depth_value",
+                        "ratio",
+                        "fluorescence",
+                        "company_id",
+                        "local_location",
+                        "user_comments",
+                        "admin_comments",
+                        "loose_diamond"
+                    ];
+
+
+                    const oldValues: any = {
+                        quantity: original.quantity,
+                        remain_quantity: original.remain_quantity,
+                        weight: original.weight,
+                        shape: getNameFromId(shapeList, original.shape),
+                        rate: original.rate,
+                        color: getNameFromId(colorList, original.color),
+                        color_intensity: original.color_intensity ? getNameFromId(colorIntensityList, original.color_intensity) : null,
+                        color_over_tone: original.color_over_tone,
+                        clarity: original.clarity ? getNameFromId(clarityList, original.clarity) : null,
+                        video: original.video,
+                        image: original.image,
+                        certificate: original.certificate,
+                        lab: original.lab ? getNameFromId(labList, original.lab) : null,
+                        report: original.report,
+                        polish: original.polish ? getNameFromId(polishList, original.polish) : null,
+                        symmetry: original.symmetry ? getNameFromId(SymmetryList, original.symmetry) : null,
+                        measurement_height: original.measurement_height,
+                        measurement_width: original.measurement_width,
+                        measurement_depth: original.measurement_depth,
+                        table_value: original.table_value,
+                        depth_value: original.depth_value,
+                        ratio: original.ratio,
+                        fluorescence: original.fluorescence ? getNameFromId(fluorescenceList, original.fluorescence) : null,
+                        company_id: original.company_id ? getNameFromId(companyList, original.company_id) : null,
+                        local_location: original.local_location,
+                        user_comments: original.user_comments,
+                        admin_comments: original.admin_comments,
+                        loose_diamond: original.loose_diamond
+                    }
+
+                    const currentValues: any = {
+                        quantity:
+                            quantity != original.remain_quantity
+                                ? Number(original.quantity) + Number(quantity) - Number(original.remain_quantity)
+                                : original.quantity,
+                        remain_quantity: quantity,
+                        shape: row.shape,
+                        weight,
+                        rate,
+                        color: row.color,
+                        color_intensity: row["color intensity"],
+                        color_over_tone: row["color over tone"],
+                        clarity: row.clarity,
+                        video,
+                        image,
+                        certificate,
+                        lab: row.lab,
+                        report,
+                        polish: row.polish,
+                        symmetry: row.symmetry,
+                        measurement_height,
+                        measurement_width,
+                        measurement_depth,
+                        table_value: table_per,
+                        depth_value: depth_per,
+                        ratio,
+                        fluorescence: row.fluorescence,
+                        company_id: row["location"],
+                        local_location,
+                        user_comments,
+                        admin_comments,
+                        loose_diamond
+                    };
+
+                    for (const field of fieldsToCheck) {
+                        const oldVal = oldValues[field];
+                        const newVal = currentValues[field];
+
+                        if (shouldInclude(oldVal, newVal)) {
+                            updatedFields[field] = {
+                                old: oldVal,
+                                new: newVal
+                            };
+                        }
+                    }
+
+                    if (Object.keys(updatedFields).length > 0) {
+                        updateStockLogs.push({
+                            reference_id: original.id,
+                            stock_id: row["stock #"],
+                            updated_fields: updatedFields
+                        });
+                    }
+
                     updatedStockList.push({
                         id: findStock.dataValues.id,
                         stock_id: row["stock #"],
@@ -686,6 +828,37 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         created_by: idAppUser,
                     });
                 } else {
+                    newStockLog.push({
+                        stock_id: row["stock #"],
+                        shape: getNameFromId(shapeList, shape),
+                        quantity,
+                        weight,
+                        rate,
+                        color: getNameFromId(colorList, color),
+                        color_intensity: color_intensity ? getNameFromId(colorIntensityList, color_intensity) : null,
+                        color_over_tone,
+                        clarity: clarity ? getNameFromId(clarityList, clarity) : null,
+                        video,
+                        image,
+                        certificate,
+                        lab: lab ? getNameFromId(labList, lab) : null,
+                        report,
+                        polish: polish ? getNameFromId(polishList, polish) : null,
+                        symmetry: symmetry ? getNameFromId(SymmetryList, symmetry) : null,
+                        measurement_height,
+                        measurement_width,
+                        measurement_depth,
+                        table_value: table_per,
+                        depth_value: depth_per,
+                        ratio,
+                        fluorescence: fluorescence ? getNameFromId(fluorescenceList, fluorescence) : null,
+                        company_id: company ? getNameFromId(companyList, company) : null,
+                        local_location,
+                        user_comments,
+                        admin_comments,
+                        loose_diamond,
+                        remain_quantity: quantity,
+                    })
                     createdStockList.push({
                         stock_id: row["stock #"],
                         shape,
@@ -733,22 +906,30 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                 });
             }
         }
-
         if (errors.length > 0) {
             return resUnprocessableEntity({ data: errors });
         }
 
         return resSuccess({
-            data: { create: createdStockList, update: updatedStockList },
+            data: { create: createdStockList, update: updatedStockList, updateStockLogs, newStockLog },
         });
     } catch (e) {
         throw e;
     }
 };
 
-const addGroupToDB = async (list: any) => {
-    const trn = await dbContext.transaction();
+const addGroupToDB = async (list: any, idAppUser: any) => {
+    let trn;
     try {
+        const admin = await AppUser.findOne({
+            where: {
+                id: idAppUser,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
         const api = await Apis.findAll({
             where: {
                 is_deleted: DeleteStatus.No,
@@ -762,6 +943,9 @@ const addGroupToDB = async (list: any) => {
         })
 
         let apiDetail = [];
+        const newStockLogs = [];
+
+        trn = await dbContext.transaction();
 
         if (list.create.length > 0) {
             const create = await Diamonds.bulkCreate(list.create, {
@@ -769,6 +953,12 @@ const addGroupToDB = async (list: any) => {
             });
             for (let i = 0; i < create.length; i++) {
                 const stock = create[i];
+                if (list?.newStockLog?.some((item: any) => item?.stock_id == stock?.dataValues?.stock_id)) {
+                    newStockLogs.push({
+                        ...list?.newStockLog?.find((item: any) => item?.stock_id == stock?.dataValues?.stock_id),
+                        reference_id: stock?.dataValues?.id
+                    })
+                }
                 if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null) {
                     const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
                     if (findApi?.length > 0) {
@@ -844,26 +1034,65 @@ const addGroupToDB = async (list: any) => {
             }
         }
 
+        if (list.updateStockLogs.length > 0) {
+            const updateLogs = [];
+            for (const log of list.updateStockLogs) {
+                updateLogs.push({
+                    reference_id: log.reference_id,
+                    change_at: getLocalDate(),
+                    change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                    change_by_id: admin?.dataValues?.id,
+                    description: JSON.stringify(log.updated_fields),
+                    log_type: Log_Type.Stock,
+                    action_type: Log_action_type.EDIT,
+                })
+            }
+            await StockLogs.bulkCreate(updateLogs, {
+                transaction: trn,
+            });
+        }
+
+        if (newStockLogs?.length > 0) {
+            const newLogs = [];
+            for (const log of newStockLogs) {
+                newLogs.push({
+                    reference_id: log.reference_id,
+                    change_at: getLocalDate(),
+                    change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                    change_by_id: admin?.dataValues?.id,
+                    description: JSON.stringify(log),
+                    log_type: Log_Type.Stock,
+                    action_type: Log_action_type.ADD,
+                })
+            }
+            await StockLogs.bulkCreate(newLogs, {
+                transaction: trn,
+            });
+        }
+
         if (apiDetail?.length > 0) {
             await ApiStockDetails.bulkCreate(apiDetail, {
                 transaction: trn,
             });
         }
-        
+
         await trn.commit();
         await refreshMaterializedViews()
 
         return resSuccess({ data: list });
     } catch (e) {
         console.log(e)
-        await trn.rollback();
+        if (trn) {
+            await trn.rollback();
+        }
         throw e;
     }
 };
 
 export const updateBulkStockStatus = async (req: Request) => {
-    const { stock_id, status } = req.body
+    let trn;
     try {
+        const { stock_id, status } = req.body
         const error = [];
 
         const stock = await Diamonds.findAll({
@@ -892,7 +1121,19 @@ export const updateBulkStockStatus = async (req: Request) => {
             })
         }
 
+        const admin = await AppUser.findOne({
+            where: {
+                id_role: req.body.session_res.id_role,
+                is_deleted: DeleteStatus.No,
+                id: req.body.session_res.id,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["id", "first_name"]
+        })
+
         const updatedStockList = [];
+        const stockLogs = [];
+
         for (let index = 0; index < stock_id.length; index++) {
             const number = stock_id[index];
             const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
@@ -903,28 +1144,54 @@ export const updateBulkStockStatus = async (req: Request) => {
                     modified_at: getLocalDate(),
                     modified_by: req.body.session_res.id,
                 });
+                stockLogs.push({
+                    reference_id: number,
+                    change_at: getLocalDate(),
+                    change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                    change_by_id: admin?.dataValues?.id,
+                    description: JSON.stringify({
+                        stock_status: { old: findStock.dataValues?.is_active === ActiveStatus.Active ? "Enabled" : "Disabled", new: status === ActiveStatus.Active ? "Enabled" : "Disabled" }
+                    }),
+                    log_type: Log_Type.Stock,
+                    action_type: Log_action_type.EDIT
+                })
             }
         }
+
+        trn = await dbContext.transaction();
 
         if (updatedStockList.length > 0) {
             await Diamonds.bulkCreate(updatedStockList, {
                 updateOnDuplicate: ["is_active", "modified_by", "modified_at"],
+                transaction: trn,
             })
         }
+
+        if (stockLogs.length > 0) {
+            await StockLogs.bulkCreate(stockLogs, {
+                transaction: trn
+            })
+        }
+
+        await trn.commit();
         await refreshMaterializedViews()
 
         return resSuccess({ message: RECORD_UPDATE })
 
 
     } catch (error) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw error;
     }
 
 }
 
 export const deleteBulkStock = async (req: Request) => {
-    const { stock_id } = req.params
+    let trn;
     try {
+        const { stock_id } = req.params
         const stockList = stock_id.split(",");
 
         const error = [];
@@ -958,7 +1225,19 @@ export const deleteBulkStock = async (req: Request) => {
             })
         }
 
+        const admin = await AppUser.findOne({
+            where: {
+                id_role: req.body.session_res.id_role,
+                is_deleted: DeleteStatus.No,
+                id: req.body.session_res.id,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["id", "first_name"]
+        })
+
         const updatedStockList = [];
+        const stockLogs = [];
+
         for (let index = 0; index < stockList.length; index++) {
             const number = stockList[index];
             const findStock = stock.find((stock) => stock.dataValues.stock_id == number);
@@ -969,20 +1248,43 @@ export const deleteBulkStock = async (req: Request) => {
                     deleted_at: getLocalDate(),
                     deleted_by: req.body.session_res.id,
                 });
+                stockLogs.push({
+                    reference_id: number,
+                    change_at: getLocalDate(),
+                    change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                    change_by_id: admin?.dataValues?.id,
+                    description: `${findStock.dataValues.stock_id} stock deleted`,
+                    log_type: Log_Type.Stock,
+                    action_type: Log_action_type.DELETE
+                })
             }
         }
+
+        trn = await dbContext.transaction();
 
         if (updatedStockList.length > 0) {
             await Diamonds.bulkCreate(updatedStockList, {
                 updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
+                transaction: trn,
             })
         }
+
+        if (stockLogs?.length > 0) {
+            await StockLogs.bulkCreate(stockLogs, {
+                transaction: trn
+            })
+        }
+
+        await trn.commit();
         await refreshMaterializedViews()
 
         return resSuccess({ message: RECORD_DELETED })
 
 
     } catch (error) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw error;
     }
 

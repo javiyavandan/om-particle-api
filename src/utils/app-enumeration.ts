@@ -306,7 +306,14 @@ export enum Memo_Invoice_Type {
 export enum Log_Type {
    MEMO = 'memo',
    INVOICE = 'invoice',
-   StockTransfer = "stock_transfer"
+   StockTransfer = "stock_transfer",
+   Stock = "stock",
+}
+
+export enum Log_action_type {
+  ADD = 'add',
+  EDIT = 'edit',
+  DELETE = 'delete',
 }
 
 export enum TransferStatus {

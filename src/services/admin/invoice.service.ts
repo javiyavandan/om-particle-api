@@ -582,7 +582,7 @@ export const invoiceCreation = async (data: any) => {
 
                         await StockLogs.create({
                             change_at: getLocalDate(),
-                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                             change_by_id: admin?.dataValues?.id,
                             log_type: Log_Type.MEMO,
                             reference_id: memo_id,
@@ -647,7 +647,7 @@ export const invoiceCreation = async (data: any) => {
                     if (memoStatus === MEMO_STATUS.Close) {
                         await StockLogs.create({
                             change_at: getLocalDate(),
-                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                             change_by_id: admin?.dataValues?.id,
                             log_type: Log_Type.MEMO,
                             reference_id: memo_id,
@@ -657,7 +657,7 @@ export const invoiceCreation = async (data: any) => {
 
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.INVOICE,
                         reference_id: invoiceId,
@@ -720,7 +720,7 @@ export const invoiceCreation = async (data: any) => {
 
             await StockLogs.create({
                 change_at: getLocalDate(),
-                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                 change_by_id: admin?.dataValues?.id,
                 log_type: Log_Type.INVOICE,
                 reference_id: invoiceId,
