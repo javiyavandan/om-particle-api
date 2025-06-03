@@ -3,7 +3,7 @@ import Diamonds from "../../model/diamond.model";
 import { getInitialPaginationFromQuery, getLocalDate, prepareMessageFromParams, refreshMaterializedViews, resBadRequest, resNotFound, resSuccess } from "../../utils/shared-functions";
 import { DATA_ALREADY_EXITS, DUPLICATE_ERROR_CODE, ERROR_NOT_FOUND, RECORD_UPDATE } from "../../utils/app-messages";
 import Master from "../../model/masters.model";
-import { ActiveStatus, APiStockStatus, DeleteStatus, Is_loose_diamond, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
+import { ActiveStatus, APiStockStatus, DeleteStatus, Is_loose_diamond, Log_action_type, Log_Type, Master_type, StockStatus } from "../../utils/app-enumeration";
 import Company from "../../model/companys.model";
 import { Op, QueryTypes } from "sequelize";
 import dbContext from "../../config/dbContext";
@@ -11,6 +11,7 @@ import StockLogs from "../../model/stock-logs.model";
 import AppUser from "../../model/app_user.model";
 import Apis from "../../model/apis";
 import ApiStockDetails from "../../model/api-stock-details";
+import { statusUpdateValue } from "../../helpers/helper";
 
 export const addStock = async (req: Request) => {
     let trn;
@@ -144,6 +145,27 @@ export const addStock = async (req: Request) => {
             transaction: trn
         })
 
+        const admin = await AppUser.findOne({
+            where: {
+                id: session_res.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
+        await StockLogs.create({
+            reference_id: diamond?.dataValues?.id,
+            change_at: getLocalDate(),
+            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+            change_by_id: admin?.dataValues?.id,
+            description: JSON.stringify(diamond),
+            log_type: Log_Type.Stock,
+            action_type: Log_action_type.ADD,
+        }, {
+            transaction: trn
+        })
+
         if (diamond?.dataValues?.certificate && diamond?.dataValues?.report) {
             const findApi = await Apis.findAll({
                 where: {
@@ -216,7 +238,7 @@ export const updateStock = async (req: Request) => {
             admin_comments,
             local_location,
             loose_diamond = Is_loose_diamond.No,
-            color_over_tone,
+            color_over_tone = null,
             session_res
         } = req.body
         const { diamond_id } = req.params
@@ -337,8 +359,72 @@ export const updateStock = async (req: Request) => {
         }, {
             where: {
                 id: diamond.dataValues.id
-            }
+            },
+            transaction: trn
         })
+
+        const admin = await AppUser.findOne({
+            where: {
+                id: session_res.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
+        function shouldInclude(oldVal: any, newVal: null) {
+            const isNullOrUndef = (val: null | undefined) => val === null || val === undefined;
+
+            if (isNullOrUndef(oldVal) && isNullOrUndef(newVal)) {
+                return false;
+            }
+
+            if (newVal === null) {
+                return true;
+            }
+
+            return String(oldVal) !== String(newVal);
+        }
+        const fieldsToCheck = [
+            "stock_id", "available", "shape", "quantity", "weight", "rate", "color",
+            "color_intensity", "clarity", "lab", "report", "polish", "symmetry", "video", "image", "certificate",
+            "measurement_height", "measurement_width", "measurement_depth", "table_value", "depth_value", "ratio",
+            "fluorescence", "company_id", "user_comments", "admin_comments", "local_location", "loose_diamond", "color_over_tone"
+        ];
+        const oldValues = diamond.dataValues;
+        const newValues: any = {
+            stock_id, available, shape, quantity, weight, rate, color,
+            color_intensity, clarity, lab, report, polish, symmetry, video, image, certificate,
+            measurement_height, measurement_width, measurement_depth, table_value, depth_value, ratio,
+            fluorescence, company_id: req.body.session_res.company_id ? req.body.session_res.company_id : company_id,
+            user_comments, admin_comments, local_location, loose_diamond, color_over_tone
+        };
+        const updatedFields: any = {};
+        for (const field of fieldsToCheck) {
+            const oldVal = oldValues[field];
+            const newVal = newValues[field];
+
+            if (shouldInclude(oldVal, newVal)) {
+                updatedFields[field] = {
+                    old: oldVal,
+                    new: newVal
+                };
+            }
+        }
+
+        if (Object.keys(updatedFields).length > 0) {
+            await StockLogs.create({
+                reference_id: diamond?.dataValues?.id,
+                change_at: getLocalDate(),
+                change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                change_by_id: admin?.dataValues?.id,
+                description: JSON.stringify(updatedFields),
+                log_type: Log_Type.Stock,
+                action_type: Log_action_type.EDIT,
+            }, {
+                transaction: trn
+            })
+        }
 
         if (certificate && report) {
             const findApi = await Apis.findAll({
@@ -393,6 +479,7 @@ export const updateStock = async (req: Request) => {
 }
 
 export const deleteStock = async (req: Request) => {
+    let trn;
     try {
         const { diamond_id } = req.params
 
@@ -411,6 +498,7 @@ export const deleteStock = async (req: Request) => {
             })
         }
 
+        trn = await dbContext.transaction();
         await Diamonds.update({
             is_deleted: DeleteStatus.Yes,
             deleted_at: getLocalDate(),
@@ -418,11 +506,38 @@ export const deleteStock = async (req: Request) => {
         }, {
             where: {
                 id: findDiamond.dataValues.id
-            }
+            },
+            transaction: trn
         })
+
+        const admin = await AppUser.findOne({
+            where: {
+                id: req.body.session_res.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
+        await StockLogs.create({
+            reference_id: findDiamond?.dataValues?.id,
+            change_at: getLocalDate(),
+            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+            change_by_id: admin?.dataValues.id,
+            description: `${findDiamond.dataValues?.stock_id} stock deleted`,
+            log_type: Log_Type.Stock,
+            action_type: Log_action_type.DELETE,
+        }, {
+            transaction: trn
+        })
+
+        await trn.commit();
         await refreshMaterializedViews()
         return resSuccess()
     } catch (error) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw error;
     }
 }
@@ -441,8 +556,18 @@ export const getStock = async (req: Request) => {
             })
         }
 
+        const logs = await StockLogs.findAll({
+            where: {
+                reference_id: diamond_id,
+                log_type: Log_Type.Stock,
+            }
+        })
+
         return resSuccess({
-            data: diamond[0]
+            data: {
+                ...diamond[0],
+                logs
+            }
         })
     } catch (error) {
         throw error;
@@ -580,6 +705,7 @@ export const getAllStock = async (req: Request) => {
 }
 
 export const updateStockStatus = async (req: Request) => {
+    let trn;
     try {
         const { diamond_id } = req.params
 
@@ -596,13 +722,42 @@ export const updateStockStatus = async (req: Request) => {
             })
         }
 
+        trn = await dbContext.transaction();
+        const status = statusUpdateValue(findDiamond)
+
         await Diamonds.update({
-            is_active: findDiamond.dataValues.is_active === ActiveStatus.InActive ? ActiveStatus.Active : ActiveStatus.InActive
+            is_active: status
         }, {
             where: {
                 id: findDiamond.dataValues.id,
             },
+            transaction: trn
         })
+
+        const admin = await AppUser.findOne({
+            where: {
+                id: req.body.session_res.id,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
+        await StockLogs.create({
+            reference_id: findDiamond?.dataValues?.id,
+            change_at: getLocalDate(),
+            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+            change_by_id: admin?.dataValues.id,
+            description: JSON.stringify({
+                stock_status: { old: findDiamond.dataValues?.is_active === ActiveStatus.Active ? "Enabled" : "Disabled", new: status === ActiveStatus.Active ? "Enabled" : "Disabled" }
+            }),
+            log_type: Log_Type.Stock,
+            action_type: Log_action_type.EDIT,
+        }, {
+            transaction: trn
+        })
+
+        await trn.commit();
 
         await refreshMaterializedViews()
         return resSuccess({ message: RECORD_UPDATE })
@@ -764,7 +919,7 @@ export const TransferStockByCompany = async (req: Request) => {
 
         await StockLogs.create({
             change_at: getLocalDate(),
-            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
             change_by_id: admin?.dataValues?.id,
             reference_id: findCompany.dataValues.id,
             description: `Stock transfer to ${findCompany.dataValues.name} and stock is ${stock_list?.join(", ")}`,

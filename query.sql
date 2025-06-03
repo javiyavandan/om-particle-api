@@ -2212,3 +2212,15 @@ ALTER TABLE IF EXISTS public.blogs
 
 ALTER TYPE public.image_type
     ADD VALUE 'blog_image' AFTER 'concierge';
+
+ALTER TYPE public.stock_log_type
+    ADD VALUE 'stock' AFTER 'stock_transfer';
+
+CREATE TYPE log_action_type AS ENUM(
+	'add',
+	'edit',
+	'delete'
+);
+
+ALTER TABLE IF EXISTS stock_logs
+    ADD COLUMN action_type log_action_type;
