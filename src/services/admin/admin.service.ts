@@ -598,12 +598,53 @@ export const dashboard = async (req: Request) => {
         type: QueryTypes.SELECT,
       }
     );
+
     const totalCaratMemo: any = await dbContext.query(
-      `SELECT SUM(memo_list.total_weight) FROM memo_list WHERE '0' = '0' ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} ${dateFilter("memo_list")}`,
+      `SELECT SUM(row_weight) AS total_weight FROM (
+        SELECT 
+          id, 
+          SUM((elem ->> 'weight')::double precision) AS row_weight 
+        FROM 
+          memo_list,
+          LATERAL jsonb_array_elements(memo_details) AS elem 
+        WHERE 
+          (elem ->> 'weight') IS NOT NULL 
+          AND (elem ->> 'is_return') != '1' 
+          ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} 
+          ${dateFilter("memo_list")}
+        GROUP BY id
+          ) AS sub`,
       {
         type: QueryTypes.SELECT,
       }
     );
+
+    const totalMemoStone: any = await dbContext.query(
+      `SELECT COUNT(*)
+        FROM memo_list,
+        LATERAL jsonb_array_elements(memo_details) AS elem
+        WHERE  
+          (elem ->> 'is_return') != '1' 
+          ${company_id ? `AND memo_list.company_id = ${company_id}` : ""} 
+          ${dateFilter("memo_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const totalInvoiceStone: any = await dbContext.query(
+      `SELECT COUNT(*)
+        FROM invoice_list,
+        LATERAL jsonb_array_elements(invoice_details) AS elem
+        WHERE
+          '0' = '0'
+          ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} 
+          ${dateFilter("invoice_list")}`,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
     const totalCaratInvoice: any = await dbContext.query(
       `SELECT SUM(invoice_list.total_weight) FROM invoice_list WHERE '0' = '0' ${company_id ? `AND invoice_list.company_id = ${company_id}` : ""} ${dateFilter("invoice_list")}`,
       {
@@ -623,15 +664,32 @@ export const dashboard = async (req: Request) => {
       }
     );
 
+    const totalAvailableStone: any = await dbContext.query(
+      `SELECT COUNT(*) FROM diamond_list WHERE diamond_list.status != 'sold' ${company_id ? `AND diamond_list.company_id = ${company_id}` : ""} ${dateFilter("diamond_list")}`,
+      {
+        type: QueryTypes.SELECT
+      }
+    )
+
+    const totalAvailableCarat: any = await dbContext.query(
+      `SELECT SUM(diamond_list.weight) FROM diamond_list WHERE diamond_list.status != 'sold' ${company_id ? `AND diamond_list.company_id = ${company_id}` : ""} ${dateFilter("diamond_list")}`,
+      {
+        type: QueryTypes.SELECT
+      }
+    )
 
     return resSuccess({
       data: {
         totalMemo: totalMemo[0]?.count,
         totalInvoice: totalInvoice[0]?.count,
-        totalCaratMemo: totalCaratMemo[0]?.sum?.toFixed(2) ?? "",
+        totalCaratMemo: totalCaratMemo[0]?.total_weight?.toFixed(2) ?? "",
         totalCaratInvoice: totalCaratInvoice[0]?.sum?.toFixed(2) ?? "",
         totalInvoicePrice: totalInvoicePrice[0]?.sum?.toFixed(2) ?? "",
         totalMemoPrice: totalMemoPrice[0]?.sum?.toFixed(2) ?? "",
+        totalAvailableStone: totalAvailableStone[0]?.count,
+        totalAvailableCarat: totalAvailableCarat[0]?.sum?.toFixed(2) ?? "",
+        totalMemoStone: totalMemoStone[0]?.count,
+        totalInvoiceStone: totalInvoiceStone[0]?.count
       }
     })
 

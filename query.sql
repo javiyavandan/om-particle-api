@@ -1956,7 +1956,7 @@ AS
     (ru.first_name::text || ' '::text) || COALESCE(ru.last_name, ''::character varying)::text AS rejected_by_name,
     (rtu.first_name::text || ' '::text) || COALESCE(rtu.last_name, ''::character varying)::text AS return_by_name,
     (clu.first_name::text || ' '::text) || COALESCE(clu.last_name, ''::character varying)::text AS close_by_name,
-    json_agg(jsonb_build_object('id', td.id, 'transfer_stock_status', td.status, 'sender_price', td.sender_price, 'receiver_price', td.receiver_price, 'stock_id', d.stock_id, 'shape', sm.name, 'color', cm.name, 'weight', d.weight, 'clarity', cl.name, 'rate', d.rate, 'lab', lm.name, 'local_location', d.local_location, 'quantity', d.quantity, 'company', com.name, 'created_at', d.created_at)) AS transfer_details
+    json_agg(jsonb_build_object('id', td.id, 'transfer_stock_status', td.status, 'sender_price', td.sender_price, 'receiver_price', td.receiver_price, 'stock_id', d.stock_id, 'shape', sm.name, 'color', cm.name, 'weight', d.weight, 'clarity', cl.name, 'rate', d.rate, 'status', d.status, 'lab', lm.name, 'local_location', d.local_location, 'quantity', d.quantity, 'company', com.name, 'created_at', d.created_at)) AS transfer_details
    FROM stock_transfers st
      LEFT JOIN companys sc ON sc.id = st.sender
      LEFT JOIN companys rc ON rc.id = st.receiver
@@ -2142,3 +2142,85 @@ WITH
 	DATA;
 
 ALTER TABLE IF EXISTS PUBLIC.API_LIST OWNER TO POSTGRES;
+
+------------------------------ 29-05-2025 blog --------------------------------
+CREATE TABLE public.blog_category
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY,
+    name character varying NOT NULL,
+    slug character varying NOT NULL,
+    is_active bit NOT NULL DEFAULT '1',
+    created_at timestamp with time zone NOT NULL,
+    created_by bigint NOT NULL,
+    modified_at timestamp with time zone,
+    modified_by bigint,
+    sort_order bigint NOT NULL,
+    is_deleted bit NOT NULL DEFAULT '0',
+    deleted_at timestamp with time zone,
+    deleted_by bigint,
+    PRIMARY KEY (id)
+);
+
+ALTER TABLE IF EXISTS public.blog_category
+    OWNER to postgres;
+
+CREATE TABLE IF NOT EXISTS public.blogs
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    meta_title character varying COLLATE pg_catalog."default" NOT NULL,
+    meta_description character varying COLLATE pg_catalog."default",
+    meta_keywords character varying COLLATE pg_catalog."default",
+    title character varying COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default" NOT NULL,
+    sort_description character varying COLLATE pg_catalog."default",
+    id_image bigint NOT NULL,
+    id_banner_image bigint NOT NULL,
+    author character varying COLLATE pg_catalog."default" NOT NULL,
+    slug character varying COLLATE pg_catalog."default" NOT NULL,
+    id_category bigint,
+    is_active bit(1) NOT NULL DEFAULT '1'::"bit",
+    created_at timestamp with time zone NOT NULL,
+    created_by bigint NOT NULL,
+    modified_at timestamp with time zone,
+    modified_by bigint,
+    sort_order bigint NOT NULL,
+    is_deleted bit(1) NOT NULL DEFAULT '0'::"bit",
+    deleted_at timestamp with time zone,
+    deleted_by bigint,
+    CONSTRAINT blogs_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_banner FOREIGN KEY (id_banner_image)
+        REFERENCES public.images (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT fk_category FOREIGN KEY (id_category)
+        REFERENCES public.blog_categories (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT fk_image FOREIGN KEY (id_image)
+        REFERENCES public.images (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.blogs
+    OWNER to postgres;
+
+ALTER TYPE public.image_type
+    ADD VALUE 'blog_image' AFTER 'concierge';
+
+ALTER TYPE public.stock_log_type
+    ADD VALUE 'stock' AFTER 'stock_transfer';
+
+CREATE TYPE log_action_type AS ENUM(
+	'add',
+	'edit',
+	'delete'
+);
+
+ALTER TABLE IF EXISTS stock_logs
+    ADD COLUMN action_type log_action_type;

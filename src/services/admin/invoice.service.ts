@@ -564,12 +564,12 @@ export const invoiceCreation = async (data: any) => {
                             is_deleted: DeleteStatus.No,
                             status: StockStatus.MEMO
                         },
+                        attributes: ['id'],
                         transaction: trn
                     })
-                    const memoDetailCheck = allStock?.map((item) => {
-                        const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
-                        return stock
-                    })
+                    const stockIdList = allStock?.map((item) => item?.dataValues?.id)
+
+                    const memoDetailCheck = memoDetail?.filter((item) => stockIdList?.includes(item?.dataValues?.stock_id))
 
                     if (memoDetailCheck?.length === 0) {
                         await Memo.update({
@@ -582,7 +582,7 @@ export const invoiceCreation = async (data: any) => {
 
                         await StockLogs.create({
                             change_at: getLocalDate(),
-                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                             change_by_id: admin?.dataValues?.id,
                             log_type: Log_Type.MEMO,
                             reference_id: memo_id,
@@ -647,7 +647,7 @@ export const invoiceCreation = async (data: any) => {
                     if (memoStatus === MEMO_STATUS.Close) {
                         await StockLogs.create({
                             change_at: getLocalDate(),
-                            change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                            change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                             change_by_id: admin?.dataValues?.id,
                             log_type: Log_Type.MEMO,
                             reference_id: memo_id,
@@ -657,7 +657,7 @@ export const invoiceCreation = async (data: any) => {
 
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.INVOICE,
                         reference_id: invoiceId,
@@ -720,7 +720,7 @@ export const invoiceCreation = async (data: any) => {
 
             await StockLogs.create({
                 change_at: getLocalDate(),
-                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                 change_by_id: admin?.dataValues?.id,
                 log_type: Log_Type.INVOICE,
                 reference_id: invoiceId,
@@ -734,7 +734,7 @@ export const invoiceCreation = async (data: any) => {
             await refreshMaterializedViews()
 
             return resSuccess({
-                 data: invoiceId
+                data: invoiceId
             })
         } catch (error) {
             console.log(error)

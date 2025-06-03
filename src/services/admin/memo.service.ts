@@ -556,7 +556,7 @@ export const memoCreation = async (data: any) => {
 
             await StockLogs.create({
                 change_at: getLocalDate(),
-                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                 change_by_id: admin?.dataValues?.id,
                 log_type: Log_Type.MEMO,
                 reference_id: memoId,
@@ -572,7 +572,7 @@ export const memoCreation = async (data: any) => {
             await refreshMaterializedViews()
 
             return resSuccess({
-                 data: memoId
+                data: memoId
             })
         } catch (error) {
             await trn.rollback();
@@ -962,10 +962,8 @@ export const returnMemoStock = async (req: Request) => {
                         status: StockStatus.MEMO
                     }
                 })
-                const memoDetailCheck = allStock?.filter((item) => {
-                    const stock = memoDetail?.find((s: any) => s.dataValues?.stock_id == item?.dataValues?.id)
-                    return stock
-                })
+                const stockIdList = allStock?.map((item) => item?.dataValues?.id)
+                const memoDetailCheck = memoDetail?.filter((item) => stockIdList?.includes(item?.dataValues?.stock_id))
 
                 if (memoDetailCheck?.length === 0) {
                     await Memo.update({
@@ -979,7 +977,7 @@ export const returnMemoStock = async (req: Request) => {
 
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -990,7 +988,7 @@ export const returnMemoStock = async (req: Request) => {
                 } else {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -1058,7 +1056,7 @@ export const returnMemoStock = async (req: Request) => {
                 if (memoStatus === MEMO_STATUS.Close) {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -1069,7 +1067,7 @@ export const returnMemoStock = async (req: Request) => {
                 } else {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
