@@ -8,10 +8,12 @@ import Diamonds from "../../model/diamond.model";
 import Master from "../../model/masters.model";
 import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
 import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from "../../utils/app-constants";
-import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus } from "../../utils/app-enumeration";
+import { FILE_STATUS, FILE_BULK_UPLOAD_TYPE, Master_type, DeleteStatus, StockStatus, ActiveStatus, Log_Type, Log_action_type } from "../../utils/app-enumeration";
 import { FILE_NOT_FOUND, PRODUCT_BULK_UPLOAD_FILE_MIMETYPE_ERROR_MESSAGE, PRODUCT_BULK_UPLOAD_FILE_SIZE_ERROR_MESSAGE, DEFAULT_STATUS_CODE_SUCCESS, ERROR_NOT_FOUND, INVALID_HEADER, REQUIRED_ERROR_MESSAGE } from "../../utils/app-messages";
-import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews} from "../../utils/shared-functions";
+import { resUnprocessableEntity, getLocalDate, resUnknownError, resSuccess, prepareMessageFromParams, refreshMaterializedViews } from "../../utils/shared-functions";
 import { Op } from "sequelize";
+import AppUser from "../../model/app_user.model";
+import StockLogs from "../../model/stock-logs.model";
 const readXlsxFile = require("read-excel-file/node");
 
 export const deleteStockCSVFile = async (req: Request) => {
@@ -245,6 +247,17 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         });
 
         let deleteStockList = [];
+        const deleteStockLogs = [];
+
+        const admin = await AppUser.findOne({
+            where: {
+                id: idAppUser,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
         for (const row of rows) {
             currentGroupIndex++;
             if (row["stock #"]) {
@@ -269,6 +282,15 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
                         deleted_by: idAppUser,
                         deleted_at: getLocalDate(),
                     });
+                    deleteStockLogs.push({
+                        reference_id: findStock.dataValues.id,
+                        change_at: getLocalDate(),
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                        change_by_id: admin?.dataValues?.id,
+                        description: `${findStock.dataValues?.stock_id} stock deleted`,
+                        log_type: Log_Type.Stock,
+                        action_type: Log_action_type.DELETE,
+                    })
                 }
             }
         }
@@ -278,7 +300,7 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
         }
 
         return resSuccess({
-            data: deleteStockList,
+            data: { deleteStockList, deleteStockLogs },
         });
     } catch (e) {
         throw e;
@@ -286,14 +308,29 @@ const getStockFromRows = async (rows: any, idAppUser: any) => {
 };
 
 const deleteGroupToDB = async (list: any) => {
+    let trn;
     try {
-        await Diamonds.bulkCreate(list, {
+
+        trn = await dbContext.transaction();
+
+        await Diamonds.bulkCreate(list.deleteStockList, {
             updateOnDuplicate: ["is_deleted", "deleted_by", "deleted_at"],
         });
+
+        if (list.deleteStockLogs) {
+            await StockLogs.bulkCreate(list.deleteStockLogs, {
+                transaction: trn,
+            });
+        }
+
+        await trn.commit();
         await refreshMaterializedViews()
 
         return resSuccess({ data: list });
     } catch (e) {
+        if (trn) {
+            await trn.rollback();
+        }
         throw e;
     }
 };

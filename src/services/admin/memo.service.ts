@@ -556,7 +556,7 @@ export const memoCreation = async (data: any) => {
 
             await StockLogs.create({
                 change_at: getLocalDate(),
-                change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                 change_by_id: admin?.dataValues?.id,
                 log_type: Log_Type.MEMO,
                 reference_id: memoId,
@@ -977,7 +977,7 @@ export const returnMemoStock = async (req: Request) => {
 
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -988,7 +988,7 @@ export const returnMemoStock = async (req: Request) => {
                 } else {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -1056,7 +1056,7 @@ export const returnMemoStock = async (req: Request) => {
                 if (memoStatus === MEMO_STATUS.Close) {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,
@@ -1067,7 +1067,7 @@ export const returnMemoStock = async (req: Request) => {
                 } else {
                     await StockLogs.create({
                         change_at: getLocalDate(),
-                        change_by: admin?.dataValues?.first_name + " " + admin?.dataValues?.last_name,
+                        change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
                         change_by_id: admin?.dataValues?.id,
                         log_type: Log_Type.MEMO,
                         reference_id: memo_id,

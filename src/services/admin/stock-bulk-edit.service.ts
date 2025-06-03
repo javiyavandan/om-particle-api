@@ -5,13 +5,15 @@ import { PRODUCT_BULK_UPLOAD_FILE_MIMETYPE, PRODUCT_BULK_UPLOAD_FILE_SIZE } from
 import { PRODUCT_CSV_FOLDER_PATH } from "../../config/env.var";
 import { moveFileToLocation } from "../../helpers/file-helper";
 import ProductBulkUploadFile from "../../model/product-bulk-upload-file.model";
-import { APiStockStatus, DeleteStatus, FILE_BULK_UPLOAD_TYPE, FILE_STATUS, Is_loose_diamond, Master_type } from "../../utils/app-enumeration";
+import { ActiveStatus, APiStockStatus, DeleteStatus, FILE_BULK_UPLOAD_TYPE, FILE_STATUS, Is_loose_diamond, Log_action_type, Log_Type, Master_type } from "../../utils/app-enumeration";
 import Master from "../../model/masters.model";
 import Company from "../../model/companys.model";
 import Diamonds from "../../model/diamond.model";
 import Apis from "../../model/apis";
 import ApiStockDetails from "../../model/api-stock-details";
 import dbContext from "../../config/dbContext";
+import StockLogs from "../../model/stock-logs.model";
+import AppUser from "../../model/app_user.model";
 const readXlsxFile = require("read-excel-file/node");
 
 export const editStockCSVFile = async (req: Request) => {
@@ -145,7 +147,7 @@ const processCSVFile = async (path: string, idAppUser: number) => {
         )
         if (resProducts.code !== DEFAULT_STATUS_CODE_SUCCESS) return resProducts;
 
-        const resUTDB = await updateToDb(resProducts.data, resRows.data.headers);
+        const resUTDB = await updateToDb(resProducts.data, resRows.data.headers, idAppUser);
         if (resUTDB.code !== DEFAULT_STATUS_CODE_SUCCESS) return resUTDB;
 
         return resSuccess({
@@ -300,6 +302,9 @@ const getStockFromRows = async (headers: string[], rows: any, idAppUser: any) =>
 
         const updateStockList = [];
         const seenStockNumbers: string[] = [];
+        const updateStockLogs = [];
+        const getNameFromId = (list: any[], id: any) => list.find((item: any) => item.dataValues.id == id)?.dataValues?.name;
+
         for (const row of rows) {
             currentGroupIndex++;
             if (row["stock #"]) {
@@ -747,6 +752,140 @@ const getStockFromRows = async (headers: string[], rows: any, idAppUser: any) =>
                     }
                 }
 
+                const updatedFields: any = {};
+                const original = findStock.dataValues;
+
+                function shouldInclude(oldVal: any, newVal: null) {
+                    const isNullOrUndef = (val: null | undefined) => val === null || val === undefined;
+
+                    if (isNullOrUndef(oldVal) && isNullOrUndef(newVal)) {
+                        return false;
+                    }
+
+                    if (newVal === null) {
+                        return true;
+                    }
+
+                    return String(oldVal) !== String(newVal);
+                }
+
+                const fieldsToCheck = [
+                    "quantity",
+                    "remain_quantity",
+                    "weight",
+                    "rate",
+                    "color",
+                    "color_intensity",
+                    "color_over_tone",
+                    "clarity",
+                    "video",
+                    "image",
+                    "certificate",
+                    "lab",
+                    "report",
+                    "polish",
+                    "symmetry",
+                    "measurement_height",
+                    "measurement_width",
+                    "measurement_depth",
+                    "table_value",
+                    "depth_value",
+                    "ratio",
+                    "fluorescence",
+                    "company_id",
+                    "local_location",
+                    "user_comments",
+                    "admin_comments",
+                    "loose_diamond"
+                ];
+                const oldValues: any = {
+                    quantity: original.quantity,
+                    remain_quantity: original.remain_quantity,
+                    weight: original.weight,
+                    shape: getNameFromId(shapeList, original.shape),
+                    rate: original.rate,
+                    color: getNameFromId(colorList, original.color),
+                    color_intensity: original.color_intensity ? getNameFromId(colorIntensityList, original.color_intensity) : null,
+                    color_over_tone: original.color_over_tone,
+                    clarity: original.clarity ? getNameFromId(clarityList, original.clarity) : null,
+                    video: original.video,
+                    image: original.image,
+                    certificate: original.certificate,
+                    lab: original.lab ? getNameFromId(labList, original.lab) : null,
+                    report: original.report,
+                    polish: original.polish ? getNameFromId(polishList, original.polish) : null,
+                    symmetry: original.symmetry ? getNameFromId(SymmetryList, original.symmetry) : null,
+                    measurement_height: original.measurement_height,
+                    measurement_width: original.measurement_width,
+                    measurement_depth: original.measurement_depth,
+                    table_value: original.table_value,
+                    depth_value: original.depth_value,
+                    ratio: original.ratio,
+                    fluorescence: original.fluorescence ? getNameFromId(fluorescenceList, original.fluorescence) : null,
+                    company_id: original.company_id ? getNameFromId(companyList, original.company_id) : null,
+                    local_location: original.local_location,
+                    user_comments: original.user_comments,
+                    admin_comments: original.admin_comments,
+                    loose_diamond: original.loose_diamond
+                }
+
+                const currentValues: any = {
+                    shape: isShapeInclude ? row.shape : oldValues.shape,
+                    quantity: quantity ? quantity !=
+                        oldValues.remain_quantity
+                        ? Number(findStock.dataValues.quantity) +
+                        Number(quantity) -
+                        Number(findStock.dataValues.remain_quantity)
+                        : oldValues.quantity : oldValues.quantity,
+                    remain_quantity: quantity ?? oldValues.quantity,
+                    weight: isWeightInclude ? weight : oldValues.weight,
+                    rate: isRateInclude ? rate : oldValues.rate,
+                    color: isColorInclude ? row.color : oldValues.color,
+                    color_intensity: isColorIntensityInclude ? row["color intensity"] : oldValues.color_intensity,
+                    color_over_tone: isColorOverToneInclude ? row["color over tone"] : oldValues.color_over_tone,
+                    clarity: isClarityInclude ? row.clarity : oldValues.clarity,
+                    video: isVideoInclude ? video : oldValues.video,
+                    image: isImageInclude ? image : oldValues.image,
+                    certificate: isCertificateInclude ? certificate : oldValues.certificate,
+                    lab: isLabInclude ? row.lab : oldValues.lab,
+                    report: isReportInclude ? report : oldValues.report,
+                    polish: isPolishInclude ? row.polish : oldValues.polish,
+                    symmetry: isSymmetryInclude ? row.symmetry : oldValues.symmetry,
+                    measurement_height: isMeasurementHeightInclude ? measurementHeight : oldValues.measurement_height,
+                    measurement_width: isMeasurementWidthInclude ? measurementWidth : oldValues.measurement_width,
+                    measurement_depth: isMeasurementDepthInclude ? measurementDepth : oldValues.measurement_depth,
+                    table_value: isTableInclude ? table : oldValues.table_value,
+                    depth_value: isDepthInclude ? depth : oldValues.depth_value,
+                    ratio: isRatioInclude ? ratio : oldValues.ratio,
+                    fluorescence: isFluorescenceInclude ? row.fluorescence : oldValues.fluorescence,
+                    company_id: isLocationInclude ? location : oldValues.company_id,
+                    local_location: isLocalLocationInclude ? localLocation : oldValues.local_location,
+                    user_comments: isUserCommentInclude ? userComment : oldValues.user_comments,
+                    admin_comments: isAdminCommentInclude ? adminComment : oldValues.admin_comments,
+                    loose_diamond: isLooseDiamondInclude ? looseDiamond : oldValues.loose_diamond,
+                };
+
+                for (const field of fieldsToCheck) {
+                    const oldVal = oldValues[field];
+                    const newVal = currentValues[field];
+
+                    if (shouldInclude(oldVal, newVal)) {
+                        updatedFields[field] = {
+                            old: oldVal,
+                            new: newVal
+                        };
+                    }
+                }
+
+                if (Object.keys(updatedFields).length > 0) {
+                    updateStockLogs.push({
+                        reference_id: original.id,
+                        stock_id: row["stock #"],
+                        updated_fields: updatedFields
+                    });
+                }
+
+
                 updateStockList.push({
                     ...findStock.dataValues,
                     id: findStock.dataValues.id,
@@ -796,7 +935,7 @@ const getStockFromRows = async (headers: string[], rows: any, idAppUser: any) =>
         }
 
         return resSuccess({
-            data: updateStockList
+            data: { updateStockList, updateStockLogs }
         });
 
     } catch (error) {
@@ -804,9 +943,18 @@ const getStockFromRows = async (headers: string[], rows: any, idAppUser: any) =>
     }
 }
 
-const updateToDb = async (list: any, headers: string[]) => {
+const updateToDb = async (list: any, headers: string[], idAppUser: number) => {
     let trn;
     try {
+        const admin = await AppUser.findOne({
+            where: {
+                id: idAppUser,
+                is_deleted: DeleteStatus.No,
+                is_active: ActiveStatus.Active
+            },
+            attributes: ["first_name", "last_name", "id"],
+        })
+
         const attributes = [
             "shape", "quantity", "remain_quantity", "weight", "rate", "color", "color_intensity", "color_over_tone", "clarity",
             "video", "image", "certificate", "lab", "report", "polish", "symmetry", "measurement_height", "measurement_width",
@@ -869,7 +1017,7 @@ const updateToDb = async (list: any, headers: string[]) => {
 
         trn = await dbContext.transaction();
 
-        const update = await Diamonds.bulkCreate(list, {
+        const update = await Diamonds.bulkCreate(list?.updateStockList, {
             updateOnDuplicate: [
                 ...updateAttribute,
                 "modified_by",
@@ -878,8 +1026,8 @@ const updateToDb = async (list: any, headers: string[]) => {
             transaction: trn
         });
 
-        for (let i = 0; i < list?.length; i++) {
-            const stock = list[i];
+        for (let i = 0; i < list?.updateStockList?.length; i++) {
+            const stock = list?.updateStockList[i];
             const findApi = api.filter((item) => item.dataValues?.company_id === stock?.dataValues?.company_id)
             if (stock?.dataValues?.certificate != null && stock?.dataValues?.certificate != undefined && stock?.dataValues?.certificate != '' && stock?.dataValues?.report != null && findApi?.length > 0) {
                 for (let j = 0; j < findApi.length; j++) {
@@ -897,6 +1045,24 @@ const updateToDb = async (list: any, headers: string[]) => {
             }
         }
 
+        if (list.updateStockLogs.length > 0) {
+            const updateLogs = [];
+            for (const log of list.updateStockLogs) {
+                updateLogs.push({
+                    reference_id: log.reference_id,
+                    change_at: getLocalDate(),
+                    change_by: ((admin?.dataValues?.first_name ?? "") + " " + (admin?.dataValues?.last_name ?? "")),
+                    change_by_id: admin?.dataValues?.id,
+                    description: JSON.stringify(log.updated_fields),
+                    log_type: Log_Type.Stock,
+                    action_type: Log_action_type.EDIT,
+                })
+            }
+            await StockLogs.bulkCreate(updateLogs, {
+                transaction: trn,
+            });
+        }
+
         if (apiDetail?.length > 0) {
             await ApiStockDetails.bulkCreate(apiDetail, {
                 transaction: trn,
@@ -906,7 +1072,7 @@ const updateToDb = async (list: any, headers: string[]) => {
         await trn.commit();
         await refreshMaterializedViews()
 
-        return resSuccess({ data: list });
+        return resSuccess({ data: list?.updateStockList });
     } catch (error) {
         if (trn) {
             await trn.rollback();
